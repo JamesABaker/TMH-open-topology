@@ -45,6 +45,9 @@ TMH positions, topology, evidence ...
 
 <!--
 TMs In Protein TOPology = TiPTop
+TYpical Protein TOPology = TypTop
+TypIcal Protein TOPology = TipTop
+Tip Top Protein Topology
  -->
 
  # Back-end sources and references
