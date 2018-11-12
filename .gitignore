@@ -1,1 +1,5 @@
+# Junk Apple file
 .DS_STORE
+
+#Even git-lfs won't handle these...
+uniprot-all-list.txt

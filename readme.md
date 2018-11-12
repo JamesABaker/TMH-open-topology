@@ -1,4 +1,4 @@
-# TipTop Table
+# Tip Top Table
 
 <!--
 ## A tool to evaluate the topological preference of a TMH based on a population of TMHs with known topology
@@ -16,9 +16,9 @@ UniProt ID
 
 ## Output
 
-TMH positions, topology, evidence ...
+TMH positions, topology, evidence, Info on TMH ...
 
-# To Do
+# Goals
 
 ## Minimum
 
@@ -32,26 +32,28 @@ TMH positions, topology, evidence ...
 -   [ ] Pore residue?
 -   [ ] Delta H for each TMHs
 -   [ ] TipTop Score
+-   [ ] Hydrophobicity
 
 ## Above and beyond
 
 -   [ ] Include Better Predict TMHs Than Transmem
-  -   [ ] Inside outside topology
-  -   [ ] Remove signal peptides
+-   [ ] Inside outside topology
+-   [ ] Remove signal peptides
 -   [ ] Brew/Apt/Bash installer script?
 -   [ ] Implement in Django
-
-
+-   [ ] Beta barrels
 
 <!--
+
 TMs In Protein TOPology = TiPTop
 TYpical Protein TOPology = TypTop
 TypIcal Protein TOPology = TipTop
 Tip Top Protein Topology
+
  -->
 
- # Back-end sources and references
+# Back-end sources and references
 
- `topdb_all.xml` from http://topdb.enzim.hu Dobson, L., Langó, T., Reményi, I. & Tusnády, G. E. Expediting topology data gathering for the TOPDB database. Nucleic Acids Res. 43, D283–D289 (2015).
+ `topdb_all.xml` from <http://topdb.enzim.hu> Dobson, L., Langó, T., Reményi, I. & Tusnády, G. E. Expediting topology data gathering for the TOPDB database. Nucleic Acids Res. 43, D283–D289 (2015).
 
- `mptopoTblXml.xml` from http://blanco.biomol.uci.edu/mptopo/ Jayasinghe, S. MPtopo: A database of membrane protein topology. Protein Sci. 10, 455–458 (2001).
+ `mptopoTblXml.xml` from <http://blanco.biomol.uci.edu/mptopo/> Jayasinghe, S. MPtopo: A database of membrane protein topology. Protein Sci. 10, 455–458 (2001).
