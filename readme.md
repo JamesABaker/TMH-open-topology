@@ -22,24 +22,28 @@ TMH positions, topology, evidence, Info on TMH ...
 
 ## Minimum
 
--   [ ] Verify if in MPTOPO and get TMH positions and I/O topology
--   [ ] Verify if in TOPDB and get TMH positions and I/O topology
--   [ ] Verify if in UniProt and get TMH positions and I/O topology
--   [ ] Record source evidence
+-   [ ] Verify if in MPTOPO
+      -  [x] TMH positions
+      -  [ ] I/O topology
+-   [ ] Verify if in TOPDB
+      -  [x] TMH positions
+      -  [ ] I/O topology
+-   [ ] Verify if in UniProt
+      -  [x] TMH positions
+      -  [ ] I/O topology
+-   [x] Record source evidence
 
 ## Useful
 
--   [ ] Pore residue?
+-   [ ] Pore residue score
 -   [ ] Delta H for each TMHs
 -   [ ] TipTop Score
 -   [ ] Hydrophobicity
 
 ## Above and beyond
 
--   [ ] Include Better Predict TMHs Than Transmem
--   [ ] Inside outside topology
+-   [ ] Include Better Predict TMHs Than UniProt's Transmem
 -   [ ] Remove signal peptides
--   [ ] Brew/Apt/Bash installer script?
 -   [ ] Implement in Django
 -   [ ] Beta barrels
 

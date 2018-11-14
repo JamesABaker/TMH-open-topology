@@ -3,3 +3,6 @@
 
 #Even git-lfs won't handle these...
 uniprot-all-list.txt
+
+# UniProt files
+uniprot_bin/*.txt
