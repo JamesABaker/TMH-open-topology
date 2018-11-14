@@ -25,6 +25,9 @@ def print_list(a_list):
 
 
 def mptopo_check(query_id):
+    '''
+    Checks the MPTOPO xml file for transmem regions mapped to the UniProt search ID.
+    '''
     # Sequences don't exactly match UniProt
     evidence_type = str("MPTopo")
 
@@ -42,7 +45,7 @@ def mptopo_check(query_id):
                 # print(str(feature.text))
                 # print(str(query_id))
                 if str(feature.text) == str(query_id):
-                    print("Matches query...")
+                    # print("Matches query...")
                     for tm_find in features:
                         if str(tm_find.tag) == str("tmSegments"):
                             record_present = True
@@ -152,7 +155,7 @@ def uniprot_check(query_id):
                 tmh_stop = int(f.location.end)
                 tmh_sequence = str(
                     record.seq[(f.location.start):(f.location.end)])
-        print_list([query_id, tmh_start, tmh_stop, evidence_type])
+                print_list([query_id, tmh_start, tmh_stop, evidence_type])
     return(record_present)
 
 
