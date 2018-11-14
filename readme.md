@@ -12,29 +12,42 @@ Enter your input below. Note that this is not the full protein sequence, nor a f
 
 ## Input
 
-UniProt ID
+UniProt IDs in a list separated by a new line.
+
+```
+V4JVY4
+V4MIU5
+V4LN14
+A4S3Y1
+V4LFC3
+A4S6G3
+V4LV30
+A4SB49
+V4L9D6
+A4SA02
+```
 
 ## Output
 
-TMH positions, topology, evidence, Info on TMH ...
+A comma separated table of transmembrane helix positions, topology, evidence source, info on TMH ...
 
 # Goals
 
 ## Minimum
 
--   [ ] Verify if in MPTOPO
+-   [x] Verify if in MPTOPO
       -  [x] TMH positions
       -  [ ] I/O topology
--   [ ] Verify if in TOPDB
+-   [x] Verify if in TOPDB
       -  [x] TMH positions
       -  [ ] I/O topology
--   [ ] Verify if in UniProt
+-   [x] Verify if in UniProt
       -  [x] TMH positions
       -  [ ] I/O topology
 -   [x] Record source evidence
 
 ## Useful
-
+-   [ ] Membrane location
 -   [ ] Pore residue score
 -   [ ] Delta H for each TMHs
 -   [ ] TipTop Score
@@ -52,12 +65,14 @@ TMH positions, topology, evidence, Info on TMH ...
 TMs In Protein TOPology = TiPTop
 TYpical Protein TOPology = TypTop
 TypIcal Protein TOPology = TipTop
-Tip Top Protein Topology
+Tip Top Protein Topology Table
 
  -->
 
 # Back-end sources and references
 
- `topdb_all.xml` from <http://topdb.enzim.hu> Dobson, L., Langó, T., Reményi, I. & Tusnády, G. E. Expediting topology data gathering for the TOPDB database. Nucleic Acids Res. 43, D283–D289 (2015).
+UniProt `uniprot_bin/*.txt` <https://www.uniprot.org/> Bateman, A. et al. UniProt: the universal protein knowledgebase. Nucleic Acids Res. 45, D158–D169 (2017).
 
- `mptopoTblXml.xml` from <http://blanco.biomol.uci.edu/mptopo/> Jayasinghe, S. MPtopo: A database of membrane protein topology. Protein Sci. 10, 455–458 (2001).
+ TopDB `topdb_all.xml` from <http://topdb.enzim.hu> Dobson, L., Langó, T., Reményi, I. & Tusnády, G. E. Expediting topology data gathering for the TOPDB database. Nucleic Acids Res. 43, D283–D289 (2015).
+
+ MPTOPO `mptopoTblXml.xml` from <http://blanco.biomol.uci.edu/mptopo/> Jayasinghe, S. MPtopo: A database of membrane protein topology. Protein Sci. 10, 455–458 (2001).

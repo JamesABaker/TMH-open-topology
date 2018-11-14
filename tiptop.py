@@ -8,25 +8,26 @@ import re
 import sys
 import xml.etree.ElementTree as ET
 
-
 # Print clean list
+
+
 def print_list(a_list):
     '''
     Prints a human readable list that is compatible with a csv file reader
     '''
-    output=str(a_list).replace("'", "")
-    output=str(output).replace("[", "")
-    output=str(output).replace("]", "")
+    output = str(a_list).replace("'", "")
+    output = str(output).replace("[", "")
+    output = str(output).replace("]", "")
     print(output)
 
 
+### Database query functions ###
 
 # Check MPtopo
 
-
 def mptopo_check(query_id):
     '''
-    Checks the MPTOPO xml file for transmem regions mapped to the UniProt search ID.
+    Checks the MPTOPO xml file for transmemembrane regions mapped to a UniProt ID.
     '''
     # Sequences don't exactly match UniProt
     evidence_type = str("MPTopo")
@@ -43,13 +44,13 @@ def mptopo_check(query_id):
             if str(feature.tag) == str("uniprotNumber"):
                 #print("Found a uniprot id")
                 # print(str(feature.text))
-                # print(str(query_id))
                 if str(feature.text) == str(query_id):
-                    # print("Matches query...")
+                    #print("Matches query...")
                     for tm_find in features:
+                        print(str(tm_find))
                         if str(tm_find.tag) == str("tmSegments"):
                             record_present = True
-                            print("Checking for tmsegments")
+                            #print("Checking for tmsegments")
                             tmhs = tm_find.getchildren()
                             print(tmhs)
                             for tmh_segment in tmhs:
@@ -71,7 +72,6 @@ def mptopo_check(query_id):
 
 
 def topdb_check(query_id):
-
     '''
     Checks the TOPDB xml file for transmem regions mapped to the UniProt search ID.
     '''
@@ -111,8 +111,8 @@ def topdb_check(query_id):
 
     return(record_present)
 
-
 # Check UniProt function
+
 
 def uniprot_check(query_id):
     '''
@@ -171,14 +171,15 @@ def clean_query(query):
     return(a_clean_query)
 
 
-### The actual script starts here ###
+### Canonical script starts here ###
 
 # Parse the xml static files since this is the slowest part
 topdb = ET.parse('topdb_all.xml')
 mptopo = ET.parse('mptopoTblXml.xml')
 
 # Grab the input list
-input_file = open('input.txt', 'r')
+user_file = str(sys.argv[1])
+input_file = open(user_file, 'r')
 input_query = input_file.readlines()
 
 
@@ -186,6 +187,7 @@ input_query = input_file.readlines()
 print("UniProt ID, TMH start position, TMH end position, Database source")
 for a_query in input_query:
     a_query = clean_query(a_query)
+    print(clean_query(a_query))
     mptopo_check(a_query)
     uniprot_check(a_query)
     topdb_check(a_query)
