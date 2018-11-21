@@ -52,10 +52,11 @@ A comma separated table of transmembrane helix positions, topology, evidence sou
 -   [ ] Delta H for each TMHs
 -   [ ] TipTop Score
 -   [ ] Hydrophobicity
+-   [ ] Include Better Predict TMHs Than UniProt's Transmem
 
 ## Above and beyond
 
--   [ ] Include Better Predict TMHs Than UniProt's Transmem
+
 -   [ ] Remove signal peptides
 -   [ ] Implement in Django
 -   [ ] Beta barrels

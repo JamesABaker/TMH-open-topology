@@ -10,10 +10,9 @@ import xml.etree.ElementTree as ET
 
 # Print clean list
 
-
 def print_list(a_list):
     '''
-    Prints a human readable list that is compatible with a csv file reader
+    Prints a human readable csv line from a python list.
     '''
     output = str(a_list).replace("'", "")
     output = str(output).replace("[", "")
@@ -42,17 +41,17 @@ def mptopo_check(query_id):
         for feature in features:
 
             if str(feature.tag) == str("uniprotNumber"):
-                #print("Found a uniprot id")
+                # print("Found a uniprot id")
                 # print(str(feature.text))
                 if str(feature.text) == str(query_id):
-                    #print("Matches query...")
+                    # print("Matches query...")
                     for tm_find in features:
                         print(str(tm_find))
                         if str(tm_find.tag) == str("tmSegments"):
                             record_present = True
-                            #print("Checking for tmsegments")
+                            # print("Checking for tmsegments")
                             tmhs = tm_find.getchildren()
-                            print(tmhs)
+                            # print(tmhs)
                             for tmh_segment in tmhs:
 
                                 tmh_locations = tmh_segment.getchildren()
@@ -187,7 +186,7 @@ input_query = input_file.readlines()
 print("UniProt ID, TMH start position, TMH end position, Database source")
 for a_query in input_query:
     a_query = clean_query(a_query)
-    print(clean_query(a_query))
+    # print(clean_query(a_query))
     mptopo_check(a_query)
     uniprot_check(a_query)
     topdb_check(a_query)
