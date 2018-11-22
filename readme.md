@@ -37,16 +37,17 @@ A comma separated table of transmembrane helix positions, topology, evidence sou
 
 -   [x] Verify if in MPTOPO
       -  [x] TMH positions
-      -  [ ] I/O topology
+      -  [x] I/O topology
 -   [x] Verify if in TOPDB
       -  [x] TMH positions
-      -  [ ] I/O topology
+      -  [x] I/O topology
 -   [x] Verify if in UniProt
       -  [x] TMH positions
       -  [ ] I/O topology
 -   [x] Record source evidence
 
 ## Useful
+
 -   [ ] Membrane location
 -   [ ] Pore residue score
 -   [ ] Delta H for each TMHs

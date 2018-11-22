@@ -10,14 +10,17 @@ import xml.etree.ElementTree as ET
 
 # Print clean list
 
+
 def print_list(a_list):
     '''
     Prints a human readable csv line from a python list.
     '''
-    output = str(a_list).replace("'", "")
-    output = str(output).replace("[", "")
-    output = str(output).replace("]", "")
-    print(output)
+    if a_list is not None:
+        output = str(a_list).replace("], [", "\n")
+        output = str(output).replace("'", "")
+        output = str(output).replace("[", "")
+        output = str(output).replace("]", "")
+        print(output)
 
 
 ### Database query functions ###
@@ -36,36 +39,51 @@ def mptopo_check(query_id):
 #        ElementTree.dump(item)
 
     for node in mptopo.findall('.//mptopoProtein'):
-        record_present = False
         features = node.getchildren()
         for feature in features:
 
-            if str(feature.tag) == str("uniprotNumber"):
-                # print("Found a uniprot id")
-                # print(str(feature.text))
-                if str(feature.text) == str(query_id):
-                    # print("Matches query...")
-                    for tm_find in features:
-                        print(str(tm_find))
-                        if str(tm_find.tag) == str("tmSegments"):
-                            record_present = True
-                            # print("Checking for tmsegments")
-                            tmhs = tm_find.getchildren()
-                            # print(tmhs)
-                            for tmh_segment in tmhs:
+            if str(feature.tag) == str("uniprotNumber") and str(feature.text) == str(query_id):
+                # print("Matches query...")
+                for tm_find in features:
+                    # print(str(tm_find))
+                    if str(tm_find.tag) == str("nTerminal"):
+                        # Frustratingly, the database only includes the first topology. Re-entrant helices will therefor be incorrect.
+                        starting_topology = tm_find.text
+                        #print(str(starting_topology))
+                    if str(tm_find.tag) == str("tmSegments"):
+                        # print("Checking for tmsegments")
+                        tmhs = tm_find.getchildren()
+                        # print(tmhs)
 
-                                tmh_locations = tmh_segment.getchildren()
+                        tmh_list=[]
+                        for tm_number, tmh_segment in enumerate(tmhs):
+                            tmh_locations = tmh_segment.getchildren()
+                            for tmh_location in tmh_locations:
+                                if str(tmh_location.tag) == str("beginIndex"):
+                                    tmh_start = int(tmh_location.text)
+                                elif str(tmh_location.tag) == str("endIndex"):
+                                    tmh_stop = int(tmh_location.text)
+                                else:
+                                    pass
+                            #get around 0 base counting
+                            tmh_number = tm_number +1
+                            #if tmh number is even and N terminal is inside
+                            if tmh_number % 2 == 0 and str(starting_topology)==str("in"):
+                                tmh_topology = "Outside"
+                            #if tmh number is even and N terminal is outside
+                            elif tmh_number % 2 == 0 and str(starting_topology)==str("out"):
+                                tmh_topology = "Inside"
+                            #if tmh number is odd and N terminal is inside
+                            elif tmh_number % 2 != 0 and str(starting_topology)==str("in"):
+                                tmh_topology = "Inside"
+                            #if tmh number is odd and N terminal is inside
+                            elif tmh_number % 2 != 0 and str(starting_topology)==str("out"):
+                                tmh_topology = "Outside"
+                            else:
+                                tmh_topology = "Unknown"
 
-                                for tmh_location in tmh_locations:
-                                    if str(tmh_location.tag) == str("beginIndex"):
-                                        tmh_start = int(tmh_location.text)
-                                    elif str(tmh_location.tag) == str("endIndex"):
-                                        tmh_stop = int(tmh_location.text)
-                                    else:
-                                        pass
-                                print_list(
-                                    [query_id, tmh_start, tmh_stop, evidence_type])
-    return(record_present)
+                            tmh_list.append([query_id, tmh_start, tmh_stop, tmh_topology, evidence_type])
+                        return(tmh_list)
 
 # Check topdb
 
@@ -74,8 +92,6 @@ def topdb_check(query_id):
     '''
     Checks the TOPDB xml file for transmem regions mapped to the UniProt search ID.
     '''
-
-    record_present = False
 
     evidence_type = str("TOPDB")
 
@@ -93,22 +109,25 @@ def topdb_check(query_id):
                         acs = id_type.getchildren()
                         for ids in acs:
                             if str(ids.text) == query_id:
+                                tmh_list=[]
                                 for feature in records:
                                     if str(feature.tag) == str("Topology"):
                                         topology = feature.getchildren()
                                         for item in topology:
                                             if str(item.tag) == str("Regions"):
                                                 tmhs = item.getchildren()
-                                                for tmh in tmhs:
-                                                    tmh_details = tmh.attrib
+                                                for feature_number, feature in enumerate(tmhs):
+                                                    tmh_details = feature.attrib
+
                                                     if str(tmh_details["Loc"]) == str("Membrane"):
-                                                        record_present = True
                                                         tmh_start = tmh_details["Begin"]
                                                         tmh_stop = tmh_details["End"]
-                                                        print_list(
-                                                            [query_id, tmh_start, tmh_stop, evidence_type])
 
-    return(record_present)
+                                                        tmh_list.append([query_id, tmh_start, tmh_stop, tmh_topology, evidence_type])
+                                                    # Although it is about as elegant as a sledgehammer,
+                                                    # this catches the previous non tmh environment.
+                                                    tmh_topology = tmh_details["Loc"]
+                                return(tmh_list)
 
 # Check UniProt function
 
@@ -117,7 +136,6 @@ def uniprot_check(query_id):
     '''
     This fetches the uniprot id from either a local bin or the internet and checks the annotation for TRANSMEM regions.
     '''
-    record_present = False
     evidence_type = str("UniProt")
 
     # The UniProt bin contains lots of uniprot files.
@@ -154,8 +172,7 @@ def uniprot_check(query_id):
                 tmh_stop = int(f.location.end)
                 tmh_sequence = str(
                     record.seq[(f.location.start):(f.location.end)])
-                print_list([query_id, tmh_start, tmh_stop, evidence_type])
-    return(record_present)
+                return([query_id, tmh_start, tmh_stop, evidence_type])
 
 
 def clean_query(query):
@@ -183,10 +200,10 @@ input_query = input_file.readlines()
 
 
 # run the searches on each query in the input list
-print("UniProt ID, TMH start position, TMH end position, Database source")
+print("UniProt ID, TMH start position, TMH end position, N-terminal, Database source")
 for a_query in input_query:
     a_query = clean_query(a_query)
     # print(clean_query(a_query))
-    mptopo_check(a_query)
-    uniprot_check(a_query)
-    topdb_check(a_query)
+    print_list(mptopo_check(a_query))
+    print_list(uniprot_check(a_query))
+    print_list(topdb_check(a_query))
