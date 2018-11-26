@@ -43,7 +43,7 @@ A comma separated table of transmembrane helix positions, topology, evidence sou
       -  [x] I/O topology
 -   [x] Verify if in UniProt
       -  [x] TMH positions
-      -  [ ] I/O topology
+      -  [x] I/O topology
 -   [x] Record source evidence
 
 ## Useful
