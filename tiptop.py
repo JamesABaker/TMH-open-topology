@@ -80,7 +80,7 @@ def mptopo_check(query_id):
                             elif tmh_number % 2 != 0 and str(starting_topology) == str("out"):
                                 tmh_topology = "Outside"
                             else:
-                                tmh_topology = "NA"
+                                tmh_topology = "None"
 
                             tmh_list.append(
                                 [query_id, tmh_start, tmh_stop, tmh_topology, evidence_type])
@@ -187,26 +187,24 @@ def uniprot_check(query_id):
                     for index, a_features in enumerate(record.features):
                         tmh_topology = None
                         n_location = None
-                        if a_features.type == subcellular_location and a_features.location.start < previous_feautre_location and a_features.location.end > previous_feautre_location:
-                            inside_locations = [
-                                "Cytoplasmic", "Mitochondrial intermembrane"]
-                            outside_locations = [
-                                "Extracellular", "Lumenal", "Mitochondrial matrix"]
-                            for location in inside_locations:
-                                if location in str(a_features.qualifiers):
-                                    tmh_topology = "Inside"
-                                    n_location = location
-                            for location in outside_locations:
-                                if location in str(a_features.qualifiers):
-                                    tmh_topology = "Outside"
-                                    n_location = location
-                            try:
-                                if "side" in str(tmh_topology):
-                                    pass
-                            except(UnboundLocalError):
-                                tmh_topology = "NA"
-                            tmh_list.append(
-                                [query_id, tmh_start, tmh_stop, tmh_topology, evidence_type, n_location])
+                        if 'UnknownPosition' in str(a_features.location.start) or 'UnknownPosition' in str(a_features.location.end):
+                            pass
+                        else:
+                            if a_features.type == subcellular_location and a_features.location.start < previous_feautre_location and a_features.location.end > previous_feautre_location:
+                                inside_locations = [
+                                    "Cytoplasmic", "Mitochondrial intermembrane"]
+                                outside_locations = [
+                                    "Extracellular", "Lumenal", "Mitochondrial matrix"]
+                                for location in inside_locations:
+                                    if location in str(a_features.qualifiers):
+                                        tmh_topology = "Inside"
+                                        n_location = location
+                                for location in outside_locations:
+                                    if location in str(a_features.qualifiers):
+                                        tmh_topology = "Outside"
+                                        n_location = location
+                                tmh_list.append(
+                                    [query_id, tmh_start, tmh_stop, tmh_topology, evidence_type, n_location])
         return(tmh_list)
 
 
@@ -235,7 +233,7 @@ input_query = input_file.readlines()
 
 
 # run the searches on each query in the input list
-print("UniProt ID, TMH start position, TMH end position, N-terminal, Database source")
+print("UniProt ID, TMH start position, TMH end position, N-terminal starting side, Database source, N-terminal starting subcellular location")
 for a_query in input_query:
     a_query = clean_query(a_query)
     # print(clean_query(a_query))
