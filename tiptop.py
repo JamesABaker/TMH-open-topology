@@ -15,13 +15,13 @@ def print_list(a_list):
     '''
     Prints a human readable csv line from a python list.
     '''
-    if a_list is not None:
+    # print(a_list)
+    if a_list is not None and str(a_list) != str("[]"):
         output = str(a_list).replace("], [", "\n")
         output = str(output).replace("'", "")
         output = str(output).replace("[", "")
         output = str(output).replace("]", "")
         print(output)
-
 
 ### Database query functions ###
 
@@ -34,9 +34,8 @@ def mptopo_check(query_id):
     # Sequences don't exactly match UniProt
     evidence_type = str("MPTopo")
 
-
-#    for item in root.findall("item"):
-#        ElementTree.dump(item)
+    #for item in root.findall("item"):
+    #   ElementTree.dump(item)
 
     for node in mptopo.findall('.//mptopoProtein'):
         features = node.getchildren()
@@ -65,8 +64,11 @@ def mptopo_check(query_id):
                                     tmh_stop = int(tmh_location.text)
                                 else:
                                     pass
+
                             # get around 0 base counting
                             tmh_number = tm_number + 1
+
+                            # %2==0 checks if number is even.
                             # if tmh number is even and N terminal is inside
                             if tmh_number % 2 == 0 and str(starting_topology) == str("in"):
                                 tmh_topology = "Outside"
@@ -133,10 +135,10 @@ def topdb_check(query_id):
 
 # Check UniProt function
 
-
 def uniprot_check(query_id):
     '''
-    This fetches the uniprot id from either a local bin or the internet and checks the annotation for TRANSMEM regions.
+    This fetches the uniprot id from either a local bin or the internet and
+    checks the annotation for TRANSMEM regions.
     '''
     evidence_type = str("UniProt")
     tmh_list = []
@@ -178,6 +180,14 @@ def uniprot_check(query_id):
                 tmh_stop = int(f.location.end)
                 tmh_sequence = str(
                     record.seq[(f.location.start):(f.location.end)])
+                if f.location.start - 5 <= 0:
+                    n_ter_seq=str(record.seq[0:(f.location.start)])
+                elif f.location.start - 5 > 0:
+                    n_ter_seq=str(record.seq[(f.location.start-5):(f.location.start)])
+                if f.location.end + 5 <= len(record.seq):
+                    c_ter_seq=str(record.seq[(f.location.end):(f.location.end+5)])
+                elif f.location.end + 5 > len(record.seq):
+                    c_ter_seq=str(record.seq[(f.location.end):(len(record.seq))])
 
                 # A list of common locations. These need sorting into inside/outside locations
                 locations = ["Chloroplast intermembrane", "Cytoplasmic", "Extracellular", "Intravacuolar", "Intravirion", "Lumenal", "Lumenal, thylakoid", "Lumenal, vesicle", "Mitochondrial intermembrane",
@@ -192,9 +202,9 @@ def uniprot_check(query_id):
                         else:
                             if a_features.type == subcellular_location and a_features.location.start < previous_feautre_location and a_features.location.end > previous_feautre_location:
                                 inside_locations = [
-                                    "Cytoplasmic", "Mitochondrial intermembrane"]
+                                    "Cytoplasmic", "Mitochondrial matrix"]
                                 outside_locations = [
-                                    "Extracellular", "Lumenal", "Mitochondrial matrix"]
+                                    "Extracellular", "Lumenal", "Periplasmic", "Mitochondrial intermembrane"]
                                 for location in inside_locations:
                                     if location in str(a_features.qualifiers):
                                         tmh_topology = "Inside"
@@ -203,8 +213,10 @@ def uniprot_check(query_id):
                                     if location in str(a_features.qualifiers):
                                         tmh_topology = "Outside"
                                         n_location = location
-                                tmh_list.append(
-                                    [query_id, tmh_start, tmh_stop, tmh_topology, evidence_type, n_location])
+
+
+
+                                tmh_list.append([query_id, tmh_start, tmh_stop, tmh_topology, evidence_type, n_location, n_ter_seq, tmh_sequence, c_ter_seq])
         return(tmh_list)
 
 
@@ -233,7 +245,7 @@ input_query = input_file.readlines()
 
 
 # run the searches on each query in the input list
-print("UniProt ID, TMH start position, TMH end position, N-terminal starting side, Database source, N-terminal starting subcellular location")
+print("UniProt ID, TMH start position, TMH end position, N-terminal starting side, Database source, N-terminal starting subcellular location, n-flank-seq, tmh-seq, c-flank-seq")
 for a_query in input_query:
     a_query = clean_query(a_query)
     # print(clean_query(a_query))
