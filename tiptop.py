@@ -27,6 +27,7 @@ def print_list(a_list):
 
 # Check MPtopo
 
+
 def mptopo_check(query_id):
     '''
     Checks the MPTOPO xml file for transmemembrane regions mapped to a UniProt ID.
@@ -34,7 +35,7 @@ def mptopo_check(query_id):
     # Sequences don't exactly match UniProt
     evidence_type = str("MPTopo")
 
-    #for item in root.findall("item"):
+    # for item in root.findall("item"):
     #   ElementTree.dump(item)
 
     for node in mptopo.findall('.//mptopoProtein'):
@@ -135,6 +136,7 @@ def topdb_check(query_id):
 
 # Check UniProt function
 
+
 def uniprot_check(query_id):
     '''
     This fetches the uniprot id from either a local bin or the internet and
@@ -167,8 +169,16 @@ def uniprot_check(query_id):
     #avoid_features = ["TRANSMEM", "INTRAMEM"]
 
     # We iterate through each record, parsed by biopython.
+    # First we need a list of all the TMH stop start positions
     for record in SeqIO.parse(filename, input_format):
+        list_of_tmhs = []
+        for i, f in enumerate(record.features):
+            if f.type == feature_type:
+                list_of_tmhs.append(int(f.location.start))
+                list_of_tmhs.append(int(f.location.end))
 
+    # Now we can go through the record and write each TMH and any info to a file (or just print it!)
+    for record in SeqIO.parse(filename, input_format):
         new_record = True
         tmd_count = 0
         for i, f in enumerate(record.features):
@@ -180,14 +190,39 @@ def uniprot_check(query_id):
                 tmh_stop = int(f.location.end)
                 tmh_sequence = str(
                     record.seq[(f.location.start):(f.location.end)])
-                if f.location.start - 5 <= 0:
-                    n_ter_seq=str(record.seq[0:(f.location.start)])
-                elif f.location.start - 5 > 0:
-                    n_ter_seq=str(record.seq[(f.location.start-5):(f.location.start)])
-                if f.location.end + 5 <= len(record.seq):
-                    c_ter_seq=str(record.seq[(f.location.end):(f.location.end+5)])
-                elif f.location.end + 5 > len(record.seq):
-                    c_ter_seq=str(record.seq[(f.location.end):(len(record.seq))])
+
+                ### N terminal clash ###
+                n_clash = False
+                #print(list_of_tmhs)
+                for position in list_of_tmhs:
+                    # checks if another tmh/non-flank feature is near
+                    # print(int(f.location.start - 5) , position , int(f.location.start))
+                    if int(f.location.start - 10) <= position < int(f.location.start):
+                        n_ter_seq = str(
+                            record.seq[int(position+abs(position-int(f.location.start))/2):(f.location.start)])
+                        n_clash = True
+                if int(f.location.start) - 5 <= 0 and n_clash == False:
+                    n_ter_seq = str(record.seq[0:(f.location.start)])
+                elif int(f.location.start) - 5 > 0 and n_clash == False:
+                    n_ter_seq = str(
+                        record.seq[(f.location.start - 5):(f.location.start)])
+
+
+                ### C terminal clash ###
+                c_clash = False
+                for position in list_of_tmhs:
+                    # checks if another tmh/non-flank feature is near
+                    if int(f.location.end) < position <= int(f.location.end)+10:
+                        c_ter_seq = str(record.seq[int(f.location.end):int((abs(int(f.location.end)-position)/2)+int(f.location.end))])
+                        c_clash = True
+
+                if int(f.location.end) + 5 <= len(record.seq) and c_clash == False:
+                    c_ter_seq = str(
+                        record.seq[(f.location.end):(f.location.end + 5)])
+                elif int(f.location.end) + 5 > len(record.seq) and c_clash == False:
+                    c_ter_seq = str(
+                        record.seq[(f.location.end):(len(record.seq))])
+
 
                 # A list of common locations. These need sorting into inside/outside locations
                 locations = ["Chloroplast intermembrane", "Cytoplasmic", "Extracellular", "Intravacuolar", "Intravirion", "Lumenal", "Lumenal, thylakoid", "Lumenal, vesicle", "Mitochondrial intermembrane",
@@ -214,9 +249,8 @@ def uniprot_check(query_id):
                                         tmh_topology = "Outside"
                                         n_location = location
 
-
-
-                                tmh_list.append([query_id, tmh_start, tmh_stop, tmh_topology, evidence_type, n_location, n_ter_seq, tmh_sequence, c_ter_seq])
+                                tmh_list.append([query_id, tmh_start, tmh_stop, tmh_topology,
+                                                 evidence_type, n_location, n_ter_seq, tmh_sequence, c_ter_seq])
         return(tmh_list)
 
 
