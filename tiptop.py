@@ -32,6 +32,7 @@ def mptopo_check(query_id):
     '''
     Checks the MPTOPO xml file for transmemembrane regions mapped to a UniProt ID.
     '''
+
     # Sequences don't exactly match UniProt
     evidence_type = str("MPTopo")
 
@@ -89,8 +90,7 @@ def mptopo_check(query_id):
                                 [query_id, tmh_start, tmh_stop, tmh_topology, evidence_type])
                         return(tmh_list)
 
-# Check topdb
-
+# Check TOPDB
 
 def topdb_check(query_id):
     '''
@@ -99,12 +99,26 @@ def topdb_check(query_id):
 
     evidence_type = str("TOPDB")
 
-
 #    for item in root.findall("item"):
 #        ElementTree.dump(item)
 
     for node in topdb.findall('.//TOPDB'):
+        # Clears the sequence in case of a blank or dodgy record.
+        sequence = None
+        membrane_location = None
+
         records = node.getchildren()
+        for features in records:
+            if str(features.tag) == str("Sequence"):
+                for seq_info in features:
+                    if str(seq_info.tag) == str("Seq"):
+                        sequence = str(seq_info.text).replace("\n", "")
+                        sequence = sequence.replace(" ", "")
+                        # print(sequence)
+        for features in records:
+            if str(features.tag) == str("Membrane"):
+                membrane_location = str(features.text)
+                # print(sequence)
         for features in records:
             if str(features.tag) == str("CrossRef"):
                 id_types = features.getchildren()
@@ -124,24 +138,34 @@ def topdb_check(query_id):
                                                     tmh_details = feature.attrib
 
                                                     if str(tmh_details["Loc"]) == str("Membrane"):
-                                                        tmh_start = tmh_details["Begin"]
-                                                        tmh_stop = tmh_details["End"]
+                                                        tmh_start = int(
+                                                            tmh_details["Begin"])
+                                                        tmh_stop = int(
+                                                            tmh_details["End"])
+                                                        ### NO FLANK CLASH CHECKS! NUMBERS WILL BE WRONG!!! ###
+                                                        n_ter_seq = sequence[tmh_start -
+                                                                             5:tmh_start]
+                                                        tmh_sequence = sequence[tmh_start:tmh_stop]
+                                                        c_ter_seq = sequence[tmh_stop:tmh_stop + 5]
 
                                                         tmh_list.append(
-                                                            [query_id, tmh_start, tmh_stop, tmh_topology, evidence_type])
+                                                            [query_id, tmh_start, tmh_stop, tmh_topology, evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq])
+
                                                     # Although it is about as elegant as a sledgehammer,
                                                     # this catches the previous non tmh environment.
                                                     tmh_topology = tmh_details["Loc"]
                                 return(tmh_list)
+        sequence = None
+        membrane_location = None
 
 # Check UniProt function
-
 
 def uniprot_check(query_id):
     '''
     This fetches the uniprot id from either a local bin or the internet and
     checks the annotation for TRANSMEM regions.
     '''
+
     evidence_type = str("UniProt")
     tmh_list = []
 
@@ -193,13 +217,13 @@ def uniprot_check(query_id):
 
                 ### N terminal clash ###
                 n_clash = False
-                #print(list_of_tmhs)
+                # print(list_of_tmhs)
                 for position in list_of_tmhs:
                     # checks if another tmh/non-flank feature is near
                     # print(int(f.location.start - 5) , position , int(f.location.start))
                     if int(f.location.start - 10) <= position < int(f.location.start):
                         n_ter_seq = str(
-                            record.seq[int(position+abs(position-int(f.location.start))/2):(f.location.start)])
+                            record.seq[int(position + abs(position - int(f.location.start)) / 2):(f.location.start)])
                         n_clash = True
                 if int(f.location.start) - 5 <= 0 and n_clash == False:
                     n_ter_seq = str(record.seq[0:(f.location.start)])
@@ -207,13 +231,13 @@ def uniprot_check(query_id):
                     n_ter_seq = str(
                         record.seq[(f.location.start - 5):(f.location.start)])
 
-
                 ### C terminal clash ###
                 c_clash = False
                 for position in list_of_tmhs:
                     # checks if another tmh/non-flank feature is near
-                    if int(f.location.end) < position <= int(f.location.end)+10:
-                        c_ter_seq = str(record.seq[int(f.location.end):int((abs(int(f.location.end)-position)/2)+int(f.location.end))])
+                    if int(f.location.end) < position <= int(f.location.end) + 10:
+                        c_ter_seq = str(record.seq[int(f.location.end):int(
+                            (abs(int(f.location.end) - position) / 2) + int(f.location.end))])
                         c_clash = True
 
                 if int(f.location.end) + 5 <= len(record.seq) and c_clash == False:
@@ -223,7 +247,6 @@ def uniprot_check(query_id):
                     c_ter_seq = str(
                         record.seq[(f.location.end):(len(record.seq))])
 
-
                 # A list of common locations. These need sorting into inside/outside locations
                 locations = ["Chloroplast intermembrane", "Cytoplasmic", "Extracellular", "Intravacuolar", "Intravirion", "Lumenal", "Lumenal, thylakoid", "Lumenal, vesicle", "Mitochondrial intermembrane",
                              "Mitochondrial matrix", "Periplasmic", "Peroxisomal", "Peroxisomal matrix", "Nuclear", "Perinuclear space", "Stromal", "Vacuolar", "Vesicular", "Virion surface"]
@@ -231,7 +254,7 @@ def uniprot_check(query_id):
                     previous_feautre_location = tmh_start - 1
                     for index, a_features in enumerate(record.features):
                         tmh_topology = None
-                        n_location = None
+                        membrane_location = None
                         if 'UnknownPosition' in str(a_features.location.start) or 'UnknownPosition' in str(a_features.location.end):
                             pass
                         else:
@@ -243,14 +266,14 @@ def uniprot_check(query_id):
                                 for location in inside_locations:
                                     if location in str(a_features.qualifiers):
                                         tmh_topology = "Inside"
-                                        n_location = location
+                                        membrane_location = location
                                 for location in outside_locations:
                                     if location in str(a_features.qualifiers):
                                         tmh_topology = "Outside"
-                                        n_location = location
+                                        membrane_location = location
 
                                 tmh_list.append([query_id, tmh_start, tmh_stop, tmh_topology,
-                                                 evidence_type, n_location, n_ter_seq, tmh_sequence, c_ter_seq])
+                                                 evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq])
         return(tmh_list)
 
 
@@ -278,11 +301,12 @@ input_file = open(user_file, 'r')
 input_query = input_file.readlines()
 
 
-# run the searches on each query in the input list
+# Run the searches on each query in the input list
 print("UniProt ID, TMH start position, TMH end position, N-terminal starting side, Database source, N-terminal starting subcellular location, n-flank-seq, tmh-seq, c-flank-seq")
 for a_query in input_query:
     a_query = clean_query(a_query)
     # print(clean_query(a_query))
-    print_list(mptopo_check(a_query))
+    ### OPM needs adding to here also. ###
+    # print_list(mptopo_check(a_query))
     print_list(uniprot_check(a_query))
     print_list(topdb_check(a_query))
