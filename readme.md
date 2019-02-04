@@ -12,6 +12,8 @@ Enter your input below. Note that this is not the full protein sequence, nor a f
 
 ## Input
 
+
+
 UniProt IDs in a list separated by a new line.
 
 ```
@@ -27,9 +29,12 @@ V4L9D6
 A4SA02
 ```
 
+ This should be fetched from:
+ Human SwissProt query https://www.uniprot.org/uniprot/?query=reviewed:yes%20AND%20organism:%22Homo%20sapiens%20(Human)%20[9606]%22&format=fasta&force=true&sort=score
+
 ## Output
 
-A comma separated table of transmembrane helix positions, topology, evidence source, info on TMH ...
+A comma database of transmembrane helix positions, topology, evidence source, and computed information about a TMH.
 
 # Goals
 
@@ -45,10 +50,12 @@ A comma separated table of transmembrane helix positions, topology, evidence sou
       -  [x] TMH positions
       -  [x] I/O topology
 -   [x] Record source evidence
+-   [ ] Database format
+-   [ ] Automate database building
 
 ## Useful
 
--   [ ] Membrane location
+-   [x] Membrane location
 -   [ ] Pore residue score
 -   [ ] Delta H for each TMHs
 -   [ ] TipTop Score
@@ -57,18 +64,15 @@ A comma separated table of transmembrane helix positions, topology, evidence sou
 
 ## Above and beyond
 
-
--   [ ] Remove signal peptides
+-   [x] Remove signal peptides
 -   [ ] Implement in Django
 -   [ ] Beta barrels
 
 <!--
-
 TMs In Protein TOPology = TiPTop
 TYpical Protein TOPology = TypTop
 TypIcal Protein TOPology = TipTop
 Tip Top Protein Topology Table
-
  -->
 
 # Back-end sources and references
@@ -78,3 +82,5 @@ UniProt `uniprot_bin/*.txt` <https://www.uniprot.org/> Bateman, A. et al. UniPro
  TopDB `topdb_all.xml` from <http://topdb.enzim.hu> Dobson, L., Langó, T., Reményi, I. & Tusnády, G. E. Expediting topology data gathering for the TOPDB database. Nucleic Acids Res. 43, D283–D289 (2015).
 
  MPTOPO `mptopoTblXml.xml` from <http://blanco.biomol.uci.edu/mptopo/> Jayasinghe, S. MPtopo: A database of membrane protein topology. Protein Sci. 10, 455–458 (2001).
+
+ OPM `opm/*.txt` from <https://opm.phar.umich.edu/> Lomize, M. A., Pogozheva, I. D., Joo, H., Mosberg, H. I. & Lomize, A. L. OPM database and PPM web server: resources for positioning of proteins in membranes. Nucleic Acids Res. 40, D370–D376 (2012).

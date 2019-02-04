@@ -120,9 +120,9 @@ inside_freqs = (aa_count(in_seq_all))
 tmh_freqs = (aa_count(tmh_seq_all))
 outside_freqs = (aa_count(out_seq_all))
 
-print("\nInside flank\n",aa_count(in_seq_all))
-print("\nTMH\n",aa_count(tmh_seq_all))
-print("\nOutside flank\n"aa_count(out_seq_all))
+print("\nInside flank\n", aa_count(in_seq_all))
+print("\nTMH\n", aa_count(tmh_seq_all))
+print("\nOutside flank\n", aa_count(out_seq_all))
 
 
 plot(inside_freqs[1], tmh_freqs[1], outside_freqs[1], str("Residue Frequency"))
