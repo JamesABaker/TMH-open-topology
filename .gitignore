@@ -6,3 +6,13 @@ uniprot-all-list.txt
 
 # UniProt files
 uniprot_bin/*.txt
+
+# Secrets secrets
+tmh_database/tmh_database/secret_key.txt
+
+*.tsv
+*.csv
+*.txt
+*.pdf
+
+tmh_database/*.xml
