@@ -16,18 +16,8 @@ Enter your input below. Note that this is not the full protein sequence, nor a f
 
 UniProt IDs in a list separated by a new line.
 
-```
-V4JVY4
-V4MIU5
-V4LN14
-A4S3Y1
-V4LFC3
-A4S6G3
-V4LV30
-A4SB49
-V4L9D6
-A4SA02
-```
+Tricky TMHs for testing:
+P32897
 
  This should be fetched from:
  Human SwissProt query https://www.uniprot.org/uniprot/?query=reviewed:yes%20AND%20organism:%22Homo%20sapiens%20(Human)%20[9606]%22&format=fasta&force=true&sort=score

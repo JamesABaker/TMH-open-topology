@@ -46,3 +46,4 @@ class Test(models.Model):
     test_result = models.TextField()
     test_score = models.IntegerField(default=None)
     created_date = models.DateTimeField(default=timezone.now)
+    # This also needs to have a feature number. For example, we need to ask the question is this tmh 1 of 1 or 1 of 7. Can this information be obtained from elsewhere?
