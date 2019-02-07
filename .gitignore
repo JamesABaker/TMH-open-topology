@@ -9,6 +9,7 @@ uniprot_bin/*.txt
 
 # Secrets secrets
 tmh_database/tmh_database/secret_key.txt
+tmh_database/tmh_database/settings.py
 
 *.tsv
 *.csv
