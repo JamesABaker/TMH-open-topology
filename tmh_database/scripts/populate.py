@@ -19,7 +19,6 @@ from tmh_db.models import Protein
 # Could just do a bash script? wget is more reliable than the python modules
 
 
-
 # Print clean list
 
 
@@ -104,6 +103,7 @@ def mptopo_check(query_id):
 
 # Check TOPDB
 
+
 def topdb_check(query_id):
     '''
     Checks the TOPDB xml file for transmem regions mapped to the UniProt search ID.
@@ -129,7 +129,9 @@ def topdb_check(query_id):
                         # print(sequence)
         for features in records:
             if str(features.tag) == str("Membrane"):
+
                 membrane_location = str(features.text)
+                print("Membrane known: ",membrane_location)
                 # print(sequence)
         for features in records:
             if str(features.tag) == str("CrossRef"):
@@ -172,16 +174,18 @@ def topdb_check(query_id):
 
 # Check UniProt function
 
+
 def uniprot_check(query_id):
     '''
     This fetches the uniprot id from either a local bin or the internet and
     checks the annotation for TRANSMEM regions.
     '''
-
+    print("Checking", query_id, "in UniProt.")
     evidence_type = str("UniProt")
     tmh_list = []
 
     # The UniProt bin contains lots of uniprot files.
+    # This bin should either routinely be flushed, or have some sort of timestamp.
     try:
         filename = str("uniprot_bin/" + query_id + ".txt")
         file = open(filename, "r")
@@ -210,8 +214,15 @@ def uniprot_check(query_id):
         list_of_tmhs = []
         for i, f in enumerate(record.features):
             if f.type == feature_type:
-                list_of_tmhs.append(int(f.location.start))
-                list_of_tmhs.append(int(f.location.end))
+                if "UnknownPosition" in str(f.location.start) or "UnknownPosition" in str(f.location.end):
+                    pass
+                    print(record.id, "Unknown position for TMH in record")
+                else:
+                    list_of_tmhs.append(int(f.location.start))
+                    list_of_tmhs.append(int(f.location.end))
+                    print("TMH in record")
+
+
 
     # Now we can go through the record and write each TMH and any info to a file (or just print it!)
     for record in SeqIO.parse(filename, input_format):
@@ -219,81 +230,96 @@ def uniprot_check(query_id):
         tmd_count = 0
         for i, f in enumerate(record.features):
             if f.type == feature_type:
-                n_terminal_start = "none"
-                record_present = True
-                full_sequence = str(record.seq)
-                tmh_start = int(f.location.start)
-                tmh_stop = int(f.location.end)
-                tmh_sequence = str(
-                    record.seq[(f.location.start):(f.location.end)])
+                if "UnknownPosition" in str(f.location.start) or "UnknownPosition" in str(f.location.end):
+                    pass
+                else:
+                    n_terminal_start = "none"
+                    record_present = True
+                    full_sequence = str(record.seq)
+                    tmh_start = int(f.location.start)
+                    tmh_stop = int(f.location.end)
+                    tmh_sequence = str(
+                        record.seq[(f.location.start):(f.location.end)])
 
-                ### N terminal clash ###
-                n_clash = False
-                # print(list_of_tmhs)
-                for position in list_of_tmhs:
-                    # checks if another tmh/non-flank feature is near
-                    # print(int(f.location.start - 5) , position , int(f.location.start))
-                    if int(f.location.start - 10) <= position < int(f.location.start):
+                    ### N terminal clash ###
+                    n_clash = False
+                    # print(list_of_tmhs)
+                    for position in list_of_tmhs:
+                        # checks if another tmh/non-flank feature is near
+                        # print(int(f.location.start - 5) , position , int(f.location.start))
+                        if int(f.location.start - 10) <= position < int(f.location.start):
+                            n_ter_seq = str(
+                                record.seq[int(position + abs(position - int(f.location.start)) / 2):(f.location.start)])
+                            n_clash = True
+                            print("N-clash detected")
+                    if int(f.location.start) - 5 <= 0 and n_clash == False:
+                        n_ter_seq = str(record.seq[0:(f.location.start)])
+                    elif int(f.location.start) - 5 > 0 and n_clash == False:
                         n_ter_seq = str(
-                            record.seq[int(position + abs(position - int(f.location.start)) / 2):(f.location.start)])
-                        n_clash = True
-                if int(f.location.start) - 5 <= 0 and n_clash == False:
-                    n_ter_seq = str(record.seq[0:(f.location.start)])
-                elif int(f.location.start) - 5 > 0 and n_clash == False:
-                    n_ter_seq = str(
-                        record.seq[(f.location.start - 5):(f.location.start)])
+                            record.seq[(f.location.start - 5):(f.location.start)])
 
-                ### C terminal clash ###
-                c_clash = False
-                for position in list_of_tmhs:
-                    # checks if another tmh/non-flank feature is near
-                    if int(f.location.end) < position <= int(f.location.end) + 10:
-                        c_ter_seq = str(record.seq[int(f.location.end):int(
-                            (abs(int(f.location.end) - position) / 2) + int(f.location.end))])
-                        c_clash = True
+                    ### C terminal clash ###
+                    c_clash = False
+                    for position in list_of_tmhs:
+                        # checks if another tmh/non-flank feature is near
+                        if int(f.location.end) < position <= int(f.location.end) + 10:
+                            c_ter_seq = str(record.seq[int(f.location.end):int(
+                                (abs(int(f.location.end) - position) / 2) + int(f.location.end))])
+                            c_clash = True
+                            print("C-clash detected")
 
-                if int(f.location.end) + 5 <= len(record.seq) and c_clash == False:
-                    c_ter_seq = str(
-                        record.seq[(f.location.end):(f.location.end + 5)])
-                elif int(f.location.end) + 5 > len(record.seq) and c_clash == False:
-                    c_ter_seq = str(
-                        record.seq[(f.location.end):(len(record.seq))])
+                    if int(f.location.end) + 5 <= len(record.seq) and c_clash == False:
+                        c_ter_seq = str(
+                            record.seq[(f.location.end):(f.location.end + 5)])
+                    elif int(f.location.end) + 5 > len(record.seq) and c_clash == False:
+                        c_ter_seq = str(
+                            record.seq[(f.location.end):(len(record.seq))])
 
-                # A list of common locations. These need sorting into inside/outside locations
-                locations = ["Chloroplast intermembrane", "Cytoplasmic", "Extracellular", "Intravacuolar", "Intravirion", "Lumenal", "Lumenal, thylakoid", "Lumenal, vesicle", "Mitochondrial intermembrane",
-                             "Mitochondrial matrix", "Periplasmic", "Peroxisomal", "Peroxisomal matrix", "Nuclear", "Perinuclear space", "Stromal", "Vacuolar", "Vesicular", "Virion surface"]
-                if n_terminal_start == "none" and tmh_start > 1:
-                    previous_feautre_location = tmh_start - 1
-                    for index, a_features in enumerate(record.features):
-                        tmh_topology = None
-                        membrane_location = None
-                        if 'UnknownPosition' in str(a_features.location.start) or 'UnknownPosition' in str(a_features.location.end):
-                            pass
-                        else:
-                            if a_features.type == subcellular_location and a_features.location.start < previous_feautre_location and a_features.location.end > previous_feautre_location:
-                                inside_locations = [
-                                    "Cytoplasmic", "Mitochondrial matrix"]
-                                outside_locations = [
-                                    "Extracellular", "Lumenal", "Periplasmic", "Mitochondrial intermembrane"]
-                                for location in inside_locations:
-                                    if location in str(a_features.qualifiers):
-                                        tmh_topology = "Inside"
-                                        membrane_location = location
-                                for location in outside_locations:
-                                    if location in str(a_features.qualifiers):
-                                        tmh_topology = "Outside"
-                                        membrane_location = location
+                    # A list of common locations. These need sorting into inside/outside locations
+                    locations = ["Chloroplast intermembrane", "Cytoplasmic", "Extracellular", "Intravacuolar", "Intravirion", "Lumenal", "Lumenal, thylakoid", "Lumenal, vesicle", "Mitochondrial intermembrane",
+                                 "Mitochondrial matrix", "Periplasmic", "Peroxisomal", "Peroxisomal matrix", "Nuclear", "Perinuclear space", "Stromal", "Vacuolar", "Vesicular", "Virion surface"]
+                    if n_terminal_start == "none" and tmh_start > 1:
+                        previous_feautre_location = tmh_start - 1
+                        for index, a_features in enumerate(record.features):
+                            tmh_topology = None
+                            membrane_location = ''
+                            if 'UnknownPosition' in str(a_features.location.start) or 'UnknownPosition' in str(a_features.location.end):
+                                pass
+                            else:
+                                if a_features.type == subcellular_location and a_features.location.start < previous_feautre_location and a_features.location.end > previous_feautre_location:
+                                    inside_locations = [
+                                        "Cytoplasmic", "Mitochondrial matrix"]
+                                    outside_locations = [
+                                        "Extracellular", "Lumenal", "Periplasmic", "Mitochondrial intermembrane"]
+                                    for location in inside_locations:
+                                        if location in str(a_features.qualifiers):
+                                            tmh_topology = "Inside"
+                                            membrane_location = location
+                                    for location in outside_locations:
+                                        if location in str(a_features.qualifiers):
+                                            tmh_topology = "Outside"
+                                            membrane_location = location
 
-                                record_for_database = Protein(uniprot_id=query_id, full_sequence=str(record.seq), membrane_type=membrane_location)
-                                record_for_database.save()
-                                #tmh_list.append([query_id, tmh_start, tmh_stop, tmh_topology,
-                                #                 evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq])
+                                    record_for_database = Protein(uniprot_id=query_id, full_sequence=str(
+                                        record.seq), membrane_type=membrane_location)
+                                    record_for_database, created = Protein.objects.update_or_create(
+                                        uniprot_id=query_id,
+                                        defaults={
+                                            "full_sequence": str(record.seq),
+                                            "membrane_type": membrane_location
+                                        }
+                                    )
+                                    #record_for_database.save()
+
+                                    # tmh_list.append([query_id, tmh_start, tmh_stop, tmh_topology,
+                                    #                 evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq])
         return(tmh_list)
 #uniprot_id = models.CharField(max_length=20, unique=True)
 #full_sequence = models.TextField()
 #membrane_type = models.CharField(max_length=100, default='')
 ##total_tmh_number = models.IntegerField(default=None)
 #created_date = models.DateTimeField(default=timezone.now)
+
 
 def clean_query(query):
     '''
@@ -306,10 +332,9 @@ def clean_query(query):
     #print("Clean query result:", a_clean_query)
     return(a_clean_query)
 
-
-
-
 # Start execution here!
+
+
 def run():
     ### Canonical script starts here ###
 
@@ -320,20 +345,28 @@ def run():
     # Grab the input list
 
     print("Fetching UniProt TM protein IDs")
-    uniprot_list="https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+annotation%3A(type%3Atransmem)&sort=score&columns=id,&format=tab"
-    input_query = urllib.request.urlretrieve(str(uniprot_list))
-    input_query = input_query.decode("utf8")
+
+    uniprot_list = "https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+annotation%3A(type%3Atransmem)&sort=score&columns=id,&format=tab"
+    uniprot_request = urllib.request.urlretrieve(str(uniprot_list))
+    # This saves the request to a file for reasons beyond me.
+    # So we now need to open the file to recover the items as a list.
+    with open(uniprot_request[0]) as f:
+        #Somehow this has already made a list.
+        lines = f
+        #lines = f.read().splitlines()
+
+        input_query = list(lines)
+        input_query = input_query[1:]
+
     print(input_query)
     print("Starting TMH database population script...")
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tmh_database.settings')
-    for a_query in input_query.readlines():
+    for a_query in input_query:
         a_query = clean_query(a_query)
         # print(clean_query(a_query))
         ### OPM needs adding to here also. ###
         # print_list(mptopo_check(a_query))
         uniprot_check(a_query)
-        #print_list(topdb_check(a_query))
-
-
+        # print_list(topdb_check(a_query))
 
     populate()
