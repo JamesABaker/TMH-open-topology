@@ -369,4 +369,4 @@ def run():
         uniprot_check(a_query)
         # print_list(topdb_check(a_query))
 
-    populate()
+    #populate()
