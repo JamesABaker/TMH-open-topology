@@ -59,7 +59,7 @@ def plot(inside_freqs, tmh_freqs, outside_freqs, y_title):
 
     fig.tight_layout()
     # plt.show()
-    plt.savefig(file + y_title + str(currentDT) + ".pdf")
+    plt.savefig(file + y_title + str(currentDT) + ".png")
     plt.clf()
 
 
@@ -101,20 +101,21 @@ for entry in results:
         tmh_seq = str(entry[7])
         c_ter_seq = str(entry[8])
 
-        n_ter_seq_all = str(n_ter_seq + n_ter_seq_all)
-        tmh_seq_all = str(tmh_seq + tmh_seq_all)
-        c_ter_seq_all = str(c_ter_seq + c_ter_seq_all)
+        if "UniProt" in str(evidence_type):
+            n_ter_seq_all = str(n_ter_seq + n_ter_seq_all)
+            tmh_seq_all = str(tmh_seq + tmh_seq_all)
+            c_ter_seq_all = str(c_ter_seq + c_ter_seq_all)
 
-        # Lets sort the flanks into inside outside
-        if tmh_topology == str("Inside"):
-            in_seq_all = str(n_ter_seq + in_seq_all)
-            out_seq_all = str(c_ter_seq + out_seq_all)
-        elif tmh_topology == str("Outside"):
-            in_seq_all = str(c_ter_seq + in_seq_all)
-            out_seq_all = str(n_ter_seq + out_seq_all)
-        else:
-            #print("Topology missing.")
-            pass
+            # Lets sort the flanks into inside outside
+            if tmh_topology == str("Inside"):
+                in_seq_all = str(n_ter_seq + in_seq_all)
+                out_seq_all = str(c_ter_seq + out_seq_all)
+            elif tmh_topology == str("Outside"):
+                in_seq_all = str(c_ter_seq + in_seq_all)
+                out_seq_all = str(n_ter_seq + out_seq_all)
+            else:
+                #print("Topology missing.")
+                pass
 
 inside_freqs = (aa_count(in_seq_all))
 tmh_freqs = (aa_count(tmh_seq_all))

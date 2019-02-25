@@ -262,7 +262,7 @@ def uniprot_check(query_id):
                                 inside_locations = [
                                     "Cytoplasmic", "Mitochondrial matrix"]
                                 outside_locations = [
-                                    "Extracellular", "Lumenal", "Periplasmic", "Mitochondrial intermembrane"]
+                                    "Extracellular", "Lumenal", "Periplasmic", "Mitochondrial intermembrane", "Peroxisomal"]
                                 for location in inside_locations:
                                     if location in str(a_features.qualifiers):
                                         tmh_topology = "Inside"
@@ -307,6 +307,6 @@ for a_query in input_query:
     a_query = clean_query(a_query)
     # print(clean_query(a_query))
     ### OPM needs adding to here also. ###
-    # print_list(mptopo_check(a_query))
-    print_list(uniprot_check(a_query))
-    print_list(topdb_check(a_query))
+    print_list(mptopo_check(a_query))
+    # print_list(uniprot_check(a_query))
+    # print_list(topdb_check(a_query))

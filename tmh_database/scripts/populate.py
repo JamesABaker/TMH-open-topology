@@ -17,10 +17,44 @@ from tmh_db.models import Protein
 # To run this file, run:
 # python3 manage.py runscript populate --traceback
 # Could just do a bash script? wget is more reliable than the python modules
-
+print("Usage:\npython3 manage.py runscript populate --traceback")
 
 # Print clean list
 
+def disease_class(disease_type):
+    '''
+    Sorts:
+        ?Affects
+        ?association
+        #Benign
+        #Benign/Likely_benign
+        ?Conflicting_interpretations_of_pathogenicity
+        drug_response
+        #Likely_benign
+        *Likely_pathogenic
+        ?no_interpretation_for_the_single_variant
+        ?not_provided
+        ?other
+        *Pathogenic
+        *Pathogenic/Likely_pathogenic
+        ?protective
+        ?risk_factor
+        ?Uncertain_significance
+    '''
+    # Sometimes spaces are used instead of "_" s.
+    disease_type=str(disease_type.replace(" ", "_"))
+    disease = ["Disease", "Likely_pathogenic",
+               "Pathogenic", "Pathogenic/Likely_pathogenic"]
+    benign = ["Unclassified", "Polymorphism", "Affects", "association", "Benign", "Benign/Likely_benign", "Conflicting_interpretations_of_pathogenicity",
+              "drug_response", "no_interpretation_for_the_single_variant", "not_provided",  "other", "protective", "risk_factor", "Uncertain_significance"]
+    if str(disease_type) in disease:
+        pathogenicity = "d"
+    elif str(disease_type) in benign:
+        pathogenicity = "n"
+    else:
+        pathogenicity = "u"
+        print("Unknown pathogenicity:", str(disease_type))
+    return(pathogenicity)
 
 def print_list(a_list):
     '''
@@ -212,15 +246,29 @@ def uniprot_check(query_id):
     # First we need a list of all the TMH stop start positions
     for record in SeqIO.parse(filename, input_format):
         list_of_tmhs = []
+        #features locations is a bit annoying as the start location needs +1 to match the sequence IO, but end is the correct sequence value.
         for i, f in enumerate(record.features):
             if f.type == feature_type:
                 if "UnknownPosition" in str(f.location.start) or "UnknownPosition" in str(f.location.end):
                     pass
                     print(record.id, "Unknown position for TMH in record")
                 else:
-                    list_of_tmhs.append(int(f.location.start))
+                    list_of_tmhs.append(int(f.location.start)+1)
                     list_of_tmhs.append(int(f.location.end))
                     print("TMH in record")
+
+        # We can also check if any isoforms are in or near the TM region
+        for i, f in enumerate(record.features):
+            if f.type == "VAR_SEQ":
+                for n, x in enumerate(record.features):
+                    # Remember, feature type is set to transmembrane regions
+                    if x.type == feature_type:
+                        if int(x.location.start)+1 - 5 <= int(f.location.end) and int(f.location.end) <= int(x.location.end) + 5:
+                            # print("An isoform will interfere with record", record.id)
+                            pass
+                        elif int(x.location.start)+1 - 5 < int(f.location.start)+1 and int(f.location.start)+1 <= int(x.location.end) + 5:
+                            # print("An isoform will interfere with record", record.id)
+                            pass
 
 
 
@@ -236,8 +284,10 @@ def uniprot_check(query_id):
                     n_terminal_start = "none"
                     record_present = True
                     full_sequence = str(record.seq)
-                    tmh_start = int(f.location.start)
+                    #This is the human readable value. It should not be used for slices
+                    tmh_start = int(f.location.start)+1
                     tmh_stop = int(f.location.end)
+                    #Slices should not use +1 on start.
                     tmh_sequence = str(
                         record.seq[(f.location.start):(f.location.end)])
 
@@ -278,6 +328,7 @@ def uniprot_check(query_id):
                     # A list of common locations. These need sorting into inside/outside locations
                     locations = ["Chloroplast intermembrane", "Cytoplasmic", "Extracellular", "Intravacuolar", "Intravirion", "Lumenal", "Lumenal, thylakoid", "Lumenal, vesicle", "Mitochondrial intermembrane",
                                  "Mitochondrial matrix", "Periplasmic", "Peroxisomal", "Peroxisomal matrix", "Nuclear", "Perinuclear space", "Stromal", "Vacuolar", "Vesicular", "Virion surface"]
+
                     if n_terminal_start == "none" and tmh_start > 1:
                         previous_feautre_location = tmh_start - 1
                         for index, a_features in enumerate(record.features):
