@@ -22,11 +22,9 @@ class Tmh(models.Model):
     tmh_id = models.IntegerField(unique=True)
 
     # tmh include the TMHs and stretches of protein.
-    tmh_type = models.IntegerField()
+    tmh_sequence = models.TextField()
     tmh_start = models.IntegerField()
     tmh_stop = models.IntegerField()
-    tmh_source_sequence = models.TextField()
-    tmh_source = models.CharField(max_length=100, default='')
     tmh_evidence = models.TextField()
 
     # This will be the Uniprot by default
@@ -66,3 +64,5 @@ class Variant(models.Model):
     aa_wt = models.CharField(max_length=1, default='')
     aa_mut = models.CharField(max_length=1, default='')
     residue = models.ForeignKey(Residue, on_delete=models.CASCADE)
+    disease_status = models.TextField() #either disease or benign or uncertain
+    disease_comments = models.TextField()

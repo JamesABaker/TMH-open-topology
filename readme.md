@@ -21,6 +21,8 @@ P32897 # Two membrane types
 Q9NR77 # Peroxisome
 P31644 # Should have no variants
 P47869 # Should have no variants
+P28472 # Normal variants
+P18507 # Same variants in Humsavar and ClinVar
 
  This should be fetched from:
  Human SwissProt query https://www.uniprot.org/uniprot/?query=reviewed:yes%20AND%20organism:%22Homo%20sapiens%20(Human)%20[9606]%22&format=fasta&force=true&sort=score
