@@ -792,9 +792,10 @@ def run():
     # input_query=get_uniprot()
     input_query = ["P32897", "Q9NR77", "P31644", "P47869", "P28472", "P18507", "P05187"]
 
-    # Parse the xml static files since this is the slowest part
-    topdb = ET.parse('topdb_all.xml')
-    mptopo = ET.parse('mptopoTblXml.xml')
+    # Parse the xml static files since this is the slowest part.
+    # Ignore this for now -  we need to sort out uniprot before anything else!
+    #topdb = ET.parse('topdb_all.xml')
+    #mptopo = ET.parse('mptopoTblXml.xml')
 
     # Also, parse the variant files which can be massive.
     # humsavar table
