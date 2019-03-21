@@ -8,7 +8,6 @@ from django.utils import timezone
 class Protein(models.Model):
     uniprot_id = models.CharField(max_length=20, unique=True)
     full_sequence = models.TextField()
-
     #total_tmh_number = models.IntegerField(default=None)
     created_date = models.DateTimeField(default=timezone.now)
 
@@ -26,11 +25,10 @@ class Tmh(models.Model):
     tmh_stop = models.IntegerField()
     tmh_evidence = models.TextField()
     tmh_number = models.IntegerField()
-
-    # This will be the Uniprot by default
-    # tmh_number = models.ForeignKey(Uniprot_Tmhs_Locations, on_delete=models.CASCADE)
+    tmh_total_number = models.IntegerField()
     created_date = models.DateTimeField(default=timezone.now)
     membrane_type = models.CharField(max_length=100, default='')
+    n_terminal_inside = models.BooleanField()
 
 
 class Tmh_test(models.Model):

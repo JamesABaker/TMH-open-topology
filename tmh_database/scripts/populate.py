@@ -36,11 +36,13 @@ def uniprot_bin(query_id):
         with open(str("scripts/external_datasets/uniprot_bin/" + query_id + ".txt"), 'wb') as f:
             f.write(r.content)
 
+
 def uniprot_table(query_id):
-    filename = str("scripts/external_datasets/uniprot_bin/" + query_id + ".txt")
+    filename = str("scripts/external_datasets/uniprot_bin/"
+                   + query_id + ".txt")
     input_format = "swiss"
     feature_type = "TRANSMEM"
-    tm_protein=False
+    tm_protein = False
     for record in SeqIO.parse(filename, input_format):
         list_of_tmhs = []
         # features locations is a bit annoying as the start location needs +1 to match the sequence IO, but end is the correct sequence value.
@@ -49,21 +51,24 @@ def uniprot_table(query_id):
                 if "UnknownPosition" in str(f.location.start) or "UnknownPosition" in str(f.location.end):
                     pass
                     print(record.id, "Unknown position for TMH in record")
-                    tm_protein=True # This doesn't mean that there are coordinates, just that there is a TM somewhere in the protein.
+                    # This doesn't mean that there are coordinates, just that there is a TM somewhere in the protein.
+                    tm_protein = True
                 else:
                     list_of_tmhs.append(int(f.location.start) + 1)
                     list_of_tmhs.append(int(f.location.end))
-                    tm_protein=True
-        sequence=record.seq
+                    tm_protein = True
+        sequence = record.seq
     # Add the protein to the protein table if it is a TMP
-    if tm_protein==True:
-        record_for_database = Protein(uniprot_id=query_id, full_sequence=str(sequence))
+    if tm_protein == True:
+        record_for_database = Protein(
+            uniprot_id=query_id, full_sequence=str(sequence))
         record_for_database, created = Protein.objects.update_or_create(
             uniprot_id=query_id,
             defaults={
                 "full_sequence": str(sequence),
             }
         )
+
 
 def uniprot_tm_check(query_id):
     '''
@@ -74,13 +79,13 @@ def uniprot_tm_check(query_id):
     evidence_type = str("UniProt")
     tmh_list = []
 
-
     # The UniProt bin contains lots of uniprot files.
     # This bin should either routinely be flushed, or have some sort of timestamp.
 
     # These are the parameters used by the biopython Seq.IO module
 
-    filename = str("scripts/external_datasets/uniprot_bin/" + query_id + ".txt")
+    filename = str("scripts/external_datasets/uniprot_bin/"
+                   + query_id + ".txt")
     input_format = "swiss"
     feature_type = "TRANSMEM"
     subcellular_location = "TOPO_DOM"
@@ -91,15 +96,19 @@ def uniprot_tm_check(query_id):
     # First we need a list of all the TMH stop start positions
     for record in SeqIO.parse(filename, input_format):
         list_of_tmhs = []
+        total_tmh_number = 0
         # features locations is a bit annoying as the start location needs +1 to match the sequence IO, but end is the correct sequence value.
         for i, f in enumerate(record.features):
             if f.type == feature_type:
                 if "UnknownPosition" in str(f.location.start) or "UnknownPosition" in str(f.location.end):
                     pass
                     print(record.id, "Unknown position for TMH in record")
+                    # this stops unknown tmhs masking polytopic as single pass
+                    total_tmh_number = total_tmh_number + 1
                 else:
                     list_of_tmhs.append(int(f.location.start) + 1)
                     list_of_tmhs.append(int(f.location.end))
+                    total_tmh_number = total_tmh_number + 1
 
         if len(list_of_tmhs) > 0:  # Checks if it is a TM protein.
             # The protein for the database
@@ -132,6 +141,8 @@ def uniprot_tm_check(query_id):
             if f.type == feature_type:
 
                 if "UnknownPosition" in str(f.location.start) or "UnknownPosition" in str(f.location.end):
+                    # Let's count the tmhs even though they do not have a position and will not be in the database.
+                    tmd_count = tmd_count + 1
                     pass
                 else:
 
@@ -158,6 +169,7 @@ def uniprot_tm_check(query_id):
                                 record.seq[int(position + abs(position - int(f.location.start)) / 2):(f.location.start)])
                             n_clash = True
                             print("N-clash detected")
+
                     if int(f.location.start) - 5 <= 0 and n_clash == False:
                         n_ter_seq = str(record.seq[0:(f.location.start)])
                     elif int(f.location.start) - 5 > 0 and n_clash == False:
@@ -187,6 +199,7 @@ def uniprot_tm_check(query_id):
 
                     if n_terminal_start == "none" and tmh_start > 1:
                         previous_feautre_location = tmh_start - 1
+
                         for index, a_features in enumerate(record.features):
                             tmh_topology = None
                             membrane_location = ''
@@ -200,7 +213,7 @@ def uniprot_tm_check(query_id):
                                         "Cytoplasmic", "Mitochondrial matrix"]
                                     outside_locations = [
                                         "Extracellular", "Lumenal", "Periplasmic", "Mitochondrial intermembrane"]
-
+                                    print("echo", n_terminal_start, tmh_start)
                                     # Here we should set inside and outside, and then use that for even/odd with checks.
 
                                     for location in inside_locations:
@@ -212,54 +225,63 @@ def uniprot_tm_check(query_id):
                                             tmh_topology = "Outside"
                                             membrane_location = location
 
-                                    # record_for_database.save()
-
-                                    tmh_list.append([query_id, tmh_number, tmh_start, tmh_stop, tmh_topology, evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence_type])
-
+                    tmh_list.append([query_id, tmh_number, total_tmh_number, tmh_start, tmh_stop, tmh_topology,
+                                     evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence_type])
 
         tmh_to_database(tmh_list)
 
-
         return(tmh_list)
+
 
 def tmh_to_database(tmh_list):
     '''
     This takes the input standardised by the other functions of a TMH and adds them to the database.
     The function also has some integrity checks.
     '''
-
+    print(tmh_list)
     # Now we have a complete list of the TMHs.
     for tmh_number_iteration, a_tmh in enumerate(tmh_list):
         print(a_tmh)
-        query_id=a_tmh[0]
-        tmh_number=a_tmh[1]
-        tmh_start=a_tmh[2]
-        tmh_stop=a_tmh[3]
-        tmh_topology=a_tmh[4]
-        evidence_type=a_tmh[5]
-        membrane_location=a_tmh[6] # At this point we have all the membrane locations, and some may be dead. Integrity needs to be run to ensure this makes sense, at least in an IO sense.
-        n_ter_seq=a_tmh[7]
-        tmh_sequence=a_tmh[8]
-        c_ter_seq=a_tmh[9]
-        evidence=a_tmh[10]
+        query_id = a_tmh[0]
+        tmh_number = a_tmh[1]
+        tmh_total_number = a_tmh[2]
+        tmh_start = a_tmh[3]
+        tmh_stop = a_tmh[4]
+        tmh_topology = a_tmh[5]
+        evidence_type = a_tmh[6]
+        # At this point we have all the membrane locations, and some may be dead. Integrity needs to be run to ensure this makes sense, at least in an IO sense.
+        membrane_location = a_tmh[7]
+        n_ter_seq = a_tmh[8]
+        tmh_sequence = a_tmh[9]
+        c_ter_seq = a_tmh[10]
+        evidence = a_tmh[11]
 
+        if tmh_topology = "Inside":
+            n_terminal_inside=True
+        elif tmh_topology = "Outside":
+            n_terminal_inside=False
+        else:
+            n_terminal_inside=None
         tmh_protein = Protein.objects.get(uniprot_id=query_id)
-
+        tmh_unique_id = str(query_id + "." + str(tmh_number) + "." + evidence)
+        print(tmh_unique_id)
         # The TMH for the database
-        # tmh_list.append([query_id, tmh_start, tmh_stop, tmh_topology, evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq])
-        record_for_database = Tmh(tmh_id=str(query_id + "." + tmh_number + "." + evidence), tmh_sequence=tmh_sequence, tmh_start=tmh_start, tmh_stop=tmh_stop, tmh_evidence=evidence,  membrane_type=membrane_location, tmh_number=tmh_number)
+        record_for_database = Tmh(protein=tmh_protein, tmh_total_number=tmh_total_number, tmh_id=tmh_unique_id, tmh_sequence=tmh_sequence,
+                                  tmh_start=tmh_start, tmh_stop=tmh_stop, tmh_evidence=evidence,  membrane_type=membrane_location, tmh_number=tmh_number)
         record_for_database, created = Tmh.objects.update_or_create(
-            uniprot_id=tmh_protein,
+            protein=tmh_protein,
+            tmh_id= tmh_unique_id,
             defaults={
-                "tmh_id": str(query_id + "." + tmh_number + "." + evidence),
                 "tmh_sequence": tmh_sequence,
                 "tmh_start": tmh_start,
                 "tmh_stop": tmh_stop,
                 "tmh_evidence": evidence,
                 "membrane_type": membrane_location,
-                "tmh_number": tmh_number
+                "tmh_number": tmh_number,
+                "tmh_total_number": tmh_total_number
             }
         )
+
 
 def get_uniprot():
     '''
@@ -328,7 +350,7 @@ def run():
     for query_number, a_query in enumerate(input_query):
         a_query = clean_query(a_query)
         print("Downloading TMH boundaries for", a_query, ",",
-              query_number+1, "of", len(input_query), "records...")
+              query_number + 1, "of", len(input_query), "records...")
         uniprot_bin(a_query)
 
     ### If UniProt says it is a TMH, add it to the protein table ###
@@ -343,7 +365,7 @@ def run():
     for query_number, a_query in enumerate(input_query):
         a_query = clean_query(a_query)
         print("Extracting TMH boundaries for", a_query, ",",
-              query_number+1, "of", len(input_query), "records.")
+              query_number + 1, "of", len(input_query), "records.")
         # print(clean_query(a_query))
         ### OPM needs adding to here also. ###
         # mptopo_tm_check(a_query)
