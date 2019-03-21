@@ -2,14 +2,13 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 
-
 # Create your models here.
 
 
 class Protein(models.Model):
     uniprot_id = models.CharField(max_length=20, unique=True)
     full_sequence = models.TextField()
-    membrane_type = models.CharField(max_length=100, default='')
+
     #total_tmh_number = models.IntegerField(default=None)
     created_date = models.DateTimeField(default=timezone.now)
 
@@ -19,17 +18,19 @@ class Tmh(models.Model):
     protein = models.ForeignKey(Protein, on_delete=models.CASCADE)
 
     # These may be useful on the webserver.
-    tmh_id = models.IntegerField(unique=True)
+    tmh_id = models.TextField(unique=True)
 
     # tmh include the TMHs and stretches of protein.
     tmh_sequence = models.TextField()
     tmh_start = models.IntegerField()
     tmh_stop = models.IntegerField()
     tmh_evidence = models.TextField()
+    tmh_number = models.IntegerField()
 
     # This will be the Uniprot by default
     # tmh_number = models.ForeignKey(Uniprot_Tmhs_Locations, on_delete=models.CASCADE)
     created_date = models.DateTimeField(default=timezone.now)
+    membrane_type = models.CharField(max_length=100, default='')
 
 
 class Tmh_test(models.Model):
@@ -64,5 +65,5 @@ class Variant(models.Model):
     aa_wt = models.CharField(max_length=1, default='')
     aa_mut = models.CharField(max_length=1, default='')
     residue = models.ForeignKey(Residue, on_delete=models.CASCADE)
-    disease_status = models.TextField() #either disease or benign or uncertain
+    disease_status = models.TextField()  # either disease or benign or uncertain
     disease_comments = models.TextField()
