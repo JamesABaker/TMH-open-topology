@@ -196,7 +196,8 @@ def uniprot_tm_check(query_id):
                     # A list of common locations. These need sorting into inside/outside locations
                     locations = ["Chloroplast intermembrane", "Cytoplasmic", "Extracellular", "Intravacuolar", "Intravirion", "Lumenal", "Lumenal, thylakoid", "Lumenal, vesicle", "Mitochondrial intermembrane",
                                  "Mitochondrial matrix", "Periplasmic", "Peroxisomal", "Peroxisomal matrix", "Nuclear", "Perinuclear space", "Stromal", "Vacuolar", "Vesicular", "Virion surface"]
-
+                    tmh_topology="Unknown"
+                    membrane_location="Unknown"
                     if n_terminal_start == "none" and tmh_start > 1:
                         previous_feautre_location = tmh_start - 1
 
@@ -256,18 +257,21 @@ def tmh_to_database(tmh_list):
         c_ter_seq = a_tmh[10]
         evidence = a_tmh[11]
 
-        if tmh_topology = "Inside":
-            n_terminal_inside=True
-        elif tmh_topology = "Outside":
-            n_terminal_inside=False
+        if tmh_topology == None:
+            tmh_topology="Unknown"
+
+        if tmh_topology in "Inside":
+            n_terminal_inside="Inside"
+        elif tmh_topology in "Outside":
+            n_terminal_inside="Outside"
         else:
-            n_terminal_inside=None
+            n_terminal_inside="Unknown"
         tmh_protein = Protein.objects.get(uniprot_id=query_id)
         tmh_unique_id = str(query_id + "." + str(tmh_number) + "." + evidence)
         print(tmh_unique_id)
         # The TMH for the database
         record_for_database = Tmh(protein=tmh_protein, tmh_total_number=tmh_total_number, tmh_id=tmh_unique_id, tmh_sequence=tmh_sequence,
-                                  tmh_start=tmh_start, tmh_stop=tmh_stop, tmh_evidence=evidence,  membrane_type=membrane_location, tmh_number=tmh_number)
+                                  tmh_start=tmh_start, tmh_stop=tmh_stop, tmh_evidence=evidence,  membrane_type=membrane_location, tmh_number=tmh_number,n_terminal_inside=n_terminal_inside)
         record_for_database, created = Tmh.objects.update_or_create(
             protein=tmh_protein,
             tmh_id= tmh_unique_id,
@@ -278,7 +282,8 @@ def tmh_to_database(tmh_list):
                 "tmh_evidence": evidence,
                 "membrane_type": membrane_location,
                 "tmh_number": tmh_number,
-                "tmh_total_number": tmh_total_number
+                "tmh_total_number": tmh_total_number,
+                "n_terminal_inside":n_terminal_inside
             }
         )
 
@@ -289,8 +294,9 @@ def get_uniprot():
     '''
     # Grab the input list
     print("Fetching UniProt TM protein IDs")
-    #uniprot_list = "https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+annotation%3A(type%3Atransmem)&sort=score&columns=id,&format=tab"
-    uniprot_list = 'https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+organism%3A"Homo+sapiens+(Human)+[9606]"+AND+annotation%3A(type%3Atransmem)&sort=score&columns=id,&format=tab'
+    uniprot_list = "https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+organism%3A%22Homo+sapiens+%28Human%29+%5B9606%5D%22+AND+annotation%3A%28type%3Atransmem%29&sort=score&columns=id,&format=tab"
+    #"https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+annotation%3A(type%3Atransmem)&sort=score&columns=id,&format=tab"
+    #uniprot_list = 'https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+organism%3A"Homo+sapiens+(Human)+[9606]"+AND+annotation%3A(type%3Atransmem)&sort=score&columns=id,&format=tab'
 
     uniprot_request = urllib.request.urlretrieve(str(uniprot_list))
     # This saves the request to a file for reasons beyond me.
@@ -301,7 +307,7 @@ def get_uniprot():
         #lines = f.read().splitlines()
 
         input_query = list(lines)
-        input_query = input_query[1:]
+        input_query = input_query[1:] # Entry is the first line, which will break later code as it is not a valid uniprot id!
     return(input_query)
 
 
@@ -329,9 +335,8 @@ def run():
     ### Canonical script starts here ###
 
     # In full scale mode it will take forever. Here we will just use a watered down list of tricky proteins.
-    # input_query=get_uniprot()
-    input_query = ["P32897", "Q9NR77", "P31644",
-                   "P47869", "P28472", "P18507", "P05187"]
+    input_query=get_uniprot()
+    #input_query = ["P32897", "Q9NR77", "P31644", "Q96E22", "P47869", "P28472", "P18507", "P05187"]
 
     # Parse the xml static files since this is the slowest part.
     # Ignore this for now -  we need to sort out uniprot before anything else!
@@ -349,7 +354,7 @@ def run():
 
     for query_number, a_query in enumerate(input_query):
         a_query = clean_query(a_query)
-        print("Downloading TMH boundaries for", a_query, ",",
+        print("Checking cache/downloading", a_query, ",",
               query_number + 1, "of", len(input_query), "records...")
         uniprot_bin(a_query)
 

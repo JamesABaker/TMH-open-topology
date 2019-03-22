@@ -28,7 +28,7 @@ class Tmh(models.Model):
     tmh_total_number = models.IntegerField()
     created_date = models.DateTimeField(default=timezone.now)
     membrane_type = models.CharField(max_length=100, default='')
-    n_terminal_inside = models.BooleanField()
+    n_terminal_inside = models.CharField(max_length=100, default='')
 
 
 class Tmh_test(models.Model):
