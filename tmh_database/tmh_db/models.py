@@ -4,6 +4,9 @@ from django.utils import timezone
 
 # Create your models here.
 
+class Database_Metadata(models.Model):
+    last_run = models.DateTimeField(default=timezone.now)
+    last_download = models.DateTimeField(default=timezone.now)
 
 class Protein(models.Model):
     uniprot_id = models.CharField(max_length=20, unique=True)

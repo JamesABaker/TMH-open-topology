@@ -580,6 +580,40 @@ def clean_query(query):
     # print("Clean query result:", a_clean_query)
     return(a_clean_query)
 
+def disease_class(disease_type):
+    '''
+    Sorts:
+        ?Affects
+        ?association
+        #Benign
+        #Benign/Likely_benign
+        ?Conflicting_interpretations_of_pathogenicity
+        drug_response
+        #Likely_benign
+        *Likely_pathogenic
+        ?no_interpretation_for_the_single_variant
+        ?not_provided
+        ?other
+        *Pathogenic
+        *Pathogenic/Likely_pathogenic
+        ?protective
+        ?risk_factor
+        ?Uncertain_significance
+    '''
+    # Sometimes spaces are used instead of "_" s.
+    disease_type=str(disease_type.replace(" ", "_"))
+    disease = ["Disease", "Likely_pathogenic",
+               "Pathogenic", "Pathogenic/Likely_pathogenic"]
+    benign = ["Unclassified", "Polymorphism", "Affects", "association", "Benign", "Benign/Likely_benign", "Conflicting_interpretations_of_pathogenicity",
+              "drug_response", "no_interpretation_for_the_single_variant", "not_provided",  "other", "protective", "risk_factor", "Uncertain_significance"]
+    if str(disease_type) in disease:
+        pathogenicity = "d"
+    elif str(disease_type) in benign:
+        pathogenicity = "n"
+    else:
+        pathogenicity = "u"
+        print("Unknown pathogenicity:", str(disease_type))
+    return(pathogenicity)
 
 def clinvar_variant_check(clinvar_variants, clinvar_summary):
 
@@ -834,6 +868,56 @@ def gnomad_variant_check(gnomad_variants):
     var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, disease_comments, variant_source)
 
 
+def humsavar_variant_check(humsavar_variant):
+
+    humsavar_gene = humsavar_variant[0]
+    uniprot_record = humsavar_variant[1]
+    humsavar_variant_id = humsavar_variant[2]
+    humsavar_variant_change = humsavar_variant[3]
+    humsavar_variant_disease_type = humsavar_variant[4]
+    humsavar_variant_gene_position = humsavar_variant[5]
+    humsavar_variant_comment = humsavar_variant[6]
+
+
+
+    variant_source = "Humsavar"
+    filename = str("scripts/external_datasets/uniprot_bin/" + uniprot_record + ".txt")
+    input_format = "swiss"
+    subcellular_location = "TOPO_DOM"
+
+    # print("Checking ", query_id, "in humsavar.txt.")
+    for record in SeqIO.parse(filename, input_format):
+        for i, feature in enumerate(record.features):
+            if feature.type == 'VARIANT':
+                if str(humsavar_variant_id) == str(feature.id):
+                    #variant_types=[str('Disease'), str('Polymorphism'), str('Unclassified')]
+                    variant_review = "SwissProt"
+
+
+                    for char_num, char in enumerate(str(feature.qualifiers)):
+                        if char == "-":
+                            # This is some hideous code that will break at the slightest change to how variants are sorted.
+                            # FT   VARIANT     838    838       R -> H (in CORD6; dbSNP:rs61750173). is a ypical line that
+                            # Bio parses to {'description': 'R -> G (in dbSNP:rs742493).
+                            # {ECO:0000269|PubMed:14769797, ECO:0000269|PubMed:15489334}.'}. Here I take advantage of the
+                            # preceding "'" and proceding " " to identify point changes in variants.
+                            # Before we figure if it's TRANSMEM or not, here, we catch the variant for point mutations.
+                            # At some point this needs to be rewritted to handle other types of variant.
+
+                            if "->" in str(feature.qualifiers) and str(feature.qualifiers)[char_num + 1] == ">" and str(feature.qualifiers)[char_num - 3] == "'" and str(feature.qualifiers)[char_num + 4] == " ":
+                                # print(feature.id)
+                                # print(feature.qualifiers)
+                                aa_wt = str(feature.qualifiers)[char_num - 2]
+                                aa_mut = str(feature.qualifiers)[char_num + 3]
+
+                                # We want as much information to be passed onto the next table.
+                                disease_status = str(disease_class(humsavar_variant_disease_type))
+                                disease_comments = str(humsavar_variant_disease_type+";"+humsavar_variant_comment)
+                                var_record_location = feature.location.start # This might need +1?
+
+                                var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, disease_comments, variant_source)
+
+
 def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, disease_comments, variant_source):
     if var_record_location == "-":
         print("Unkown sequence location. Possibly intron: ", uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, disease_comments, variant_source)
@@ -858,6 +942,7 @@ def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_
             }
         )
 
+        # This should also now check if this is in a TMD.
 
 def run():
     '''
@@ -943,7 +1028,11 @@ def run():
         lines = f.read().splitlines()
         for i in lines:
             i = i.replace('  ', ' ')
-            humsavar_list.append(i.split())
+            humsavar_variant=i.split()
+            if humsavar_variant[1] in input_query_set:
+                humsavar_list.append(i.split())
+    for humsavar_variant in humsavar_list:
+        humsavar_variant_check(humsavar_variant)
     # print(humsavar_list)
 
     ## ClinVar ##
