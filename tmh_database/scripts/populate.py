@@ -847,13 +847,14 @@ def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_
         print("Adding ", uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, disease_comments, variant_source, "to database variant table.")
 
         record_for_database, created = Variant.objects.update_or_create(
+            residue =residue_variant,
+            aa_wt = aa_wt,
+            aa_mut = aa_mut,
+
+            disease_status = disease_status,
+            disease_comments = disease_comments,
+            variant_source = variant_source,
             defaults={
-                "aa_wt": aa_wt,
-                "aa_mut": aa_mut,
-                "residue" : residue_variant,
-                "disease_status" : disease_status,
-                "disease_comments" : disease_comments,
-                "variant_source" : variant_source
             }
         )
 
@@ -870,9 +871,9 @@ def run():
     ### Canonical script starts here ###
 
     # In full scale mode it will take a long time which may not be suitable for development.
-    input_query=get_uniprot()
+    #input_query=get_uniprot()
     # Here we will just use a watered down list of tricky proteins.
-    # input_query = ["P32897", "Q9NR77", "P31644", "Q96E22", "P47869", "P28472", "P18507", "P05187"]
+    input_query = ["P32897", "Q9NR77", "P31644", "Q96E22", "P47869", "P28472", "P18507", "P05187"]
 
     # Parse the xml static files since this is the slowest part.
     # Ignore this for now -  we need to sort out uniprot before anything else!
@@ -967,8 +968,7 @@ def run():
                     clinvar_results.append(var_database_entry)
                     clinvar_results_set.update(clean_query(str(USER_ID)))
 
-    print(len(clinvar_results),
-          "ClinVar variants found in database that will be checked.")
+    print(len(clinvar_results), "ClinVar variants found in database that will be checked.")
 
     # Load the clinvar summary file
     clinvar_summary_lines=[]
@@ -983,9 +983,7 @@ def run():
                 if clean_query(str(summary_variant[-1])) in str(clinvar_results_set):
                     clinvar_summary_lines.append(summary_variant)
 
-
-    print(len(clinvar_summary_lines), "summaries fetched of",
-          len(clinvar_results), "ClinVar variants.")
+    print(len(clinvar_summary_lines), "summaries fetched of", len(clinvar_results), "ClinVar variants.")
 
     # We now have a list of the clinvar variants and a list of the clinvar summary.
     # Other tsvs form VarMap hopefully won't need this.
