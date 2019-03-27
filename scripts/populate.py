@@ -24,7 +24,9 @@ from tmh_db.models import Tmh_hydrophobicity
 from tmh_db.models import Residue
 from datetime import datetime, timedelta
 from django.utils.timezone import now
+import pytz
 
+# How many days should be allowed to not enforce updates
 time_threshold = 7
 
 
@@ -53,6 +55,7 @@ def uniprot_table(query_id):
     input_format = "swiss"
     feature_type = "TRANSMEM"
     tm_protein = False
+    print("Checking UniProt for TM annotation in", query_id ,".")
     for record in SeqIO.parse(filename, input_format):
         list_of_tmhs = []
         # features locations is a bit annoying as the start location needs +1 to match the sequence IO, but end is the correct sequence value.
@@ -70,19 +73,25 @@ def uniprot_table(query_id):
         sequence = record.seq
     # Add the protein to the protein table if it is a TMP
     if tm_protein == True:
+        print("TM annotation found in", query_id ,".")
         target_protein = Protein.objects.get(uniprot_id=query_id)
 
-        old_residue = Protein.objects.filter(created_date__gte=datetime.now()-timedelta(days=time_threshold))
+        old_residue = Protein.objects.filter(updated_date__gte=datetime.now()-timedelta(days=time_threshold))
 
         if target_protein not in old_residue:
+            print("No recent database entry for", query_id, ". Adding to the database now.")
             record_for_database, created = Protein.objects.update_or_create(
                 uniprot_id=query_id,
                 defaults={
                     "full_sequence": str(sequence),
+                    "updated_date": datetime.now()
                 }
             )
 
             residue_table(query_id, sequence)
+
+        elif target_protein in old_residue:
+            print(query_id, "residues were already added to database in previous",time_threshold, "days.")
 
 
 def residue_table(query_id, sequence):
@@ -465,8 +474,6 @@ def tmsoc(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_stop):
             )
 
 
-
-
 def deltag(tmh_unique_id, tmh_sequence):
     with open("scripts/external_scripts/dgpred/inputseq.fasta", 'w') as temp_tmh_fasta:
         temp_tmh_fasta.write(str(">" + tmh_unique_id + "\n" + tmh_sequence))
@@ -496,15 +503,15 @@ def hydrophobicity(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_st
     window_length = 20
     edge = 1
 
-    tmh_sequence_analysis = ProteinAnalysis(tmh_sequence)
-    full_sequence_analysis = ProteinAnalysis(full_sequence)
+    tmh_sequence_analysis = ProteinAnalysis(str(tmh_sequence))
+    full_sequence_analysis = ProteinAnalysis(str(full_sequence))
 
     aromaticity = tmh_sequence_analysis.aromaticity()
     flexibility = tmh_sequence_analysis.flexibility()
 
-    # These numbers need chaning
-    ww = {'A': 1.8, 'R': -4.5, 'N': -3.5, 'D': -3.5, 'C': 2.5, 'Q': -3.5, 'E': -3.5, 'G': -0.4, 'H': -3.2, 'I': 4.5,
-          'L': 3.8, 'K': -3.9, 'M': 1.9, 'F': 2.8, 'P': -1.6, 'S': -0.8, 'T': -0.7, 'W': -0.9, 'Y': -1.3, 'V': 4.2}
+
+    ww = {'A': 0.33 , 'R': 1.00 , 'N': 0.43 , 'D': 2.41 , 'C': 0.22 , 'Q': 0.19 , 'E': 1.61, 'G': 1.14 , 'H': -0.06 , 'I': -0.81 ,
+          'L': -0.69 , 'K': 1.81, 'M': -0.44, 'F': -0.58 , 'P': -0.31 , 'S': 0.33, 'T': 0.11 , 'W': -0.24, 'Y': 0.23, 'V': -0.53}
     ww_window = full_sequence_analysis.protein_scale(ww, window_length, edge)
     ww_window = ww_window[int(tmh_start - 1 - window_length)
                               :int(tmh_stop - window_length)]
@@ -520,8 +527,9 @@ def hydrophobicity(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_st
     kyte_avg = np.mean(kyte_window)
     print("Kyte:", kyte_avg)
 
-    eisenberg = {'A': 1.8, 'R': -4.5, 'N': -3.5, 'D': -3.5, 'C': 2.5, 'Q': -3.5, 'E': -3.5, 'G': -0.4, 'H': -3.2,
-                 'I': 4.5, 'L': 3.8, 'K': -3.9, 'M': 1.9, 'F': 2.8, 'P': -1.6, 'S': -0.8, 'T': -0.7, 'W': -0.9, 'Y': -1.3, 'V': 4.2}
+    # These numbers need chaning
+    eisenberg = {'A': 0.620, 'R': -2.530, 'N': -0.780, 'D': -0.900, 'C': 0.290, 'Q': -0.850, 'E': -0.740, 'G': 0.480, 'H': -0.400,
+                 'I': 1.380, 'L': 1.060, 'K': -1.500, 'M': 0.640, 'F': 1.190, 'P': 0.120, 'S': -0.180, 'T': -0.050, 'W': 0.810, 'Y': 0.260, 'V': 1.080}
     eisenberg_window = full_sequence_analysis.protein_scale(
         eisenberg, window_length, edge)
     eisenberg_window = eisenberg_window[int(
@@ -951,7 +959,6 @@ def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_
             }
         )
 
-        # This should also now check if this is in a TMD.
 
 def run():
     '''
@@ -967,7 +974,7 @@ def run():
     # In full scale mode it will take a long time which may not be suitable for development.
     input_query=get_uniprot()
     # Here we will just use a watered down list of tricky proteins.
-    #input_query = ["P32897", "Q9NR77", "P31644", "Q96E22", "P47869", "P28472", "P18507", "P05187"]
+    # input_query = ["Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q96E22", "P47869", "P28472", "P18507", "P05187"]
 
     # Parse the xml static files since this is the slowest part.
     # Ignore this for now -  we need to sort out uniprot before anything else!
@@ -1032,7 +1039,6 @@ def run():
 
     ## Humsavar ##
     print("Reading the variant tables...")
-    print("Loading Humsavar to memory.")
     humsavar_list = []
     with open('./scripts/external_datasets/humsavar.txt') as f:
         lines = f.read().splitlines()
@@ -1050,7 +1056,7 @@ def run():
     clinvar_results = []
     clinvar_results_set = set()
 
-    print("Loading relevant query IDs from ClinVar tsv from VarMap to memory.")
+    print("Loading ClinVar tsv from VarMap to memory.")
     with open("./scripts/external_datasets/clinvar_snipclipa13_02_2019.tsv") as inputfile:
         for line_number, var_database_entry in enumerate(inputfile):
             if line_number == 0:
@@ -1072,7 +1078,7 @@ def run():
 
     # Load the clinvar summary file
     clinvar_summary_lines=[]
-    print("Loading relevant the variant summaries from ClinVar. This holds information on disease states in clinvar.")
+    print("Loading the variant summaries from ClinVar. This holds information on disease states in clinvar.")
     with open("./scripts/external_datasets/variant_summary.txt") as inputfile:
         for line_number, summary_variant in enumerate(inputfile):
             if line_number == 0:
@@ -1092,7 +1098,7 @@ def run():
 
 
     ## gnomAD ##
-    print("Loading gnomAD tsv file to memory. This may take a while...")
+    "Loading gnomAD tsv file to memory. This may take a while..."
     gnomad_results=[]
     with open("./scripts/external_datasets/gnomAD_varsite.tsv") as inputfile:
         for line_number, var_database_entry in enumerate(inputfile):

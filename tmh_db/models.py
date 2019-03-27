@@ -11,6 +11,7 @@ class Database_Metadata(models.Model):
 class Protein(models.Model):
     uniprot_id = models.CharField(max_length=20, unique=True)
     full_sequence = models.TextField()
+    
     #total_tmh_number = models.IntegerField(default=None)
     created_date = models.DateTimeField(default=timezone.now)
     updated_date = models.DateTimeField(default=timezone.now)
