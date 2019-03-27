@@ -10,9 +10,8 @@ import sys
 import xml.etree.ElementTree as ET
 from Bio import SeqIO
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
-# from django.db import models
-# from django.conf import settings
-# from django.utils import timezone
+from django.conf import settings
+from django.utils import timezone
 from django.db import models
 from tmh_db.models import Protein
 from tmh_db.models import Tmh
@@ -23,6 +22,10 @@ from tmh_db.models import Tmh_tmsoc
 from tmh_db.models import Tmh_deltag
 from tmh_db.models import Tmh_hydrophobicity
 from tmh_db.models import Residue
+from datetime import datetime, timedelta
+from django.utils.timezone import now
+
+time_threshold = 7
 
 
 print("Usage:\npython3 manage.py runscript populate --traceback")
@@ -67,15 +70,19 @@ def uniprot_table(query_id):
         sequence = record.seq
     # Add the protein to the protein table if it is a TMP
     if tm_protein == True:
+        target_protein = Protein.objects.get(uniprot_id=query_id)
 
-        record_for_database, created = Protein.objects.update_or_create(
-            uniprot_id=query_id,
-            defaults={
-                "full_sequence": str(sequence),
-            }
-        )
+        old_residue = Protein.objects.filter(created_date__gte=datetime.now()-timedelta(days=time_threshold))
 
-        residue_table(query_id, sequence)
+        if target_protein not in old_residue:
+            record_for_database, created = Protein.objects.update_or_create(
+                uniprot_id=query_id,
+                defaults={
+                    "full_sequence": str(sequence),
+                }
+            )
+
+            residue_table(query_id, sequence)
 
 
 def residue_table(query_id, sequence):
@@ -580,6 +587,7 @@ def clean_query(query):
     # print("Clean query result:", a_clean_query)
     return(a_clean_query)
 
+
 def disease_class(disease_type):
     '''
     Sorts:
@@ -614,6 +622,7 @@ def disease_class(disease_type):
         pathogenicity = "u"
         print("Unknown pathogenicity:", str(disease_type))
     return(pathogenicity)
+
 
 def clinvar_variant_check(clinvar_variants, clinvar_summary):
 
@@ -956,7 +965,7 @@ def run():
     ### Canonical script starts here ###
 
     # In full scale mode it will take a long time which may not be suitable for development.
-    #input_query=get_uniprot()
+    # input_query=get_uniprot()
     # Here we will just use a watered down list of tricky proteins.
     input_query = ["P32897", "Q9NR77", "P31644", "Q96E22", "P47869", "P28472", "P18507", "P05187"]
 
@@ -1055,8 +1064,9 @@ def run():
                     print("Storing variant", USER_ID, "for",
                           UNIPROT_ACCESSION, "to memory.")
                     clinvar_results.append(var_database_entry)
-                    clinvar_results_set.update(clean_query(str(USER_ID)))
+                    clinvar_results_set.add(clean_query(str(USER_ID)))
 
+    print(clinvar_results_set)
     print(len(clinvar_results), "ClinVar variants found in database that will be checked.")
 
     # Load the clinvar summary file
@@ -1069,7 +1079,7 @@ def run():
             else:
                 summary_variant=summary_variant.strip().split('\t')
                 # print(str(summary_variant[-1]))
-                if clean_query(str(summary_variant[-1])) in str(clinvar_results_set):
+                if clean_query(str(summary_variant[-1])) in clinvar_results_set:
                     clinvar_summary_lines.append(summary_variant)
 
     print(len(clinvar_summary_lines), "summaries fetched of", len(clinvar_results), "ClinVar variants.")
