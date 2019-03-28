@@ -55,7 +55,7 @@ def uniprot_table(query_id):
     input_format = "swiss"
     feature_type = "TRANSMEM"
     tm_protein = False
-    print("Checking UniProt for TM annotation in", query_id ,".")
+    print("Checking UniProt for TM annotation in",query_id,".")
     for record in SeqIO.parse(filename, input_format):
         list_of_tmhs = []
         # features locations is a bit annoying as the start location needs +1 to match the sequence IO, but end is the correct sequence value.
@@ -738,7 +738,7 @@ def clinvar_variant_check(clinvar_variants, clinvar_summary):
         if int(i[-1]) == int(var_record_id):  #  (variant id is last column in summary)
                 # print("clinvar summary and snipclip finally found a hit for variant ",int(var_record_id))
 
-            disease_status = i[6]
+            disease_status = disease_class(i[6])
             disease_comments = i[24]
 
 
