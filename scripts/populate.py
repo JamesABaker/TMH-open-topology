@@ -1,8 +1,11 @@
 from __future__ import division
 import requests
+import urllib
 import urllib.request
+import shutil
 import numpy as np
 import os
+import time
 import subprocess
 from subprocess import check_output
 import re
@@ -886,7 +889,7 @@ def gnomad_variant_check(gnomad_variants):
 
 
 def humsavar_variant_check(humsavar_variant):
-
+    print(humsavar_variant)
     humsavar_gene = humsavar_variant[0]
     uniprot_record = humsavar_variant[1]
     humsavar_variant_id = humsavar_variant[2]
@@ -961,6 +964,7 @@ def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_
 
 
 def run():
+
     '''
     This is what django runs. This is effectively the canonical script,
     even though django forces it to be in a function.
@@ -972,9 +976,9 @@ def run():
     ### Canonical script starts here ###
 
     # In full scale mode it will take a long time which may not be suitable for development.
-    input_query=get_uniprot()
+    # input_query=get_uniprot()
     # Here we will just use a watered down list of tricky proteins.
-    # input_query = ["Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q96E22", "P47869", "P28472", "P18507", "P05187"]
+    input_query = ["Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q96E22", "P47869", "P28472", "P18507", "P05187", "O95477"]
 
     # Parse the xml static files since this is the slowest part.
     # Ignore this for now -  we need to sort out uniprot before anything else!
@@ -989,14 +993,15 @@ def run():
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tmh_database.settings')
 
     ### Download uniprot files ###
-
+    input_queries=[]
     for query_number, a_query in enumerate(input_query):
         a_query = clean_query(a_query)
         print("Checking cache/downloading", a_query, ",",
               query_number + 1, "of", len(input_query), "records...")
         uniprot_bin(a_query)
+        input_queries.append(a_query)
 
-    input_query_set = set(input_query)
+    input_query_set = set(input_queries)
 
     ### If UniProt says it is a TMH, add it to the protein table ###
 
@@ -1037,16 +1042,39 @@ def run():
 
     ### Variant tables ###
 
-    ## Humsavar ##
     print("Reading the variant tables...")
+
+    ## Humsavar ##
+
+    humsavar_file="./scripts/external_datasets/humsavar.txt"
+    st=os.stat(humsavar_file)
+    humsavar_file_age=(time.time()-st.st_mtime)
+    print("Downloading humsavar.txt from UniProt.")
+    url = 'https://www.uniprot.org/docs/humsavar.txt'
+    humsavar_file="./scripts/external_datasets/humsavar.txt"
+    with urllib.request.urlopen(url) as response, open(humsavar_file, 'wb') as out_file:
+        shutil.copyfileobj(response, out_file)
+
     humsavar_list = []
     with open('./scripts/external_datasets/humsavar.txt') as f:
         lines = f.read().splitlines()
-        for i in lines:
+        for line_number, i in enumerate(lines):
+
             i = i.replace('  ', ' ')
             humsavar_variant=i.split()
-            if humsavar_variant[1] in input_query_set:
-                humsavar_list.append(i.split())
+            if line_number > 50 and line_number < len(lines)-5:
+                if humsavar_variant[1] in input_query_set:
+
+                    #fixes issue 40. Some IDs are longer than the column width and use the space we are using to split.
+                    if len(humsavar_variant) == 6:
+                        if humsavar_variant[5][-1] == "-" and len(humsavar_variant[5])>1:
+                            humsavar_variant[5]=humsavar_variant[5][:-1]
+                            humsavar_variant.append(humsavar_variant[5][-1:])
+                    if len(humsavar_variant) > 8:
+                        humsavar_variant[7:-1] = [''.join(humsavar_variant[7:-1])]
+
+                    humsavar_list.append(humsavar_variant)
+
     for humsavar_variant in humsavar_list:
         humsavar_variant_check(humsavar_variant)
     # print(humsavar_list)
@@ -1067,9 +1095,8 @@ def run():
                 UNIPROT_ACCESSION = str(var_database_entry[18])
                 USER_ID = str(var_database_entry[26])
 
-                if UNIPROT_ACCESSION in input_query_set:
-                    print("Storing variant", USER_ID, "for",
-                          UNIPROT_ACCESSION, "to memory.")
+                if str(UNIPROT_ACCESSION) in input_query_set:
+                    print("Storing variant", USER_ID, "for", UNIPROT_ACCESSION, "to memory.")
                     clinvar_results.append(var_database_entry)
                     clinvar_results_set.add(clean_query(str(USER_ID)))
 
