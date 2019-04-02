@@ -1,7 +1,7 @@
 # Database of Variants in TMPs.
 
-## A tool to evaluate disease variants in the context of transmembrane proteins
-
+This is a tool to help to evaluate disease variants in the context of transmembrane proteins.
+It curates TMHs boundaries and topology from several sources and cross references those against several variant databases.
 
 <!--
 TMs In Protein TOPology = TiPTop
