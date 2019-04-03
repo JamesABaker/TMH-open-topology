@@ -38,13 +38,14 @@ print("Usage:\npython3 manage.py runscript populate --traceback")
 
 def uniprot_bin(query_id):
     try:
-        "Already in cache."
+        print("Checking if already in cache.")
         filename = str(
             "scripts/external_datasets/uniprot_bin/" + query_id + ".txt")
         file = open(filename, "r")
-        file.readlines
+        file_test=file.readlines
     # If the file is not found, an attempt is made to grab the file from the internet.
     except(FileNotFoundError):
+        print("File not found.", query_id, ".")
         uniprot_url = str(f'https://www.uniprot.org/uniprot/{query_id}.txt')
         r = requests.get(uniprot_url)
 
@@ -65,7 +66,6 @@ def uniprot_table(query_id):
         for i, f in enumerate(record.features):
             if f.type == feature_type:
                 if "UnknownPosition" in str(f.location.start) or "UnknownPosition" in str(f.location.end):
-                    pass
                     print(record.id, "Unknown position for TMH in record")
                     # This doesn't mean that there are coordinates, just that there is a TM somewhere in the protein.
                     tm_protein = True
@@ -75,7 +75,7 @@ def uniprot_table(query_id):
                     tm_protein = True
         sequence = record.seq
     # Add the protein to the protein table if it is a TMP
-    if tm_protein == True:
+    if tm_protein is True:
         print("TM annotation found in", query_id ,".")
         target_protein = Protein.objects.get(uniprot_id=query_id)
 
@@ -150,7 +150,6 @@ def uniprot_tm_check(query_id):
         for i, f in enumerate(record.features):
             if f.type == feature_type:
                 if "UnknownPosition" in str(f.location.start) or "UnknownPosition" in str(f.location.end):
-                    pass
                     print(record.id, "Unknown position for TMH in record")
                     # this stops unknown tmhs masking polytopic as single pass
                     total_tmh_number = total_tmh_number + 1
@@ -159,7 +158,7 @@ def uniprot_tm_check(query_id):
                     list_of_tmhs.append(int(f.location.end))
                     total_tmh_number = total_tmh_number + 1
 
-        if len(list_of_tmhs) > 0:  # Checks if it is a TM protein.
+        if list_of_tmhs:  # Checks if it is a TM protein.
             # The protein for the database
             # This feels like it could go somewhere else...
             print("TMHs found in", query_id)
@@ -192,7 +191,6 @@ def uniprot_tm_check(query_id):
                 if "UnknownPosition" in str(f.location.start) or "UnknownPosition" in str(f.location.end):
                     # Let's count the tmhs even though they do not have a position and will not be in the database.
                     tmd_count = tmd_count + 1
-                    pass
                 else:
 
                     tmd_count = tmd_count + 1
@@ -219,9 +217,9 @@ def uniprot_tm_check(query_id):
                             n_clash = True
                             print("N-clash detected")
 
-                    if int(f.location.start) - 5 <= 0 and n_clash == False:
+                    if int(f.location.start) - 5 <= 0 and n_clash is False:
                         n_ter_seq = str(record.seq[0:(f.location.start)])
-                    elif int(f.location.start) - 5 > 0 and n_clash == False:
+                    elif int(f.location.start) - 5 > 0 and n_clash is False:
                         n_ter_seq = str(
                             record.seq[(f.location.start - 5):(f.location.start)])
 
@@ -235,10 +233,10 @@ def uniprot_tm_check(query_id):
                             c_clash = True
                             print("C-clash detected")
 
-                    if int(f.location.end) + 5 <= len(record.seq) and c_clash == False:
+                    if int(f.location.end) + 5 <= len(record.seq) and c_clash is False:
                         c_ter_seq = str(
                             record.seq[(f.location.end):(f.location.end + 5)])
-                    elif int(f.location.end) + 5 > len(record.seq) and c_clash == False:
+                    elif int(f.location.end) + 5 > len(record.seq) and c_clash is False:
                         c_ter_seq = str(
                             record.seq[(f.location.end):(len(record.seq))])
 
@@ -386,7 +384,7 @@ def tmh_to_database(tmh_list):
         evidence = a_tmh[11]
         full_sequence = a_tmh[12]
 
-        if tmh_topology == None:
+        if tmh_topology is None:
             tmh_topology = "Unknown"
 
         if tmh_topology in "Inside":
@@ -758,35 +756,35 @@ def gnomad_variant_check(gnomad_variants):
     variant_source = "gnomAD"
     var_database_entry = gnomad_variants
 
-    '''
-    This could be worth investigating if isoforms are an issue
-    # ISOFORMS!!!!
-    # This bit is fiddly since there are isoforms. First, we need to establish if the record is the right line to save some time.
-    id_match = False
-    if query_id == UNIPROT_ACCESSION:
 
-        var_record_id = UNIPROT_ACCESSION
-        var_record_location = SEQ_NO
-        id_match = True
+    #This could be worth investigating if isoforms are an issue
+    ## ISOFORMS!!!!
+    ## This bit is fiddly since there are isoforms. First, we need to establish if the record is the right line to save some time.
+    #id_match = False
+    #if query_id == UNIPROT_ACCESSION:
 
-    elif query_id in ALL_TRANSCRIPTS:
-        id_match = True
+    #    var_record_id = UNIPROT_ACCESSION
+    #    var_record_location = SEQ_NO
+    #    id_match = True
 
-        # ' / ' deliniates isoforms. ',' deliniates items in isoforms.
-        # Example:
-        #   ENST00000379389,-,P05161,21,S/N,*,ISG15,0,0.73,Missense variant / ENST00000458555,-,P05161,-,-,*,ISG15,0,0.73,Upstream gene variant
+    #elif query_id in ALL_TRANSCRIPTS:
+    #    id_match = True
 
-        list_of_transcripts = str(ALL_TRANSCRIPTS).split(" / ")
-        for isoform in list_of_transcripts:
-            this_isoform = isoform.split(",")
-            if query_id == this_isoform[2]:
-                var_record_id = this_isoform[2]
-                var_record_location = this_isoform[3]
-            else:
-                pass
-    else:
-        pass
-    '''
+    #    # ' / ' deliniates isoforms. ',' deliniates items in isoforms.
+    #    # Example:
+    #    #   ENST00000379389,-,P05161,21,S/N,*,ISG15,0,0.73,Missense variant / ENST00000458555,-,P05161,-,-,*,ISG15,0,0.73,Upstream gene variant
+
+    #    list_of_transcripts = str(ALL_TRANSCRIPTS).split(" / ")
+    #    for isoform in list_of_transcripts:
+    #        this_isoform = isoform.split(",")
+    #        if query_id == this_isoform[2]:
+    #            var_record_id = this_isoform[2]
+    #            var_record_location = this_isoform[3]
+    #        else:
+    #            pass
+    #else:
+    #    pass
+
 
     try:
         # Yes, I know all caps is bad, but this is just way easier than reformatting every time SnipClip headers change.
@@ -940,11 +938,11 @@ def humsavar_variant_check(humsavar_variant):
 
 def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, disease_comments, variant_source):
     if var_record_location == "-":
-        print("Unkown sequence location. Possibly intron: ", uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, disease_comments, variant_source)
+        print("Unkown sequence location. Possibly intron: ", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
     elif aa_wt == "-":
-        print("Wildtype amino acid not defined. Assuming this is not an SNP: ", uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, disease_comments, variant_source)
+        print("Wildtype amino acid not defined. Assuming this is not an SNP: ", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
     elif len(aa_wt) > 1 or len(aa_mut) > 1:
-        print("More than a single residue changed. Assuming this is not an SNP: ", uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, disease_comments, variant_source)
+        print("More than a single residue changed. Assuming this is not an SNP: ", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
     else:
 
         protein = Protein.objects.get(uniprot_id=uniprot_record)
@@ -953,7 +951,7 @@ def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_
 
             residue_variant = Residue.objects.get(protein=protein, sequence_position=var_record_location)
             if str(residue_variant.amino_acid_type) == str(aa_wt):
-                print("Adding ", uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, disease_comments, variant_source, "to database variant table.")
+                print("Adding ", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source, "to database variant table.")
                 record_for_database, created = Variant.objects.update_or_create(
                     residue =residue_variant,
                     aa_wt = aa_wt,
@@ -966,9 +964,9 @@ def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_
                     }
                 )
             else:
-                print("Mismatch between wild-type amino acids. UniProt:", str(residue_variant.amino_acid_type) ,str(variant_source),":", str(aa_wt), "for record", uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, disease_comments, variant_source)
+                print("Mismatch between wild-type amino acids. UniProt:", str(residue_variant.amino_acid_type) ,str(variant_source),":", str(aa_wt), "for record", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
         else:
-            print("Variant position exceeds the length of the protein. Protein length:", len(str(protein.full_sequence)), "Variant position:", var_record_location, "for record", uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, disease_comments, variant_source)
+            print("Variant position exceeds the length of the protein. Protein length:", len(str(protein.full_sequence)), "Variant position:", var_record_location, "for record", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
 def run():
 
     '''
@@ -982,9 +980,9 @@ def run():
     ### Canonical script starts here ###
 
     # In full scale mode it will take a long time which may not be suitable for development.
-    #input_query=get_uniprot()
+    input_query=get_uniprot()
     # Here we will just use a watered down list of tricky proteins.
-    input_query = ["Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q96E22", "P47869", "P28472", "P18507", "P05187", "O95477"]
+    #input_query = ["Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q96E22", "P47869", "P28472", "P18507", "P05187", "O95477"]
 
     # Parse the xml static files since this is the slowest part.
     # Ignore this for now -  we need to sort out uniprot before anything else!
