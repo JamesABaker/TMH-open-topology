@@ -10,7 +10,7 @@ import subprocess
 from subprocess import check_output
 import re
 import sys
-import xml.etree.ElementTree as ET
+import defusedxml.ElementTree as ET
 from Bio import SeqIO
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 from django.conf import settings
@@ -24,16 +24,16 @@ from tmh_db.models import Variant
 from tmh_db.models import Tmh_tmsoc
 from tmh_db.models import Tmh_deltag
 from tmh_db.models import Tmh_hydrophobicity
-from tmh_db.models import Residue
 from datetime import datetime, timedelta
 from django.utils.timezone import now
 import pytz
 
-# How many days should be allowed to not enforce updates
-time_threshold = 7
-
 
 print("Usage:\npython3 manage.py runscript populate --traceback")
+
+
+# How many days should be allowed to not enforce updates
+time_threshold = 7
 
 
 def uniprot_bin(query_id):
@@ -42,7 +42,7 @@ def uniprot_bin(query_id):
         filename = str(
             "scripts/external_datasets/uniprot_bin/" + query_id + ".txt")
         file = open(filename, "r")
-        file_test=file.readlines
+        file_test = file.readlines
     # If the file is not found, an attempt is made to grab the file from the internet.
     except(FileNotFoundError):
         print("File not found.", query_id, ".")
@@ -54,12 +54,12 @@ def uniprot_bin(query_id):
 
 
 def uniprot_table(query_id):
-    filename = str("scripts/external_datasets/uniprot_bin/" +
-                   query_id + ".txt")
+    filename = str("scripts/external_datasets/uniprot_bin/"
+                   + query_id + ".txt")
     input_format = "swiss"
     feature_type = "TRANSMEM"
     tm_protein = False
-    print("Checking UniProt for TM annotation in",query_id,".")
+    print("Checking UniProt for TM annotation in", query_id, ".")
     for record in SeqIO.parse(filename, input_format):
         list_of_tmhs = []
         # features locations is a bit annoying as the start location needs +1 to match the sequence IO, but end is the correct sequence value.
@@ -76,13 +76,15 @@ def uniprot_table(query_id):
         sequence = record.seq
     # Add the protein to the protein table if it is a TMP
     if tm_protein is True:
-        print("TM annotation found in", query_id ,".")
+        print("TM annotation found in", query_id, ".")
         target_protein = Protein.objects.get(uniprot_id=query_id)
 
-        old_residue = Protein.objects.filter(updated_date__gte=datetime.now()-timedelta(days=time_threshold))
+        old_residue = Protein.objects.filter(
+            updated_date__gte=datetime.now() - timedelta(days=time_threshold))
 
         if target_protein not in old_residue:
-            print("No recent database entry for", query_id, ". Adding to the database now.")
+            print("No recent database entry for", query_id,
+                  ". Adding to the database now.")
             record_for_database, created = Protein.objects.update_or_create(
                 uniprot_id=query_id,
                 defaults={
@@ -94,7 +96,8 @@ def uniprot_table(query_id):
             residue_table(query_id, sequence)
 
         elif target_protein in old_residue:
-            print(query_id, "residues were already added to database in previous",time_threshold, "days.")
+            print(query_id, "residues were already added to database in previous",
+                  time_threshold, "days.")
 
 
 def residue_table(query_id, sequence):
@@ -133,8 +136,8 @@ def uniprot_tm_check(query_id):
 
     # These are the parameters used by the biopython Seq.IO module
 
-    filename = str("scripts/external_datasets/uniprot_bin/" +
-                   query_id + ".txt")
+    filename = str("scripts/external_datasets/uniprot_bin/"
+                   + query_id + ".txt")
     input_format = "swiss"
     feature_type = "TRANSMEM"
     subcellular_location = "TOPO_DOM"
@@ -341,8 +344,8 @@ def topdb_check(query_id, topdb):
                                                         tmh_stop = int(
                                                             tmh_details["End"])
                                                         ### NO FLANK CLASH CHECKS! NUMBERS WILL BE WRONG!!! ###
-                                                        n_ter_seq = sequence[tmh_start
-                                                                             - 5:tmh_start]
+                                                        n_ter_seq = sequence[tmh_start -
+                                                                             5:tmh_start]
                                                         tmh_sequence = sequence[tmh_start:tmh_stop]
                                                         c_ter_seq = sequence[tmh_stop:tmh_stop + 5]
 
@@ -510,9 +513,8 @@ def hydrophobicity(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_st
     aromaticity = tmh_sequence_analysis.aromaticity()
     flexibility = tmh_sequence_analysis.flexibility()
 
-
-    ww = {'A': 0.33 , 'R': 1.00 , 'N': 0.43 , 'D': 2.41 , 'C': 0.22 , 'Q': 0.19 , 'E': 1.61, 'G': 1.14 , 'H': -0.06 , 'I': -0.81 ,
-          'L': -0.69 , 'K': 1.81, 'M': -0.44, 'F': -0.58 , 'P': -0.31 , 'S': 0.33, 'T': 0.11 , 'W': -0.24, 'Y': 0.23, 'V': -0.53}
+    ww = {'A': 0.33, 'R': 1.00, 'N': 0.43, 'D': 2.41, 'C': 0.22, 'Q': 0.19, 'E': 1.61, 'G': 1.14, 'H': -0.06, 'I': -0.81,
+          'L': -0.69, 'K': 1.81, 'M': -0.44, 'F': -0.58, 'P': -0.31, 'S': 0.33, 'T': 0.11, 'W': -0.24, 'Y': 0.23, 'V': -0.53}
     ww_window = full_sequence_analysis.protein_scale(ww, window_length, edge)
     ww_window = ww_window[int(tmh_start - 1 - window_length)
                               :int(tmh_stop - window_length)]
@@ -618,7 +620,7 @@ def disease_class(disease_type):
         ?Uncertain_significance
     '''
     # Sometimes spaces are used instead of "_" s.
-    disease_type=str(disease_type.replace(" ", "_"))
+    disease_type = str(disease_type.replace(" ", "_"))
     disease = ["Disease", "Likely_pathogenic",
                "Pathogenic", "Pathogenic/Likely_pathogenic"]
     benign = ["Unclassified", "Polymorphism", "Affects", "association", "Benign", "Benign/Likely_benign", "Likely_benign", "Conflicting_interpretations_of_pathogenicity",
@@ -634,7 +636,6 @@ def disease_class(disease_type):
 
 
 def clinvar_variant_check(clinvar_variants, clinvar_summary):
-
     '''
     Checks if a tmh has any variants in the variant file and spews out a list of
     variants and their position in the tmh.
@@ -725,14 +726,14 @@ def clinvar_variant_check(clinvar_variants, clinvar_summary):
     variant_review = "Unknown"
     aa_wt = UNIPROT_AA
     # VarMap shows the change as X/N
-    if len(AA_CHANGE)==3 and "/" in AA_CHANGE:
+    if len(AA_CHANGE) == 3 and "/" in AA_CHANGE:
         aa_mut = AA_CHANGE.split("/")[1]
     else:
         aa_mut = AA_CHANGE
     disease_status = ""
     disease_comments = ""
 
-        # Is the variant disease causing?
+    # Is the variant disease causing?
 
     for i in clinvar_summary:
             #print("Is", int(i[-1]), "equal to", int(USER_ID), "?" )
@@ -742,12 +743,11 @@ def clinvar_variant_check(clinvar_variants, clinvar_summary):
             disease_status = disease_class(i[6])
             disease_comments = i[24]
 
-
-    var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, disease_comments, variant_source)
+    var_to_database(uniprot_record, var_record_location, aa_wt,
+                    aa_mut, disease_status, disease_comments, variant_source)
 
 
 def gnomad_variant_check(gnomad_variants):
-
     '''
     Checks if a tmh has any variants in the variant file and spews out a list of
     variants and their position in the tmh.
@@ -756,18 +756,17 @@ def gnomad_variant_check(gnomad_variants):
     variant_source = "gnomAD"
     var_database_entry = gnomad_variants
 
-
-    #This could be worth investigating if isoforms are an issue
-    ## ISOFORMS!!!!
-    ## This bit is fiddly since there are isoforms. First, we need to establish if the record is the right line to save some time.
+    # This could be worth investigating if isoforms are an issue
+    # ISOFORMS!!!!
+    # This bit is fiddly since there are isoforms. First, we need to establish if the record is the right line to save some time.
     #id_match = False
-    #if query_id == UNIPROT_ACCESSION:
+    # if query_id == UNIPROT_ACCESSION:
 
     #    var_record_id = UNIPROT_ACCESSION
     #    var_record_location = SEQ_NO
     #    id_match = True
 
-    #elif query_id in ALL_TRANSCRIPTS:
+    # elif query_id in ALL_TRANSCRIPTS:
     #    id_match = True
 
     #    # ' / ' deliniates isoforms. ',' deliniates items in isoforms.
@@ -782,9 +781,8 @@ def gnomad_variant_check(gnomad_variants):
     #            var_record_location = this_isoform[3]
     #        else:
     #            pass
-    #else:
+    # else:
     #    pass
-
 
     try:
         # Yes, I know all caps is bad, but this is just way easier than reformatting every time SnipClip headers change.
@@ -866,16 +864,16 @@ def gnomad_variant_check(gnomad_variants):
     variant_type = "Unknown"
     variant_review = "Unknown"
     aa_wt = UNIPROT_AA
-    if len(AA_CHANGE)==3 and "/" in AA_CHANGE:
+    if len(AA_CHANGE) == 3 and "/" in AA_CHANGE:
         aa_mut = AA_CHANGE.split("/")[1]
     else:
         aa_mut = AA_CHANGE
     disease_status = "gnomAD"
     disease_comments = ""
 
-        # Is the variant disease causing?
+    # Is the variant disease causing?
 
-    #for i in clinvar_summary:
+    # for i in clinvar_summary:
     #        #print("Is", int(i[-1]), "equal to", int(USER_ID), "?" )
     #    if int(i[-1]) == int(var_record_id):  #  (variant id is last column in summary)
     #            # print("clinvar summary and snipclip finally found a hit for variant ",int(var_record_id))
@@ -883,7 +881,8 @@ def gnomad_variant_check(gnomad_variants):
     #        disease_status = i[6]
     #        disease_comments = i[24]
 
-    var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, disease_comments, variant_source)
+    var_to_database(uniprot_record, var_record_location, aa_wt,
+                    aa_mut, disease_status, disease_comments, variant_source)
 
 
 def humsavar_variant_check(humsavar_variant):
@@ -896,10 +895,9 @@ def humsavar_variant_check(humsavar_variant):
     humsavar_variant_gene_position = humsavar_variant[5]
     humsavar_variant_comment = humsavar_variant[6]
 
-
-
     variant_source = "Humsavar"
-    filename = str("scripts/external_datasets/uniprot_bin/" + uniprot_record + ".txt")
+    filename = str("scripts/external_datasets/uniprot_bin/"
+                   + uniprot_record + ".txt")
     input_format = "swiss"
     subcellular_location = "TOPO_DOM"
 
@@ -910,7 +908,6 @@ def humsavar_variant_check(humsavar_variant):
                 if str(humsavar_variant_id) == str(feature.id):
                     #variant_types=[str('Disease'), str('Polymorphism'), str('Unclassified')]
                     variant_review = "SwissProt"
-
 
                     for char_num, char in enumerate(str(feature.qualifiers)):
                         if char == "-":
@@ -929,46 +926,57 @@ def humsavar_variant_check(humsavar_variant):
                                 aa_mut = str(feature.qualifiers)[char_num + 3]
 
                                 # We want as much information to be passed onto the next table.
-                                disease_status = str(disease_class(humsavar_variant_disease_type))
-                                disease_comments = str(humsavar_variant_disease_type+";"+humsavar_variant_comment)
-                                var_record_location = feature.location.start+1 # This might need +1?
+                                disease_status = str(disease_class(
+                                    humsavar_variant_disease_type))
+                                disease_comments = str(
+                                    humsavar_variant_disease_type + ";" + humsavar_variant_comment)
+                                var_record_location = feature.location.start + 1  # This might need +1?
 
-                                var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, disease_comments, variant_source)
+                                var_to_database(uniprot_record, var_record_location, aa_wt,
+                                                aa_mut, disease_status, disease_comments, variant_source)
 
 
 def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, disease_comments, variant_source):
     if var_record_location == "-":
-        print("Unkown sequence location. Possibly intron: ", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
+        print("Unkown sequence location. Possibly intron: ", uniprot_record, var_record_location,
+              aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
     elif aa_wt == "-":
-        print("Wildtype amino acid not defined. Assuming this is not an SNP: ", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
+        print("Wildtype amino acid not defined. Assuming this is not an SNP: ", uniprot_record,
+              var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
     elif len(aa_wt) > 1 or len(aa_mut) > 1:
-        print("More than a single residue changed. Assuming this is not an SNP: ", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
+        print("More than a single residue changed. Assuming this is not an SNP: ", uniprot_record,
+              var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
     else:
 
         protein = Protein.objects.get(uniprot_id=uniprot_record)
 
         if int(var_record_location) <= len(str(protein.full_sequence)):
 
-            residue_variant = Residue.objects.get(protein=protein, sequence_position=var_record_location)
+            residue_variant = Residue.objects.get(
+                protein=protein, sequence_position=var_record_location)
             if str(residue_variant.amino_acid_type) == str(aa_wt):
-                print("Adding ", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source, "to database variant table.")
+                print("Adding ", uniprot_record, var_record_location, aa_wt, "->", aa_mut,
+                      disease_status, disease_comments, variant_source, "to database variant table.")
                 record_for_database, created = Variant.objects.update_or_create(
-                    residue =residue_variant,
-                    aa_wt = aa_wt,
-                    aa_mut = aa_mut,
+                    residue=residue_variant,
+                    aa_wt=aa_wt,
+                    aa_mut=aa_mut,
 
-                    disease_status = disease_status,
-                    disease_comments = disease_comments,
-                    variant_source = variant_source,
+                    disease_status=disease_status,
+                    disease_comments=disease_comments,
+                    variant_source=variant_source,
                     defaults={
                     }
                 )
             else:
-                print("Mismatch between wild-type amino acids. UniProt:", str(residue_variant.amino_acid_type) ,str(variant_source),":", str(aa_wt), "for record", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
+                print("Mismatch between wild-type amino acids. UniProt:", str(residue_variant.amino_acid_type), str(variant_source), ":", str(
+                    aa_wt), "for record", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
         else:
-            print("Variant position exceeds the length of the protein. Protein length:", len(str(protein.full_sequence)), "Variant position:", var_record_location, "for record", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
-def run():
+            print("Variant position exceeds the length of the protein. Protein length:", len(str(protein.full_sequence)), "Variant position:",
+                  var_record_location, "for record", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
 
+
+def run():
     '''
     This is what django runs. This is effectively the canonical script,
     even though django forces it to be in a function.
@@ -980,7 +988,7 @@ def run():
     ### Canonical script starts here ###
 
     # In full scale mode it will take a long time which may not be suitable for development.
-    input_query=get_uniprot()
+    input_query = get_uniprot()
     # Here we will just use a watered down list of tricky proteins.
     #input_query = ["Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q96E22", "P47869", "P28472", "P18507", "P05187", "O95477"]
 
@@ -997,7 +1005,7 @@ def run():
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tmh_database.settings')
 
     ### Download uniprot files ###
-    input_queries=[]
+    input_queries = []
     for query_number, a_query in enumerate(input_query):
         a_query = clean_query(a_query)
         print("Checking cache/downloading", a_query, ",",
@@ -1050,12 +1058,12 @@ def run():
 
     ## Humsavar ##
 
-    humsavar_file="scripts/external_datasets/humsavar.txt"
-    st=os.stat(humsavar_file)
-    humsavar_file_age=(time.time()-st.st_mtime)
+    humsavar_file = "scripts/external_datasets/humsavar.txt"
+    st = os.stat(humsavar_file)
+    humsavar_file_age = (time.time() - st.st_mtime)
     print("Downloading humsavar.txt from UniProt.")
     url = 'https://www.uniprot.org/docs/humsavar.txt'
-    humsavar_file="scripts/external_datasets/humsavar.txt"
+    humsavar_file = "scripts/external_datasets/humsavar.txt"
     with urllib.request.urlopen(url) as response, open(humsavar_file, 'wb') as out_file:
         shutil.copyfileobj(response, out_file)
 
@@ -1065,17 +1073,18 @@ def run():
         for line_number, i in enumerate(lines):
 
             i = i.replace('  ', ' ')
-            humsavar_variant=i.split()
-            if line_number > 50 and line_number < len(lines)-5:
+            humsavar_variant = i.split()
+            if line_number > 50 and line_number < len(lines) - 5:
                 if humsavar_variant[1] in input_query_set:
 
-                    #fixes issue 40. Some IDs are longer than the column width and use the space we are using to split.
+                    # fixes issue 40. Some IDs are longer than the column width and use the space we are using to split.
                     if len(humsavar_variant) == 6:
-                        if humsavar_variant[5][-1] == "-" and len(humsavar_variant[5])>1:
-                            humsavar_variant[5]=humsavar_variant[5][:-1]
+                        if humsavar_variant[5][-1] == "-" and len(humsavar_variant[5]) > 1:
+                            humsavar_variant[5] = humsavar_variant[5][:-1]
                             humsavar_variant.append(humsavar_variant[5][-1:])
                     if len(humsavar_variant) > 8:
-                        humsavar_variant[7:-1] = [''.join(humsavar_variant[7:-1])]
+                        humsavar_variant[7:
+                                         - 1] = [''.join(humsavar_variant[7:-1])]
 
                     humsavar_list.append(humsavar_variant)
 
@@ -1100,37 +1109,39 @@ def run():
                 USER_ID = str(var_database_entry[26])
 
                 if str(UNIPROT_ACCESSION) in input_query_set:
-                    print("Storing variant", USER_ID, "for", UNIPROT_ACCESSION, "to memory.")
+                    print("Storing variant", USER_ID, "for",
+                          UNIPROT_ACCESSION, "to memory.")
                     clinvar_results.append(var_database_entry)
                     clinvar_results_set.add(clean_query(str(USER_ID)))
 
     print(clinvar_results_set)
-    print(len(clinvar_results), "ClinVar variants found in database that will be checked.")
+    print(len(clinvar_results),
+          "ClinVar variants found in database that will be checked.")
 
     # Load the clinvar summary file
-    clinvar_summary_lines=[]
+    clinvar_summary_lines = []
     print("Loading the variant summaries from ClinVar. This holds information on disease states in clinvar.")
     with open("scripts/external_datasets/variant_summary.txt") as inputfile:
         for line_number, summary_variant in enumerate(inputfile):
-            if line_number == 0:
-                pass
-            else:
-                summary_variant=summary_variant.strip().split('\t')
+            if line_number > 0:
+                summary_variant = summary_variant.strip().split('\t')
                 # print(str(summary_variant[-1]))
                 if clean_query(str(summary_variant[-1])) in clinvar_results_set:
                     clinvar_summary_lines.append(summary_variant)
+            else:
+                pass
 
-    print(len(clinvar_summary_lines), "summaries fetched of", len(clinvar_results), "ClinVar variants.")
+    print(len(clinvar_summary_lines), "summaries fetched of",
+          len(clinvar_results), "ClinVar variants.")
 
     # We now have a list of the clinvar variants and a list of the clinvar summary.
     # Other tsvs form VarMap hopefully won't need this.
     for clinvar_variant in clinvar_results:
         clinvar_variant_check(clinvar_variant, clinvar_summary_lines)
 
-
     ## gnomAD ##
     print("Loading gnomAD tsv file to memory. This may take a while...")
-    gnomad_results=[]
+    gnomad_results = []
     with open("scripts/external_datasets/gnomAD_varsite.tsv") as inputfile:
         for line_number, var_database_entry in enumerate(inputfile):
             if line_number == 0:
@@ -1143,7 +1154,8 @@ def run():
                 if UNIPROT_ACCESSION in input_query_set:
                     gnomad_results.append(var_database_entry)
 
-    print(len(gnomad_results), "variants relating to query list found in gnomAD. Adding SNPs to database...")
+    print(len(gnomad_results),
+          "variants relating to query list found in gnomAD. Adding SNPs to database...")
     for gnomad_variant in gnomad_results:
         gnomad_variant_check(gnomad_variant)
 
