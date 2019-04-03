@@ -623,7 +623,7 @@ def disease_class(disease_type):
     disease_type=str(disease_type.replace(" ", "_"))
     disease = ["Disease", "Likely_pathogenic",
                "Pathogenic", "Pathogenic/Likely_pathogenic"]
-    benign = ["Unclassified", "Polymorphism", "Affects", "association", "Benign", "Benign/Likely_benign", "Conflicting_interpretations_of_pathogenicity",
+    benign = ["Unclassified", "Polymorphism", "Affects", "association", "Benign", "Benign/Likely_benign", "Likely_benign", "Conflicting_interpretations_of_pathogenicity",
               "drug_response", "no_interpretation_for_the_single_variant", "not_provided",  "other", "protective", "risk_factor", "Uncertain_significance"]
     if str(disease_type) in disease:
         pathogenicity = "d"
@@ -933,7 +933,7 @@ def humsavar_variant_check(humsavar_variant):
                                 # We want as much information to be passed onto the next table.
                                 disease_status = str(disease_class(humsavar_variant_disease_type))
                                 disease_comments = str(humsavar_variant_disease_type+";"+humsavar_variant_comment)
-                                var_record_location = feature.location.start # This might need +1?
+                                var_record_location = feature.location.start+1 # This might need +1?
 
                                 var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, disease_comments, variant_source)
 
@@ -946,23 +946,29 @@ def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_
     elif len(aa_wt) > 1 or len(aa_mut) > 1:
         print("More than a single residue changed. Assuming this is not an SNP: ", uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, disease_comments, variant_source)
     else:
+
         protein = Protein.objects.get(uniprot_id=uniprot_record)
-        residue_variant = Residue.objects.get(protein=protein, sequence_position=var_record_location)
-        print("Adding ", uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, disease_comments, variant_source, "to database variant table.")
 
-        record_for_database, created = Variant.objects.update_or_create(
-            residue =residue_variant,
-            aa_wt = aa_wt,
-            aa_mut = aa_mut,
+        if int(var_record_location) <= len(str(protein.full_sequence)):
 
-            disease_status = disease_status,
-            disease_comments = disease_comments,
-            variant_source = variant_source,
-            defaults={
-            }
-        )
+            residue_variant = Residue.objects.get(protein=protein, sequence_position=var_record_location)
+            if str(residue_variant.amino_acid_type) == str(aa_wt):
+                print("Adding ", uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, disease_comments, variant_source, "to database variant table.")
+                record_for_database, created = Variant.objects.update_or_create(
+                    residue =residue_variant,
+                    aa_wt = aa_wt,
+                    aa_mut = aa_mut,
 
-
+                    disease_status = disease_status,
+                    disease_comments = disease_comments,
+                    variant_source = variant_source,
+                    defaults={
+                    }
+                )
+            else:
+                print("Mismatch between wild-type amino acids. UniProt:", str(residue_variant.amino_acid_type) ,str(variant_source),":", str(aa_wt), "for record", uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, disease_comments, variant_source)
+        else:
+            print("Variant position exceeds the length of the protein. Protein length:", len(str(protein.full_sequence)), "Variant position:", var_record_location, "for record", uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, disease_comments, variant_source)
 def run():
 
     '''
@@ -976,9 +982,9 @@ def run():
     ### Canonical script starts here ###
 
     # In full scale mode it will take a long time which may not be suitable for development.
-    # input_query=get_uniprot()
+    #input_query=get_uniprot()
     # Here we will just use a watered down list of tricky proteins.
-    input_query = ["Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q96E22", "P47869", "P28472", "P18507", "P05187", "O95477"]
+    input_query = ["Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q96E22", "P47869", "P28472", "P18507", "P05187", "O95477"]
 
     # Parse the xml static files since this is the slowest part.
     # Ignore this for now -  we need to sort out uniprot before anything else!
@@ -1125,7 +1131,7 @@ def run():
 
 
     ## gnomAD ##
-    "Loading gnomAD tsv file to memory. This may take a while..."
+    print("Loading gnomAD tsv file to memory. This may take a while...")
     gnomad_results=[]
     with open("./scripts/external_datasets/gnomAD_varsite.tsv") as inputfile:
         for line_number, var_database_entry in enumerate(inputfile):
