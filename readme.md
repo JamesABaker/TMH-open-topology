@@ -1,5 +1,7 @@
 # Database of Variants in TMPs.
 
+[![CodeFactor](https://www.codefactor.io/repository/github/jamesabaker/tip-top-table/badge)](https://www.codefactor.io/repository/github/jamesabaker/tip-top-table)
+
 This is a tool to help to evaluate disease variants in the context of transmembrane proteins.
 It curates TMHs boundaries and topology from several sources and cross references those against several variant databases.
 

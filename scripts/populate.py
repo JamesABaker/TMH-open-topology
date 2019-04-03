@@ -445,8 +445,8 @@ def tmsoc(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_stop):
 
     # Running TMSOC
 
-    tmsoc_result = check_output(["perl", "./scripts/external_scripts/tmsoc/TMSOC.pl", "./scripts/external_scripts/tmsoc/inputseq.fasta",
-                                 "./scripts/external_scripts/tmsoc/TMsegments.txt"])  # stdout=subprocess.PIPE)
+    tmsoc_result = check_output(["perl", "scripts/external_scripts/tmsoc/TMSOC.pl", "scripts/external_scripts/tmsoc/inputseq.fasta",
+                                 "scripts/external_scripts/tmsoc/TMsegments.txt"])  # stdout=subprocess.PIPE)
     tmsoc_result = tmsoc_result.decode("utf-8")
     tmsoc_result = tmsoc_result.split("\n")
     for line in tmsoc_result:
@@ -481,8 +481,8 @@ def deltag(tmh_unique_id, tmh_sequence):
     with open("scripts/external_scripts/dgpred/inputseq.fasta", 'w') as temp_tmh_fasta:
         temp_tmh_fasta.write(str(">" + tmh_unique_id + "\n" + tmh_sequence))
 
-    deltag_result = check_output(["perl", "./scripts/external_scripts/dgpred/myscanDG.pl",
-                                  "./scripts/external_scripts/dgpred/inputseq.fasta"])  # stdout=subprocess.PIPE)
+    deltag_result = check_output(["perl", "scripts/external_scripts/dgpred/myscanDG.pl",
+                                  "scripts/external_scripts/dgpred/inputseq.fasta"])  # stdout=subprocess.PIPE)
     print(deltag_result)
     deltag_result = deltag_result.decode("utf-8")
     deltag_result = deltag_result.split("\n")
@@ -1052,17 +1052,17 @@ def run():
 
     ## Humsavar ##
 
-    humsavar_file="./scripts/external_datasets/humsavar.txt"
+    humsavar_file="scripts/external_datasets/humsavar.txt"
     st=os.stat(humsavar_file)
     humsavar_file_age=(time.time()-st.st_mtime)
     print("Downloading humsavar.txt from UniProt.")
     url = 'https://www.uniprot.org/docs/humsavar.txt'
-    humsavar_file="./scripts/external_datasets/humsavar.txt"
+    humsavar_file="scripts/external_datasets/humsavar.txt"
     with urllib.request.urlopen(url) as response, open(humsavar_file, 'wb') as out_file:
         shutil.copyfileobj(response, out_file)
 
     humsavar_list = []
-    with open('./scripts/external_datasets/humsavar.txt') as f:
+    with open('scripts/external_datasets/humsavar.txt') as f:
         lines = f.read().splitlines()
         for line_number, i in enumerate(lines):
 
@@ -1091,7 +1091,7 @@ def run():
     clinvar_results_set = set()
 
     print("Loading ClinVar tsv from VarMap to memory.")
-    with open("./scripts/external_datasets/clinvar_snipclipa13_02_2019.tsv") as inputfile:
+    with open("scripts/external_datasets/clinvar_snipclipa13_02_2019.tsv") as inputfile:
         for line_number, var_database_entry in enumerate(inputfile):
             if line_number == 0:
                 pass
@@ -1112,7 +1112,7 @@ def run():
     # Load the clinvar summary file
     clinvar_summary_lines=[]
     print("Loading the variant summaries from ClinVar. This holds information on disease states in clinvar.")
-    with open("./scripts/external_datasets/variant_summary.txt") as inputfile:
+    with open("scripts/external_datasets/variant_summary.txt") as inputfile:
         for line_number, summary_variant in enumerate(inputfile):
             if line_number == 0:
                 pass
@@ -1133,7 +1133,7 @@ def run():
     ## gnomAD ##
     print("Loading gnomAD tsv file to memory. This may take a while...")
     gnomad_results=[]
-    with open("./scripts/external_datasets/gnomAD_varsite.tsv") as inputfile:
+    with open("scripts/external_datasets/gnomAD_varsite.tsv") as inputfile:
         for line_number, var_database_entry in enumerate(inputfile):
             if line_number == 0:
                 pass
