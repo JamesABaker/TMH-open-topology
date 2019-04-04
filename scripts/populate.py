@@ -1,7 +1,6 @@
 from __future__ import division
 import requests
-import urllib
-import urllib.request
+from requests import get
 import shutil
 import numpy as np
 import os
@@ -26,6 +25,7 @@ from tmh_db.models import Tmh_deltag
 from tmh_db.models import Tmh_hydrophobicity
 from datetime import datetime, timedelta
 from django.utils.timezone import now
+from datetime import date
 import pytz
 
 
@@ -35,6 +35,16 @@ print("Usage:\npython3 manage.py runscript populate --traceback")
 # How many days should be allowed to not enforce updates
 time_threshold = 7
 
+today = date.today()
+todaysdate = today.strftime("%d_%m_%Y")
+
+def download(url, file_name):
+    # open in binary mode
+    with open(file_name, "wb") as file:
+        # get request
+        response = get(url)
+        # write to file
+        file.write(response.content)
 
 def uniprot_bin(query_id):
     try:
@@ -47,15 +57,13 @@ def uniprot_bin(query_id):
     except(FileNotFoundError):
         print("File not found.", query_id, ".")
         uniprot_url = str(f'https://www.uniprot.org/uniprot/{query_id}.txt')
-        r = requests.get(uniprot_url)
-
-        with open(str("scripts/external_datasets/uniprot_bin/" + query_id + ".txt"), 'wb') as f:
-            f.write(r.content)
+        uniprot_bin=str("scripts/external_datasets/uniprot_bin/" + query_id + ".txt")
+        download(uniprot_url, file_name)
 
 
 def uniprot_table(query_id):
-    filename = str("scripts/external_datasets/uniprot_bin/"
-                   + query_id + ".txt")
+    filename = str("scripts/external_datasets/uniprot_bin/" +
+                   query_id + ".txt")
     input_format = "swiss"
     feature_type = "TRANSMEM"
     tm_protein = False
@@ -136,8 +144,8 @@ def uniprot_tm_check(query_id):
 
     # These are the parameters used by the biopython Seq.IO module
 
-    filename = str("scripts/external_datasets/uniprot_bin/"
-                   + query_id + ".txt")
+    filename = str("scripts/external_datasets/uniprot_bin/" +
+                   query_id + ".txt")
     input_format = "swiss"
     feature_type = "TRANSMEM"
     subcellular_location = "TOPO_DOM"
@@ -344,8 +352,8 @@ def topdb_check(query_id, topdb):
                                                         tmh_stop = int(
                                                             tmh_details["End"])
                                                         ### NO FLANK CLASH CHECKS! NUMBERS WILL BE WRONG!!! ###
-                                                        n_ter_seq = sequence[tmh_start -
-                                                                             5:tmh_start]
+                                                        n_ter_seq = sequence[tmh_start
+                                                                             - 5:tmh_start]
                                                         tmh_sequence = sequence[tmh_start:tmh_stop]
                                                         c_ter_seq = sequence[tmh_stop:tmh_stop + 5]
 
@@ -516,8 +524,7 @@ def hydrophobicity(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_st
     ww = {'A': 0.33, 'R': 1.00, 'N': 0.43, 'D': 2.41, 'C': 0.22, 'Q': 0.19, 'E': 1.61, 'G': 1.14, 'H': -0.06, 'I': -0.81,
           'L': -0.69, 'K': 1.81, 'M': -0.44, 'F': -0.58, 'P': -0.31, 'S': 0.33, 'T': 0.11, 'W': -0.24, 'Y': 0.23, 'V': -0.53}
     ww_window = full_sequence_analysis.protein_scale(ww, window_length, edge)
-    ww_window = ww_window[int(tmh_start - 1 - window_length)
-                              :int(tmh_stop - window_length)]
+    ww_window = ww_window[int(tmh_start - 1 - window_length)                          :int(tmh_stop - window_length)]
     ww_avg = np.mean(ww_window)
     print("White Wimley:", ww_avg)
 
@@ -567,17 +574,16 @@ def get_uniprot():
     '''
     # Grab the input list
     print("Fetching UniProt TM protein IDs")
-    uniprot_list = "https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+organism%3A%22Homo+sapiens+%28Human%29+%5B9606%5D%22+AND+annotation%3A%28type%3Atransmem%29&sort=score&columns=id,&format=tab"
+    uniprot_list_url = "https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+organism%3A%22Homo+sapiens+%28Human%29+%5B9606%5D%22+AND+annotation%3A%28type%3Atransmem%29&sort=score&columns=id,&format=tab"
     # "https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+annotation%3A(type%3Atransmem)&sort=score&columns=id,&format=tab"
     # uniprot_list = 'https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+organism%3A"Homo+sapiens+(Human)+[9606]"+AND+annotation%3A(type%3Atransmem)&sort=score&columns=id,&format=tab'
-
-    uniprot_request = urllib.request.urlretrieve(str(uniprot_list))
+    uniprot_list_file = "scripts/external_datasets/uniprot_bin/uniprot_list"+todaysdate+".txt"
+    download(uniprot_list_url, uniprot_list_file)
     # This saves the request to a file for reasons beyond me.
     # So we now need to open the file to recover the items as a list.
-    with open(uniprot_request[0]) as f:
+    with open(uniprot_list_file) as f:
         # Somehow this has already made a list.
         lines = f
-        # lines = f.read().splitlines()
 
         input_query = list(lines)
         # Entry is the first line, which will break later code as it is not a valid uniprot id!
@@ -710,41 +716,36 @@ def clinvar_variant_check(clinvar_variants, clinvar_summary):
         NVARIANTS = str(var_database_entry[60])
         NAT_VARIANTS = str(var_database_entry[61])
 
+        var_record_location = SEQ_NO
+        var_record_id = USER_ID
+        uniprot_record = UNIPROT_ACCESSION
+        variant_type = "Unknown"
+        variant_review = "Unknown"
+        aa_wt = UNIPROT_AA
+        # VarMap shows the change as X/N
+        if len(AA_CHANGE) == 3 and "/" in AA_CHANGE:
+            aa_mut = AA_CHANGE.split("/")[1]
+        else:
+            aa_mut = AA_CHANGE
+        disease_status = ""
+        disease_comments = ""
+
+        # Is the variant disease causing?
+
+        for i in clinvar_summary:
+                #print("Is", int(i[-1]), "equal to", int(USER_ID), "?" )
+            if int(i[-1]) == int(var_record_id):  #  (variant id is last column in summary)
+                    # print("clinvar summary and snipclip finally found a hit for variant ",int(var_record_id))
+
+                disease_status = disease_class(i[6])
+                disease_comments = i[24]
+
+        var_to_database(uniprot_record, var_record_location, aa_wt,
+                        aa_mut, disease_status, disease_comments, variant_source)
+
     except(IndexError):
         #print("Not enough datapoints in line.")
         pass
-        # This list should get bigger as scores etc are added.
-
-    # This is a really messy way to get the structure of the tmh data.
-    # But heck, I'd rather be human readable than have less code!
-    # tmh_info=[query_id, tmh_start, tmh_stop, tmh_topology, , membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, tmh_number, len(list_of_tmhs)]
-
-    var_record_location = SEQ_NO
-    var_record_id = USER_ID
-    uniprot_record = UNIPROT_ACCESSION
-    variant_type = "Unknown"
-    variant_review = "Unknown"
-    aa_wt = UNIPROT_AA
-    # VarMap shows the change as X/N
-    if len(AA_CHANGE) == 3 and "/" in AA_CHANGE:
-        aa_mut = AA_CHANGE.split("/")[1]
-    else:
-        aa_mut = AA_CHANGE
-    disease_status = ""
-    disease_comments = ""
-
-    # Is the variant disease causing?
-
-    for i in clinvar_summary:
-            #print("Is", int(i[-1]), "equal to", int(USER_ID), "?" )
-        if int(i[-1]) == int(var_record_id):  #  (variant id is last column in summary)
-                # print("clinvar summary and snipclip finally found a hit for variant ",int(var_record_id))
-
-            disease_status = disease_class(i[6])
-            disease_comments = i[24]
-
-    var_to_database(uniprot_record, var_record_location, aa_wt,
-                    aa_mut, disease_status, disease_comments, variant_source)
 
 
 def gnomad_variant_check(gnomad_variants):
@@ -849,40 +850,36 @@ def gnomad_variant_check(gnomad_variants):
         NVARIANTS = str(var_database_entry[60])
         NAT_VARIANTS = str(var_database_entry[61])
 
+
+        var_record_location = SEQ_NO
+        var_record_id = USER_ID
+        uniprot_record = UNIPROT_ACCESSION
+        variant_type = "Unknown"
+        variant_review = "Unknown"
+        aa_wt = UNIPROT_AA
+        if len(AA_CHANGE) == 3 and "/" in AA_CHANGE:
+            aa_mut = AA_CHANGE.split("/")[1]
+        else:
+            aa_mut = AA_CHANGE
+        disease_status = "gnomAD"
+        disease_comments = ""
+
+        # Is the variant disease causing?
+
+        # for i in clinvar_summary:
+        #        #print("Is", int(i[-1]), "equal to", int(USER_ID), "?" )
+        #    if int(i[-1]) == int(var_record_id):  #  (variant id is last column in summary)
+        #            # print("clinvar summary and snipclip finally found a hit for variant ",int(var_record_id))
+
+        #        disease_status = i[6]
+        #        disease_comments = i[24]
+
+        var_to_database(uniprot_record, var_record_location, aa_wt,
+                        aa_mut, disease_status, disease_comments, variant_source)
+
     except(IndexError):
         #print("Not enough datapoints in line.")
         pass
-        # This list should get bigger as scores etc are added.
-
-    # This is a really messy way to get the structure of the tmh data.
-    # But heck, I'd rather be human readable than have less code!
-    # tmh_info=[query_id, tmh_start, tmh_stop, tmh_topology, , membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, tmh_number, len(list_of_tmhs)]
-
-    var_record_location = SEQ_NO
-    var_record_id = USER_ID
-    uniprot_record = UNIPROT_ACCESSION
-    variant_type = "Unknown"
-    variant_review = "Unknown"
-    aa_wt = UNIPROT_AA
-    if len(AA_CHANGE) == 3 and "/" in AA_CHANGE:
-        aa_mut = AA_CHANGE.split("/")[1]
-    else:
-        aa_mut = AA_CHANGE
-    disease_status = "gnomAD"
-    disease_comments = ""
-
-    # Is the variant disease causing?
-
-    # for i in clinvar_summary:
-    #        #print("Is", int(i[-1]), "equal to", int(USER_ID), "?" )
-    #    if int(i[-1]) == int(var_record_id):  #  (variant id is last column in summary)
-    #            # print("clinvar summary and snipclip finally found a hit for variant ",int(var_record_id))
-
-    #        disease_status = i[6]
-    #        disease_comments = i[24]
-
-    var_to_database(uniprot_record, var_record_location, aa_wt,
-                    aa_mut, disease_status, disease_comments, variant_source)
 
 
 def humsavar_variant_check(humsavar_variant):
@@ -896,8 +893,8 @@ def humsavar_variant_check(humsavar_variant):
     humsavar_variant_comment = humsavar_variant[6]
 
     variant_source = "Humsavar"
-    filename = str("scripts/external_datasets/uniprot_bin/"
-                   + uniprot_record + ".txt")
+    filename = str("scripts/external_datasets/uniprot_bin/" +
+                   uniprot_record + ".txt")
     input_format = "swiss"
     subcellular_location = "TOPO_DOM"
 
@@ -989,8 +986,8 @@ def run():
 
     # In full scale mode it will take a long time which may not be suitable for development.
     input_query = get_uniprot()
-    # Here we will just use a watered down list of tricky proteins.
-    #input_query = ["Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q96E22", "P47869", "P28472", "P18507", "P05187", "O95477"]
+    # Here we will just use a watered down list of tricky proteins. Uncomment this line for testing the whole list.
+    input_query = ["Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q96E22", "P47869", "P28472", "P18507", "P05187", "O95477"]
 
     # Parse the xml static files since this is the slowest part.
     # Ignore this for now -  we need to sort out uniprot before anything else!
@@ -1062,13 +1059,13 @@ def run():
     st = os.stat(humsavar_file)
     humsavar_file_age = (time.time() - st.st_mtime)
     print("Downloading humsavar.txt from UniProt.")
-    url = 'https://www.uniprot.org/docs/humsavar.txt'
-    humsavar_file = "scripts/external_datasets/humsavar.txt"
-    with urllib.request.urlopen(url) as response, open(humsavar_file, 'wb') as out_file:
-        shutil.copyfileobj(response, out_file)
+    humsavar_url = 'https://www.uniprot.org/docs/humsavar.txt'
+
+    if humsavar_file_age > time_threshold:
+        download(humsavar_url, humsavar_file)
 
     humsavar_list = []
-    with open('scripts/external_datasets/humsavar.txt') as f:
+    with open(humsavar_file) as f:
         lines = f.read().splitlines()
         for line_number, i in enumerate(lines):
 
@@ -1083,8 +1080,8 @@ def run():
                             humsavar_variant[5] = humsavar_variant[5][:-1]
                             humsavar_variant.append(humsavar_variant[5][-1:])
                     if len(humsavar_variant) > 8:
-                        humsavar_variant[7:
-                                         - 1] = [''.join(humsavar_variant[7:-1])]
+                        humsavar_variant[7: -
+                                         1] = [''.join(humsavar_variant[7:-1])]
 
                     humsavar_list.append(humsavar_variant)
 
