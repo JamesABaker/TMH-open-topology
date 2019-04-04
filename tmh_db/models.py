@@ -105,3 +105,4 @@ class Variant(models.Model):
     disease_status = models.TextField()  # either disease or benign or uncertain
     disease_comments = models.TextField()
     variant_source = models.TextField(default="Unknown")
+    variant_source_id = models.TextField(default="No_ID")

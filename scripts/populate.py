@@ -454,7 +454,7 @@ def tmsoc(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_stop):
 
     # Running TMSOC
 
-    tmsoc_result = check_output(["perl", "scripts/external_scripts/tmsoc/TMSOC.pl", "scripts/external_scripts/tmsoc/inputseq.fasta",
+    tmsoc_result = check_output(["/usr/bin/perl", "scripts/external_scripts/tmsoc/TMSOC.pl", "scripts/external_scripts/tmsoc/inputseq.fasta",
                                  "scripts/external_scripts/tmsoc/TMsegments.txt"])  # stdout=subprocess.PIPE)
     tmsoc_result = tmsoc_result.decode("utf-8")
     tmsoc_result = tmsoc_result.split("\n")
@@ -490,7 +490,7 @@ def deltag(tmh_unique_id, tmh_sequence):
     with open("scripts/external_scripts/dgpred/inputseq.fasta", 'w') as temp_tmh_fasta:
         temp_tmh_fasta.write(str(">" + tmh_unique_id + "\n" + tmh_sequence))
 
-    deltag_result = check_output(["perl", "scripts/external_scripts/dgpred/myscanDG.pl",
+    deltag_result = check_output(["/usr/bin/perl", "scripts/external_scripts/dgpred/myscanDG.pl",
                                   "scripts/external_scripts/dgpred/inputseq.fasta"])  # stdout=subprocess.PIPE)
     print(deltag_result)
     deltag_result = deltag_result.decode("utf-8")
@@ -644,7 +644,8 @@ def disease_class(disease_type):
 def clinvar_variant_check(clinvar_variants, clinvar_summary):
     '''
     Checks if a tmh has any variants in the variant file and spews out a list of
-    variants and their position in the tmh.
+    variants and their position in the tmh. Unlike the generic gnomAD function,
+    this crossreferences clinvar VarMap tsv against the clinvar summary file.
     '''
 
     variant_source = "ClinVar"
@@ -717,7 +718,7 @@ def clinvar_variant_check(clinvar_variants, clinvar_summary):
         NAT_VARIANTS = str(var_database_entry[61])
 
         var_record_location = SEQ_NO
-        var_record_id = USER_ID
+        variant_source_id = USER_ID
         uniprot_record = UNIPROT_ACCESSION
         variant_type = "Unknown"
         variant_review = "Unknown"
@@ -734,14 +735,14 @@ def clinvar_variant_check(clinvar_variants, clinvar_summary):
 
         for i in clinvar_summary:
                 #print("Is", int(i[-1]), "equal to", int(USER_ID), "?" )
-            if int(i[-1]) == int(var_record_id):  #  (variant id is last column in summary)
+            if int(i[-1]) == int(variant_source_id):  #  (variant id is last column in summary)
                     # print("clinvar summary and snipclip finally found a hit for variant ",int(var_record_id))
 
                 disease_status = disease_class(i[6])
                 disease_comments = i[24]
 
         var_to_database(uniprot_record, var_record_location, aa_wt,
-                        aa_mut, disease_status, disease_comments, variant_source)
+                        aa_mut, disease_status, disease_comments, variant_source, variant_source_id)
 
     except(IndexError):
         #print("Not enough datapoints in line.")
@@ -754,8 +755,7 @@ def gnomad_variant_check(gnomad_variants):
     variants and their position in the tmh.
     '''
 
-    variant_source = "gnomAD"
-    var_database_entry = gnomad_variants
+
 
     # This could be worth investigating if isoforms are an issue
     # ISOFORMS!!!!
@@ -786,6 +786,9 @@ def gnomad_variant_check(gnomad_variants):
     #    pass
 
     try:
+        variant_source = "gnomAD"
+        var_database_entry = gnomad_variants
+
         # Yes, I know all caps is bad, but this is just way easier than reformatting every time SnipClip headers change.
         CHROMOSOME = str(var_database_entry[0])
         COORDS = str(var_database_entry[1])
@@ -863,6 +866,7 @@ def gnomad_variant_check(gnomad_variants):
             aa_mut = AA_CHANGE
         disease_status = "gnomAD"
         disease_comments = ""
+        user_id=USER_ID
 
         # Is the variant disease causing?
 
@@ -875,7 +879,7 @@ def gnomad_variant_check(gnomad_variants):
         #        disease_comments = i[24]
 
         var_to_database(uniprot_record, var_record_location, aa_wt,
-                        aa_mut, disease_status, disease_comments, variant_source)
+                        aa_mut, disease_status, disease_comments, variant_source, user_id)
 
     except(IndexError):
         #print("Not enough datapoints in line.")
@@ -928,21 +932,24 @@ def humsavar_variant_check(humsavar_variant):
                                 disease_comments = str(
                                     humsavar_variant_disease_type + ";" + humsavar_variant_comment)
                                 var_record_location = feature.location.start + 1  # This might need +1?
-
+                                variant_source_id = humsavar_variant_id
                                 var_to_database(uniprot_record, var_record_location, aa_wt,
-                                                aa_mut, disease_status, disease_comments, variant_source)
+                                                aa_mut, disease_status, disease_comments, variant_source, variant_source_id)
 
 
-def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, disease_comments, variant_source):
+def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, disease_comments, variant_source, variant_source_id):
+    '''
+    Adds the variant from various external databases and flat files to the database in a standardised way.
+    '''
     if var_record_location == "-":
         print("Unkown sequence location. Possibly intron: ", uniprot_record, var_record_location,
-              aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
+              aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source, variant_source_id)
     elif aa_wt == "-":
         print("Wildtype amino acid not defined. Assuming this is not an SNP: ", uniprot_record,
-              var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
+              var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source, variant_source_id)
     elif len(aa_wt) > 1 or len(aa_mut) > 1:
         print("More than a single residue changed. Assuming this is not an SNP: ", uniprot_record,
-              var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
+              var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source, variant_source_id)
     else:
 
         protein = Protein.objects.get(uniprot_id=uniprot_record)
@@ -962,6 +969,7 @@ def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_
                     disease_status=disease_status,
                     disease_comments=disease_comments,
                     variant_source=variant_source,
+                    variant_source_id=variant_source_id,
                     defaults={
                     }
                 )
@@ -1090,6 +1098,7 @@ def run():
     # print(humsavar_list)
 
     ## ClinVar ##
+
     # Load the  varsite tsv file from snip clip.
     clinvar_results = []
     clinvar_results_set = set()
@@ -1137,6 +1146,7 @@ def run():
         clinvar_variant_check(clinvar_variant, clinvar_summary_lines)
 
     ## gnomAD ##
+
     print("Loading gnomAD tsv file to memory. This may take a while...")
     gnomad_results = []
     with open("scripts/external_datasets/gnomAD_varsite.tsv") as inputfile:
@@ -1153,6 +1163,7 @@ def run():
 
     print(len(gnomad_results),
           "variants relating to query list found in gnomAD. Adding SNPs to database...")
+
     for gnomad_variant in gnomad_results:
         gnomad_variant_check(gnomad_variant)
 
