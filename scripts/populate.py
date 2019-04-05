@@ -29,7 +29,7 @@ from datetime import date
 import pytz
 
 
-print("Usage:\npython3 manage.py runscript populate --traceback")
+print("Usage:\npython manage.py runscript populate --traceback")
 
 
 # How many days should be allowed to not enforce updates
@@ -39,12 +39,16 @@ today = date.today()
 todaysdate = today.strftime("%d_%m_%Y")
 
 def download(url, file_name):
+    '''
+    Downloads the content of a url to a local file.
+    '''
     # open in binary mode
     with open(file_name, "wb") as file:
         # get request
         response = get(url)
         # write to file
         file.write(response.content)
+
 
 def uniprot_bin(query_id):
     try:
@@ -389,11 +393,11 @@ def tmh_to_database(tmh_list):
         evidence_type = a_tmh[6]
         # At this point we have all the membrane locations, and some may be dead. Integrity needs to be run to ensure this makes sense, at least in an IO sense.
         membrane_location = a_tmh[7]
-        n_ter_seq = a_tmh[8]
-        tmh_sequence = a_tmh[9]
-        c_ter_seq = a_tmh[10]
+        n_ter_seq = a_tmh[8].replace("\n","")
+        tmh_sequence = a_tmh[9].replace("\n","")
+        c_ter_seq = a_tmh[10].replace("\n","")
         evidence = a_tmh[11]
-        full_sequence = a_tmh[12]
+        full_sequence = a_tmh[12].replace("\n","")
 
         if tmh_topology is None:
             tmh_topology = "Unknown"
@@ -510,21 +514,39 @@ def deltag(tmh_unique_id, tmh_sequence):
         }
     )
 
+def window_slice(list_for_slicing, window_length, start_slice, end_slice, full_sequence_length):
+    '''
+    This checks that the slice needed does not exceed the final residue.
+    '''
+    print(list_for_slicing, window_length, start_slice, end_slice, full_sequence_length)
+    if int(window_length/2)+start_slice >= full_sequence_length:
+        windowed_values=list_for_slicing[int(len(list_for_slicing)-window_length/2)-1:]
+
+    elif int(window_length/2)+end_slice >= full_sequence_length:
+        windowed_values=list_for_slicing[int(len(list_for_slicing) - window_length/2)-1:]
+
+    elif int(window_length/2)+end_slice < full_sequence_length:
+        windowed_values=list_for_slicing[int(start_slice + window_length/2)-1:int(end_slice + window_length/2)-1]
+    print(windowed_values)
+    return(windowed_values)
 
 def hydrophobicity(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_stop):
-    window_length = 20
+    window_length = 5
     edge = 1
 
     tmh_sequence_analysis = ProteinAnalysis(str(tmh_sequence))
+    print(len(tmh_sequence))
     full_sequence_analysis = ProteinAnalysis(str(full_sequence))
 
     aromaticity = tmh_sequence_analysis.aromaticity()
-    flexibility = tmh_sequence_analysis.flexibility()
+    print("Aromaticity:", aromaticity)
+    flexibility = np.mean(tmh_sequence_analysis.flexibility())
+    print("Flexibility:", flexibility)
 
     ww = {'A': 0.33, 'R': 1.00, 'N': 0.43, 'D': 2.41, 'C': 0.22, 'Q': 0.19, 'E': 1.61, 'G': 1.14, 'H': -0.06, 'I': -0.81,
           'L': -0.69, 'K': 1.81, 'M': -0.44, 'F': -0.58, 'P': -0.31, 'S': 0.33, 'T': 0.11, 'W': -0.24, 'Y': 0.23, 'V': -0.53}
     ww_window = full_sequence_analysis.protein_scale(ww, window_length, edge)
-    ww_window = ww_window[int(tmh_start - 1 - window_length)                          :int(tmh_stop - window_length)]
+    ww_window = window_slice(ww_window, window_length, tmh_start, tmh_stop, len(full_sequence))
     ww_avg = np.mean(ww_window)
     print("White Wimley:", ww_avg)
 
@@ -532,8 +554,7 @@ def hydrophobicity(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_st
             'L': 3.8, 'K': -3.9, 'M': 1.9, 'F': 2.8, 'P': -1.6, 'S': -0.8, 'T': -0.7, 'W': -0.9, 'Y': -1.3, 'V': 4.2}
     kyte_window = full_sequence_analysis.protein_scale(
         kyte, window_length, edge)
-    kyte_window = kyte_window[int(
-        tmh_start - 1 - window_length):int(tmh_stop - window_length)]
+    kyte_window = window_slice(kyte_window, window_length, tmh_start, tmh_stop, len(full_sequence))
     kyte_avg = np.mean(kyte_window)
     print("Kyte:", kyte_avg)
 
@@ -542,8 +563,7 @@ def hydrophobicity(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_st
                  'I': 1.380, 'L': 1.060, 'K': -1.500, 'M': 0.640, 'F': 1.190, 'P': 0.120, 'S': -0.180, 'T': -0.050, 'W': 0.810, 'Y': 0.260, 'V': 1.080}
     eisenberg_window = full_sequence_analysis.protein_scale(
         eisenberg, window_length, edge)
-    eisenberg_window = eisenberg_window[int(
-        tmh_start - 1 - window_length):int(tmh_stop - window_length)]
+    eisenberg_window = window_slice(eisenberg_window, window_length, tmh_start, tmh_stop, len(full_sequence))
     eisenberg_avg = np.mean(eisenberg_window)
     print("Eisenberg:", eisenberg_avg)
     # if len(kyte_window)== len(tmh_sequence):
@@ -993,7 +1013,7 @@ def run():
     ### Canonical script starts here ###
 
     # In full scale mode it will take a long time which may not be suitable for development.
-    input_query = get_uniprot()
+    #input_query = get_uniprot()
     # Here we will just use a watered down list of tricky proteins. Uncomment this line for testing the whole list.
     input_query = ["Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q96E22", "P47869", "P28472", "P18507", "P05187", "O95477"]
 
