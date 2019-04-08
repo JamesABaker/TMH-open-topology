@@ -520,7 +520,7 @@ def window_slice(list_for_slicing, window_length, start_slice, end_slice, full_s
     '''
     print(list_for_slicing, window_length, start_slice, end_slice, full_sequence_length)
     if int(window_length/2)+start_slice >= full_sequence_length:
-        windowed_values=list_for_slicing[int(len(list_for_slicing)-window_length/2)-1:]
+        windowed_values=list_for_slicing[start_slice+int(window_length/2)-1:]
 
     elif int(window_length/2)+end_slice >= full_sequence_length:
         windowed_values=list_for_slicing[int(len(list_for_slicing) - window_length/2)-1:]
