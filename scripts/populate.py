@@ -25,6 +25,7 @@ from tmh_db.models import Tmh_deltag
 from tmh_db.models import Tmh_hydrophobicity
 from datetime import datetime, timedelta
 from django.utils.timezone import now
+from django.utils import timezone
 from datetime import date
 import pytz
 
@@ -92,7 +93,7 @@ def uniprot_table(query_id):
         target_protein = Protein.objects.get(uniprot_id=query_id)
 
         old_residue = Protein.objects.filter(
-            updated_date__gte=datetime.now() - timedelta(days=time_threshold))
+            updated_date__gte=timezone.now() - timedelta(days=time_threshold))
 
         if target_protein not in old_residue:
             print("No recent database entry for", query_id,
@@ -101,7 +102,7 @@ def uniprot_table(query_id):
                 uniprot_id=query_id,
                 defaults={
                     "full_sequence": str(sequence),
-                    "updated_date": datetime.now()
+                    "updated_date": timezone.now()
                 }
             )
 
