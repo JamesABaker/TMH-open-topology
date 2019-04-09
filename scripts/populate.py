@@ -24,7 +24,6 @@ from tmh_db.models import Tmh_tmsoc
 from tmh_db.models import Tmh_deltag
 from tmh_db.models import Tmh_hydrophobicity
 from datetime import datetime, timedelta
-from django.utils.timezone import now
 from django.utils import timezone
 from datetime import date
 import pytz
@@ -35,7 +34,6 @@ print("Usage:\npython manage.py runscript populate --traceback")
 
 # How many days should be allowed to not enforce updates
 time_threshold = 7
-
 today = date.today()
 todaysdate = today.strftime("%d_%m_%Y")
 
@@ -1001,6 +999,17 @@ def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_
             print("Variant position exceeds the length of the protein. Protein length:", len(str(protein.full_sequence)), "Variant position:",
                   var_record_location, "for record", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
 
+def input_query_process(input_query):
+    input_queries = []
+    for query_number, a_query in enumerate(input_query):
+        a_query = clean_query(a_query)
+        print("Checking cache/downloading", a_query, ",",
+              query_number + 1, "of", len(input_query), "records...")
+        uniprot_bin(a_query)
+        input_queries.append(a_query)
+
+    input_query_set = set(input_queries)
+    return([input_queries, input_query_set])
 
 def run():
     '''
@@ -1031,15 +1040,9 @@ def run():
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tmh_database.settings')
 
     ### Download uniprot files ###
-    input_queries = []
-    for query_number, a_query in enumerate(input_query):
-        a_query = clean_query(a_query)
-        print("Checking cache/downloading", a_query, ",",
-              query_number + 1, "of", len(input_query), "records...")
-        uniprot_bin(a_query)
-        input_queries.append(a_query)
-
-    input_query_set = set(input_queries)
+    inputs = input_query_process(input_query)
+    input_queries = inputs[0]
+    input_query_set = inputs[1]
 
     ### If UniProt says it is a TMH, add it to the protein table ###
 
