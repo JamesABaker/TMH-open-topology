@@ -17,3 +17,5 @@ tmh_database/tmh_database/settings.py
 *.pdf
 
 tmh_database/*.xml
+
+!requirements.txt

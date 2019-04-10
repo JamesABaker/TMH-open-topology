@@ -1,5 +1,9 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/jamesabaker/tip-top-table/badge)](https://www.codefactor.io/repository/github/jamesabaker/tip-top-table)
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+[![Build Status](https://travis-ci.com/JamesABaker/Tip-Top-Table.svg?token=Ge7HGfcCxBUTsSpxLzMX&branch=master)](https://travis-ci.com/JamesABaker/Tip-Top-Table.svg?token=Ge7HGfcCxBUTsSpxLzMX&branch=master)
+
 # Database of Variants in TMPs.
 
 This is a tool to help to evaluate disease variants in the context of transmembrane proteins.
