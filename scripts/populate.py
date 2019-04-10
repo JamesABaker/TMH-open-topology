@@ -6,12 +6,14 @@ import numpy as np
 import os
 import time
 import subprocess
+import json
 from subprocess import check_output
 import re
 import sys
 import defusedxml.ElementTree as ET
 from Bio import SeqIO
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
+#env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
 from django.conf import settings
 from django.utils import timezone
 from django.db import models
@@ -21,6 +23,7 @@ from tmh_db.models import Residue
 from tmh_db.models import Tmh_residue
 from tmh_db.models import Variant
 from tmh_db.models import Tmh_tmsoc
+from tmh_db.models import Funfamstatus
 from tmh_db.models import Tmh_deltag
 from tmh_db.models import Tmh_hydrophobicity
 from datetime import datetime, timedelta
@@ -999,6 +1002,7 @@ def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_
             print("Variant position exceeds the length of the protein. Protein length:", len(str(protein.full_sequence)), "Variant position:",
                   var_record_location, "for record", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
 
+
 def input_query_process(input_query):
     input_queries = []
     for query_number, a_query in enumerate(input_query):
@@ -1010,6 +1014,90 @@ def input_query_process(input_query):
 
     input_query_set = set(input_queries)
     return([input_queries, input_query_set])
+
+
+def funfam_submit(a_query):
+    protein = Protein.objects.get(uniprot_id=a_query)
+    record_for_database, created = Funfamstatus.objects.update_or_create(
+        protein=protein,
+        defaults={
+        }
+    )
+
+    #check our database for submission key to funfam
+    funfam_key = Funfamstatus.objects.get(protein=protein).submission_key
+    funfam_completed_date = Funfamstatus.objects.get(protein=protein).completed_date
+    print("Funfam key for query", a_query, ":", funfam_key)
+    if funfam_key == "NA":
+    # Convert the UniProt binned file to a fasta.
+        fasta_file = f"./scripts/external_datasets/fasta_bin/{a_query}.fasta"
+        print(fasta_file)
+        with open(str(f"./scripts/external_datasets/uniprot_bin/{a_query}.txt"), "rU") as input_handle:
+            with open(str(fasta_file), "w") as output_handle:
+                sequences = SeqIO.parse(input_handle, "swiss")
+                count = SeqIO.write(sequences, output_handle, "fasta")
+
+        # submit the query to CATH funfam
+        base_url = 'http://www.cathdb.info/search/by_funfhmmer'
+
+        with open(fasta_file) as x:
+            fasta_contents = x.read()
+            data = {'fasta': fasta_contents}
+            headers = {'accept': 'application/json'}
+
+            r = requests.post(base_url, data=data, headers=headers)
+            funfam_submission_code = r.json()
+            funfam_key = funfam_submission_code['task_id']
+
+            print("submitted task: " + funfam_key)
+
+        record_for_database, created = Funfamstatus.objects.update_or_create(
+            protein=protein,
+            defaults={
+                "submission_key":funfam_key,
+            }
+        )
+    return(funfam_key)
+
+
+def funfam_result(a_query, funfam_submission_code):
+    base_url = f'http://www.cathdb.info/search/by_funfhmmer/check/{funfam_submission_code}'
+
+    headers = {'accept': 'application/json'}
+
+    r = requests.get(base_url, headers=headers)
+    # Result is something like this: {'success': 0, 'data': {'date_completed': '', 'status': 'queued', 'worker_hostname': '', 'id': '715b00cba220424897cb09df7e81129f', 'date_started': ''}, 'message': 'queued'}
+    funfam_status = r.json()
+    print(funfam_status)
+
+    # Results can take a while to complete. Best to just add those that have finished. A week in and everything should have settled down.
+    if funfam_status['success'] == 1:
+        headers = {'accept': 'application/json'}
+        results_url = f'http://www.cathdb.info/search/by_funfhmmer/results/{funfam_submission_code}'
+        r = requests.get(results_url, headers=headers)
+        print(r,"\n")
+        funfam_api_result = r.json()
+        print(funfam_api_result)
+        protein = Protein.objects.get(uniprot_id=a_query)
+        funfam_to_update = Funfamstatus.objects.get(protein=protein)
+        #record_for_database, created = Funfamstatus.objects.update(
+        #    protein=protein,
+        #    completed_date=timezone.now(),
+
+        #    #"funfam":
+
+        #)
+        funfam_to_update = Funfamstatus.objects.get(protein=protein)
+        funfam_to_update.completed_date = timezone.now()  # change field
+        funfam_to_update.save() # this will update only
+
+        #This next bit isn't perfect. We assign each residue in the region the funfam score and id. There may be a way to elegantly put in another table, but given the queries we are asking, this will suffice.
+        for key, value in funfam_api_result.items() :
+            print("Key:", key, "Value:", value)
+            print("\n")
+
+
+
 
 def run():
     '''
@@ -1070,16 +1158,19 @@ def run():
     # now generate flat files for VarSite.
 
     ### Redundancy tables ###
-    # print("Finding closest funfams for records...")
-    # for a_query in input_query:
-    #    # Convert the UniProt binned file to a fasta.
-    #    with open(str(f"./scripts/external_datasets/uniprot_bin/{a_query}.txt"), "rU") as input_handle:
-    #    with open(str(f"./scripts/external_datasets/fasta_bin/{a_query}.fasta"), "w") as output_handle:
-    #        sequences = SeqIO.parse(input_handle, input_format)
-    #        count = SeqIO.write(sequences, output_handle, "fasta")
-    #    sequence = record.seq
-    #    funfam = subprocess.Popen(["perl", "./scripts/external_scripts/cath-tools-seqscan-master/script/cath-tools-seqscan.pl", str(f"--in=./scripts/external_datasets/fasta_bin/{a_query}.fasta"), "--max_hits=1", "--max_aln=3"], stdout=subprocess.PIPE)
-    #    print(funfam)
+
+    # The funfams need to be submitted, then checked for status and results.
+    # This submits all the ids to the funfams and gets job ids.
+    print("Finding closest funfams for records...")
+    uniprotid_funfam_dict = {}
+    for a_query in input_query:
+        this_funfam = funfam_submit(a_query)
+        uniprotid_funfam_dict.update({a_query:this_funfam})
+
+    # This uses the job id to wait until the job is complete and fetch the result.
+    for a_query in input_query:
+        funfam = funfam_result(a_query, uniprotid_funfam_dict[a_query])
+
 
     ### Variant tables ###
 
