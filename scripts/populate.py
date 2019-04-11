@@ -1075,26 +1075,27 @@ def funfam_result(a_query, funfam_submission_code):
         headers = {'accept': 'application/json'}
         results_url = f'http://www.cathdb.info/search/by_funfhmmer/results/{funfam_submission_code}'
         r = requests.get(results_url, headers=headers)
-        print(r,"\n")
-        funfam_api_result = r.json()
-        print(funfam_api_result)
-        protein = Protein.objects.get(uniprot_id=a_query)
-        funfam_to_update = Funfamstatus.objects.get(protein=protein)
-        #record_for_database, created = Funfamstatus.objects.update(
-        #    protein=protein,
-        #    completed_date=timezone.now(),
+        if str(r) == "<Response [204]>":
+            print("No funfam hits for ", a_query)
+        elif str(r) == "<Response [200]>":
+            funfam_api_result = r.json()
+            protein = Protein.objects.get(uniprot_id=a_query)
+            funfam_to_update = Funfamstatus.objects.get(protein=protein)
+            #record_for_database, created = Funfamstatus.objects.update(
+            #    protein=protein,
+            #    completed_date=timezone.now(),
 
-        #    #"funfam":
+            #    #"funfam":
 
-        #)
-        funfam_to_update = Funfamstatus.objects.get(protein=protein)
-        funfam_to_update.completed_date = timezone.now()  # change field
-        funfam_to_update.save() # this will update only
+            #)
+            funfam_to_update = Funfamstatus.objects.get(protein=protein)
+            funfam_to_update.completed_date = timezone.now()  # change field
+            funfam_to_update.save() # this will update only
 
-        #This next bit isn't perfect. We assign each residue in the region the funfam score and id. There may be a way to elegantly put in another table, but given the queries we are asking, this will suffice.
-        for key, value in funfam_api_result.items() :
-            print("Key:", key, "Value:", value)
-            print("\n")
+            #This next bit isn't perfect. We assign each residue in the region the funfam score and id. There may be a way to elegantly put in another table, but given the queries we are asking, this will suffice.
+            for key, value in funfam_api_result.items() :
+                print("Key:", key, "Value:", value)
+                print("\n")
 
 
 

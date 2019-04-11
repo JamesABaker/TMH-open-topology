@@ -20,7 +20,7 @@ class Funfamstatus(models.Model):
     protein = models.OneToOneField(Protein, on_delete=models.CASCADE)
     submission_key = models.TextField(default="NA")
     completed_date = models.DateTimeField(default=timezone.now)
-    funfam = models.TextField()
+    funfam_version = models.TextField()
 
 class Tmh(models.Model):
     # Several features should map to  a protein.
