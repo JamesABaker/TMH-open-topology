@@ -8,7 +8,7 @@ uniprot-all-list.txt
 scripts/external_datasets/uniprot_bin/*.txt
 
 # SIFT mappings
-scripts/external_datasets/sift_bin/*.json
+scripts/external_datasets/sifts_bin/*.json
 
 # Fasta files
 scripts/external_datasets/fasta_bin/*.fasta
