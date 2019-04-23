@@ -5,7 +5,13 @@
 uniprot-all-list.txt
 
 # UniProt files
-uniprot_bin/*.txt
+scripts/external_datasets/uniprot_bin/*.txt
+
+# SIFT mappings
+scripts/external_datasets/sift_bin/*.json
+
+# Fasta files
+scripts/external_datasets/fasta_bin/*.fasta
 
 # Secrets secrets
 tmh_database/tmh_database/secret_key.txt
@@ -17,5 +23,6 @@ tmh_database/tmh_database/settings.py
 *.pdf
 
 tmh_database/*.xml
+
 
 !requirements.txt

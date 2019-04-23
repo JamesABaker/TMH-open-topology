@@ -516,6 +516,7 @@ def deltag(tmh_unique_id, tmh_sequence):
         }
     )
 
+
 def window_slice(list_for_slicing, window_length, start_slice, end_slice, full_sequence_length):
     '''
     This checks that the slice needed does not exceed the final residue.
@@ -531,6 +532,7 @@ def window_slice(list_for_slicing, window_length, start_slice, end_slice, full_s
         windowed_values=list_for_slicing[int(start_slice + window_length/2)-1:int(end_slice + window_length/2)-1]
     print(windowed_values)
     return(windowed_values)
+
 
 def hydrophobicity(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_stop):
     window_length = 5
@@ -1101,6 +1103,15 @@ def funfam_result(a_query, funfam_submission_code):
                 print("\n")
 
 
+def sifts_mapping(a_query):
+
+    #Download via the API
+    print("Fetching sifts information")
+    sifts_file = str("scripts/external_datasets/sifts_mapping/" + a_query + ".json")
+    sifts_url = f"https://www.ebi.ac.uk/pdbe/api/mappings/all_isoforms/{a_query}"
+    download(sifts_url , sifts_file)
+    #PARSE and add to database
+
 def run():
     '''
     This is what django runs. This is effectively the canonical script,
@@ -1113,9 +1124,9 @@ def run():
     ### Canonical script starts here ###
 
     # In full scale mode it will take a long time which may not be suitable for development.
-    input_query = get_uniprot()
+    #input_query = get_uniprot()
     # Here we will just use a watered down list of tricky proteins. Uncomment this line for testing the whole list.
-    #input_query = ["Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q96E22", "P47869", "P28472", "P18507", "P05187", "O95477"]
+    input_query = ["Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q96E22", "P47869", "P28472", "P18507", "P05187", "O95477"]
 
     # Parse the xml static files since this is the slowest part.
     # Ignore this for now -  we need to sort out uniprot before anything else!
@@ -1173,6 +1184,14 @@ def run():
     # This uses the job id to wait until the job is complete and fetch the result.
     for a_query in input_query:
         funfam = funfam_result(a_query, uniprotid_funfam_dict[a_query])
+
+
+    # Populate structures
+    for a_query in input_query:
+        sifts_mapping(a_query)
+
+
+
 
 
     ### Variant tables ###
