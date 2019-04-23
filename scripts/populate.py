@@ -54,9 +54,7 @@ def download(url, file_name):
 
 def uniprot_bin(query_id):
     try:
-        print("Checking if already in cache.")
-        filename = str(
-            "scripts/external_datasets/uniprot_bin/" + query_id + ".txt")
+        filename = str("scripts/external_datasets/uniprot_bin/" + query_id + ".txt")
         file = open(filename, "r")
         file_test = file.readlines
     # If the file is not found, an attempt is made to grab the file from the internet.
@@ -64,7 +62,7 @@ def uniprot_bin(query_id):
         print("File not found.", query_id, ".")
         uniprot_url = str(f'https://www.uniprot.org/uniprot/{query_id}.txt')
         uniprot_bin=str("scripts/external_datasets/uniprot_bin/" + query_id + ".txt")
-        download(uniprot_url, file_name)
+        download(uniprot_url, uniprot_bin)
 
 
 def uniprot_table(query_id):
@@ -90,6 +88,8 @@ def uniprot_table(query_id):
         sequence = record.seq
     # Add the protein to the protein table if it is a TMP
     if tm_protein is True:
+        record_for_database, created = Protein.objects.update_or_create(uniprot_id=query_id)
+
         print("TM annotation found in", query_id, ".")
         target_protein = Protein.objects.get(uniprot_id=query_id)
 
@@ -600,7 +600,9 @@ def get_uniprot():
     # "https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+annotation%3A(type%3Atransmem)&sort=score&columns=id,&format=tab"
     # uniprot_list = 'https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+organism%3A"Homo+sapiens+(Human)+[9606]"+AND+annotation%3A(type%3Atransmem)&sort=score&columns=id,&format=tab'
     uniprot_list_file = "scripts/external_datasets/uniprot_bin/uniprot_list"+todaysdate+".txt"
+
     download(uniprot_list_url, uniprot_list_file)
+
     # This saves the request to a file for reasons beyond me.
     # So we now need to open the file to recover the items as a list.
     with open(uniprot_list_file) as f:
@@ -610,6 +612,7 @@ def get_uniprot():
         input_query = list(lines)
         # Entry is the first line, which will break later code as it is not a valid uniprot id!
         input_query = input_query[1:]
+
     return(input_query)
 
 
@@ -1009,7 +1012,7 @@ def input_query_process(input_query):
         a_query = clean_query(a_query)
         print("Checking cache/downloading", a_query, ",",
               query_number + 1, "of", len(input_query), "records...")
-        uniprot_bin(a_query)
+
         input_queries.append(a_query)
 
     input_query_set = set(input_queries)
@@ -1098,8 +1101,6 @@ def funfam_result(a_query, funfam_submission_code):
                 print("\n")
 
 
-
-
 def run():
     '''
     This is what django runs. This is effectively the canonical script,
@@ -1112,9 +1113,9 @@ def run():
     ### Canonical script starts here ###
 
     # In full scale mode it will take a long time which may not be suitable for development.
-    #input_query = get_uniprot()
+    input_query = get_uniprot()
     # Here we will just use a watered down list of tricky proteins. Uncomment this line for testing the whole list.
-    input_query = ["Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q96E22", "P47869", "P28472", "P18507", "P05187", "O95477"]
+    #input_query = ["Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q96E22", "P47869", "P28472", "P18507", "P05187", "O95477"]
 
     # Parse the xml static files since this is the slowest part.
     # Ignore this for now -  we need to sort out uniprot before anything else!
@@ -1123,7 +1124,6 @@ def run():
 
     # Also, parse the variant files which can be massive.
     # humsavar table
-
     print(input_query)
     print("Starting TMH database population script...")
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tmh_database.settings')
@@ -1136,6 +1136,8 @@ def run():
     ### If UniProt says it is a TMH, add it to the protein table ###
 
     for query_number, a_query in enumerate(input_query):
+        print("Checking UniProt bin for", a_query)
+        uniprot_bin(a_query)
         a_query = clean_query(a_query)
         print("Adding UniProt record", a_query, " to table,",
               query_number + 1, "of", len(input_query), "records...")
@@ -1237,8 +1239,7 @@ def run():
                     clinvar_results_set.add(clean_query(str(USER_ID)))
 
     print(clinvar_results_set)
-    print(len(clinvar_results),
-          "ClinVar variants found in database that will be checked.")
+    print(len(clinvar_results), "ClinVar variants found in database that will be checked.")
 
     # Load the clinvar summary file
     clinvar_summary_lines = []
@@ -1253,8 +1254,7 @@ def run():
             else:
                 pass
 
-    print(len(clinvar_summary_lines), "summaries fetched of",
-          len(clinvar_results), "ClinVar variants.")
+    print(len(clinvar_summary_lines), "summaries fetched of", len(clinvar_results), "ClinVar variants.")
 
     # We now have a list of the clinvar variants and a list of the clinvar summary.
     # Other tsvs form VarMap hopefully won't need this.

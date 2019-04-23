@@ -2,6 +2,7 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/jamesabaker/tip-top-table/badge)](https://www.codefactor.io/repository/github/jamesabaker/tip-top-table)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Build Status](https://travis-ci.com/JamesABaker/Tip-Top-Table.svg?token=Ge7HGfcCxBUTsSpxLzMX&branch=master)](https://travis-ci.com/JamesABaker/Tip-Top-Table.svg?token=Ge7HGfcCxBUTsSpxLzMX&branch=master)
+[![Issues](https://img.shields.io/github/issues/JamesABaker/Tip-Top-Table.svg)](https://img.shields.io/github/issues/:user/:repo.svg)
 
 This is a tool to help to evaluate disease variants in the context of transmembrane proteins.
 It curates TMHs boundaries and topology from several sources and cross references those against several variant databases.
