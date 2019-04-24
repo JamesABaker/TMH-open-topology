@@ -13,7 +13,7 @@ import sys
 import defusedxml.ElementTree as ET
 from Bio import SeqIO
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
-#env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
+# env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
 from django.conf import settings
 from django.utils import timezone
 from django.db import models
@@ -31,6 +31,15 @@ from django.utils import timezone
 from datetime import date
 import pytz
 
+#Complex query example. How many variants are in the TMH?
+#>>> Variant.objects.exclude(residue__tmh_residue=None).filter(disease_status='d').count()
+#1153
+#>>> Variant.objects.exclude(residue__tmh_residue=None).filter(disease_status='d', variant_source="ClinVar").count()
+#394
+#>>> Variant.objects.exclude(residue__tmh_residue=None).filter(disease_status='d', variant_source="Humsavar").count()
+#759
+
+
 
 print("Usage:\npython manage.py runscript populate --traceback")
 
@@ -39,6 +48,7 @@ print("Usage:\npython manage.py runscript populate --traceback")
 time_threshold = 7
 today = date.today()
 todaysdate = today.strftime("%d_%m_%Y")
+
 
 def download(url, file_name):
     '''
@@ -54,14 +64,16 @@ def download(url, file_name):
 
 def uniprot_bin(query_id):
     try:
-        filename = str("scripts/external_datasets/uniprot_bin/" + query_id + ".txt")
+        filename = str(
+            "scripts/external_datasets/uniprot_bin/" + query_id + ".txt")
         file = open(filename, "r")
         file_test = file.readlines
     # If the file is not found, an attempt is made to grab the file from the internet.
     except(FileNotFoundError):
         print("File not found.", query_id, ".")
         uniprot_url = str(f'https://www.uniprot.org/uniprot/{query_id}.txt')
-        uniprot_bin=str("scripts/external_datasets/uniprot_bin/" + query_id + ".txt")
+        uniprot_bin = str(
+            "scripts/external_datasets/uniprot_bin/" + query_id + ".txt")
         download(uniprot_url, uniprot_bin)
 
 
@@ -74,6 +86,7 @@ def uniprot_table(query_id):
     print("Checking UniProt for TM annotation in", query_id, ".")
     for record in SeqIO.parse(filename, input_format):
         list_of_tmhs = []
+        tmh_count=0
         # features locations is a bit annoying as the start location needs +1 to match the sequence IO, but end is the correct sequence value.
         for i, f in enumerate(record.features):
             if f.type == feature_type:
@@ -84,11 +97,13 @@ def uniprot_table(query_id):
                 else:
                     list_of_tmhs.append(int(f.location.start) + 1)
                     list_of_tmhs.append(int(f.location.end))
+                    tmh_count = tmh_count + 1
                     tm_protein = True
         sequence = record.seq
     # Add the protein to the protein table if it is a TMP
     if tm_protein is True:
-        record_for_database, created = Protein.objects.update_or_create(uniprot_id=query_id)
+        record_for_database, created = Protein.objects.update_or_create(
+            uniprot_id=query_id)
 
         print("TM annotation found in", query_id, ".")
         target_protein = Protein.objects.get(uniprot_id=query_id)
@@ -102,6 +117,7 @@ def uniprot_table(query_id):
             record_for_database, created = Protein.objects.update_or_create(
                 uniprot_id=query_id,
                 defaults={
+                    "total_tmh_number": tmh_count,
                     "full_sequence": str(sequence),
                     "updated_date": timezone.now()
                 }
@@ -395,11 +411,11 @@ def tmh_to_database(tmh_list):
         evidence_type = a_tmh[6]
         # At this point we have all the membrane locations, and some may be dead. Integrity needs to be run to ensure this makes sense, at least in an IO sense.
         membrane_location = a_tmh[7]
-        n_ter_seq = a_tmh[8].replace("\n","")
-        tmh_sequence = a_tmh[9].replace("\n","")
-        c_ter_seq = a_tmh[10].replace("\n","")
+        n_ter_seq = a_tmh[8].replace("\n", "")
+        tmh_sequence = a_tmh[9].replace("\n", "")
+        c_ter_seq = a_tmh[10].replace("\n", "")
         evidence = a_tmh[11]
-        full_sequence = a_tmh[12].replace("\n","")
+        full_sequence = a_tmh[12].replace("\n", "")
 
         if tmh_topology is None:
             tmh_topology = "Unknown"
@@ -437,6 +453,36 @@ def tmh_to_database(tmh_list):
                        tmh_sequence, tmh_start, tmh_stop)
 
         # Now we will add residues to the TM residues table
+        transmembrane_helix = Tmh.objects.get(tmh_id=tmh_unique_id)
+        # Now we build the residue table.
+        # Are there ever skips of unknow length? This could affect TMH number.
+
+        # This method will not update. A separate out of date script should be used to check if this needs to be removed and updated.
+        existing = set(Residue.objects.values_list(
+            "protein__uniprot_id", "sequence_position"))
+        residues_to_create = []
+
+        for tmh_residue_number, a_residue in enumerate(tmh_sequence):
+            sequence_position = tmh_start + tmh_residue_number
+            #specific_residue = Residue.objects.get(
+            #    unique_together=[tmh_protein, sequence_position])
+            specific_residue = Residue.objects.get(protein = tmh_protein, sequence_position = sequence_position)
+
+            if len(tmh_sequence) % 2 == 0: # This avoids odd numbers rounding to 0 twice at -1 and +1.
+                amino_acid_location = tmh_residue_number-len(tmh_sequence)/2
+            else:
+                amino_acid_location = tmh_residue_number-len(tmh_sequence+1)/2
+
+            record_for_database, created = Tmh_residue.objects.update_or_create(
+                residue = specific_residue,
+                tmh_id = transmembrane_helix,
+                defaults={
+                    "amino_acid_type": a_residue,
+                    "evidence": evidence,
+                    "feature_location": "TMH",
+                    "amino_acid_location": amino_acid_location,
+                }
+            )
 
 
 def tmsoc(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_stop):
@@ -523,15 +569,19 @@ def window_slice(list_for_slicing, window_length, start_slice, end_slice, full_s
     '''
     This checks that the slice needed does not exceed the final residue.
     '''
-    print(list_for_slicing, window_length, start_slice, end_slice, full_sequence_length)
-    if int(window_length/2)+start_slice >= full_sequence_length:
-        windowed_values=list_for_slicing[start_slice+int(window_length/2)-1:]
+    print(list_for_slicing, window_length,
+          start_slice, end_slice, full_sequence_length)
+    if int(window_length / 2) + start_slice >= full_sequence_length:
+        windowed_values = list_for_slicing[start_slice +
+                                           int(window_length / 2) - 1:]
 
-    elif int(window_length/2)+end_slice >= full_sequence_length:
-        windowed_values=list_for_slicing[int(len(list_for_slicing) - window_length/2)-1:]
+    elif int(window_length / 2) + end_slice >= full_sequence_length:
+        windowed_values = list_for_slicing[int(
+            len(list_for_slicing) - window_length / 2) - 1:]
 
-    elif int(window_length/2)+end_slice < full_sequence_length:
-        windowed_values=list_for_slicing[int(start_slice + window_length/2)-1:int(end_slice + window_length/2)-1]
+    elif int(window_length / 2) + end_slice < full_sequence_length:
+        windowed_values = list_for_slicing[int(
+            start_slice + window_length / 2) - 1:int(end_slice + window_length / 2) - 1]
     print(windowed_values)
     return(windowed_values)
 
@@ -552,7 +602,8 @@ def hydrophobicity(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_st
     ww = {'A': 0.33, 'R': 1.00, 'N': 0.43, 'D': 2.41, 'C': 0.22, 'Q': 0.19, 'E': 1.61, 'G': 1.14, 'H': -0.06, 'I': -0.81,
           'L': -0.69, 'K': 1.81, 'M': -0.44, 'F': -0.58, 'P': -0.31, 'S': 0.33, 'T': 0.11, 'W': -0.24, 'Y': 0.23, 'V': -0.53}
     ww_window = full_sequence_analysis.protein_scale(ww, window_length, edge)
-    ww_window = window_slice(ww_window, window_length, tmh_start, tmh_stop, len(full_sequence))
+    ww_window = window_slice(ww_window, window_length,
+                             tmh_start, tmh_stop, len(full_sequence))
     ww_avg = np.mean(ww_window)
     print("White Wimley:", ww_avg)
 
@@ -560,7 +611,8 @@ def hydrophobicity(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_st
             'L': 3.8, 'K': -3.9, 'M': 1.9, 'F': 2.8, 'P': -1.6, 'S': -0.8, 'T': -0.7, 'W': -0.9, 'Y': -1.3, 'V': 4.2}
     kyte_window = full_sequence_analysis.protein_scale(
         kyte, window_length, edge)
-    kyte_window = window_slice(kyte_window, window_length, tmh_start, tmh_stop, len(full_sequence))
+    kyte_window = window_slice(
+        kyte_window, window_length, tmh_start, tmh_stop, len(full_sequence))
     kyte_avg = np.mean(kyte_window)
     print("Kyte:", kyte_avg)
 
@@ -569,7 +621,8 @@ def hydrophobicity(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_st
                  'I': 1.380, 'L': 1.060, 'K': -1.500, 'M': 0.640, 'F': 1.190, 'P': 0.120, 'S': -0.180, 'T': -0.050, 'W': 0.810, 'Y': 0.260, 'V': 1.080}
     eisenberg_window = full_sequence_analysis.protein_scale(
         eisenberg, window_length, edge)
-    eisenberg_window = window_slice(eisenberg_window, window_length, tmh_start, tmh_stop, len(full_sequence))
+    eisenberg_window = window_slice(
+        eisenberg_window, window_length, tmh_start, tmh_stop, len(full_sequence))
     eisenberg_avg = np.mean(eisenberg_window)
     print("Eisenberg:", eisenberg_avg)
     # if len(kyte_window)== len(tmh_sequence):
@@ -603,7 +656,8 @@ def get_uniprot():
     uniprot_list_url = "https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+organism%3A%22Homo+sapiens+%28Human%29+%5B9606%5D%22+AND+annotation%3A%28type%3Atransmem%29&sort=score&columns=id,&format=tab"
     # "https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+annotation%3A(type%3Atransmem)&sort=score&columns=id,&format=tab"
     # uniprot_list = 'https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+organism%3A"Homo+sapiens+(Human)+[9606]"+AND+annotation%3A(type%3Atransmem)&sort=score&columns=id,&format=tab'
-    uniprot_list_file = "scripts/external_datasets/uniprot_bin/uniprot_list"+todaysdate+".txt"
+    uniprot_list_file = "scripts/external_datasets/uniprot_bin/uniprot_list" + \
+        todaysdate + ".txt"
 
     download(uniprot_list_url, uniprot_list_file)
 
@@ -784,8 +838,6 @@ def gnomad_variant_check(gnomad_variants):
     variants and their position in the tmh.
     '''
 
-
-
     # This could be worth investigating if isoforms are an issue
     # ISOFORMS!!!!
     # This bit is fiddly since there are isoforms. First, we need to establish if the record is the right line to save some time.
@@ -882,7 +934,6 @@ def gnomad_variant_check(gnomad_variants):
         NVARIANTS = str(var_database_entry[60])
         NAT_VARIANTS = str(var_database_entry[61])
 
-
         var_record_location = SEQ_NO
         var_record_id = USER_ID
         uniprot_record = UNIPROT_ACCESSION
@@ -895,7 +946,7 @@ def gnomad_variant_check(gnomad_variants):
             aa_mut = AA_CHANGE
         disease_status = "gnomAD"
         disease_comments = ""
-        user_id=USER_ID
+        user_id = USER_ID
 
         # Is the variant disease causing?
 
@@ -1031,12 +1082,13 @@ def funfam_submit(a_query):
         }
     )
 
-    #check our database for submission key to funfam
+    # check our database for submission key to funfam
     funfam_key = Funfamstatus.objects.get(protein=protein).submission_key
-    funfam_completed_date = Funfamstatus.objects.get(protein=protein).completed_date
+    funfam_completed_date = Funfamstatus.objects.get(
+        protein=protein).completed_date
     print("Funfam key for query", a_query, ":", funfam_key)
     if funfam_key == "NA":
-    # Convert the UniProt binned file to a fasta.
+        # Convert the UniProt binned file to a fasta.
         fasta_file = f"./scripts/external_datasets/fasta_bin/{a_query}.fasta"
         print(fasta_file)
         with open(str(f"./scripts/external_datasets/uniprot_bin/{a_query}.txt"), "rU") as input_handle:
@@ -1061,7 +1113,7 @@ def funfam_submit(a_query):
         record_for_database, created = Funfamstatus.objects.update_or_create(
             protein=protein,
             defaults={
-                "submission_key":funfam_key,
+                "submission_key": funfam_key,
             }
         )
     return(funfam_key)
@@ -1088,32 +1140,33 @@ def funfam_result(a_query, funfam_submission_code):
             funfam_api_result = r.json()
             protein = Protein.objects.get(uniprot_id=a_query)
             funfam_to_update = Funfamstatus.objects.get(protein=protein)
-            #record_for_database, created = Funfamstatus.objects.update(
+            # record_for_database, created = Funfamstatus.objects.update(
             #    protein=protein,
             #    completed_date=timezone.now(),
 
             #    #"funfam":
 
-            #)
+            # )
             funfam_to_update = Funfamstatus.objects.get(protein=protein)
             funfam_to_update.completed_date = timezone.now()  # change field
-            funfam_to_update.save() # this will update only
+            funfam_to_update.save()  # this will update only
 
-            #This next bit isn't perfect. We assign each residue in the region the funfam score and id. There may be a way to elegantly put in another table, but given the queries we are asking, this will suffice.
-            for key, value in funfam_api_result.items() :
+            # This next bit isn't perfect. We assign each residue in the region the funfam score and id. There may be a way to elegantly put in another table, but given the queries we are asking, this will suffice.
+            for key, value in funfam_api_result.items():
                 print("Key:", key, "Value:", value)
                 print("\n")
 
 
 def sifts_mapping(a_query):
 
-    #Download via the API
+    # Download via the API
     print("Fetching sifts information")
-    sifts_file = str("scripts/external_datasets/sifts_mapping/" + a_query + ".json")
+    sifts_file = str(
+        "scripts/external_datasets/sifts_mapping/" + a_query + ".json")
     sifts_url = f"https://www.ebi.ac.uk/pdbe/api/mappings/all_isoforms/{a_query}"
-    download(sifts_url , sifts_file)
+    download(sifts_url, sifts_file)
 
-    #PARSE and add to database
+    # PARSE and add to database
 
 
 def run():
@@ -1130,7 +1183,8 @@ def run():
     # In full scale mode it will take a long time which may not be suitable for development.
     input_query = get_uniprot()
     # Here we will just use a watered down list of tricky proteins. Uncomment this line for testing the whole list.
-    # input_query = ["Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q96E22", "P47869", "P28472", "P18507", "P05187", "O95477"]
+    #input_query = ["Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q96E22", "P47869", "P28472", "P18507", "P05187", "O95477", "Q401N2", "O00299", "Q16515", "Q9UHC3", "P78348", "Q9Y6J6", "Q9Y6H6", "Q9Y696", "Q8WWG9", "P46098", "Q96FT7", "Q92508", "Q9H5I5", "Q14028", "Q15858", "Q9UI33", "P22459", "Q9NY46", "P29973", "O14649", "Q9H427", "O95069", "Q14524", "P35499", "Q09470", "P35498", "Q99250", "Q12791", "O00180", "Q14CN2", "Q16558",
+    #               "O00555", "Q9UQC9", "Q9HBA0", "O95259", "P16389", "P15382", "Q9NYG8", "P54289", "Q00975", "Q9NQW8", "Q15878", "Q9NY47", "Q9Y5Y9", "Q9NS61", "Q7Z3S7", "Q96T54", "P48544", "Q01118", "Q16281", "P14416", "P41180", "P34998", "O15303", "P21917", "B7ZAQ6", "P49407", "P41146", "P41594", "P35372", "Q14831", "P07550", "Q9GZQ4", "Q9HC97", "P30989", "O00144", "Q14289", "Q08499", "O43603", "P49146", "P49286", "P05067", "Q9NYW5", "P0CG08", "P59537"]
 
     # Parse the xml static files since this is the slowest part.
     # Ignore this for now -  we need to sort out uniprot before anything else!
@@ -1183,17 +1237,15 @@ def run():
     uniprotid_funfam_dict = {}
     for a_query in input_query:
         this_funfam = funfam_submit(a_query)
-        uniprotid_funfam_dict.update({a_query:this_funfam})
+        uniprotid_funfam_dict.update({a_query: this_funfam})
 
     # This uses the job id to wait until the job is complete and fetch the result.
     for a_query in input_query:
         funfam = funfam_result(a_query, uniprotid_funfam_dict[a_query])
 
-
     # Populate structures
     for a_query in input_query:
         sifts_mapping(a_query)
-
 
     ### Variant tables ###
 
@@ -1259,7 +1311,8 @@ def run():
                     clinvar_results_set.add(clean_query(str(USER_ID)))
 
     print(clinvar_results_set)
-    print(len(clinvar_results), "ClinVar variants found in database that will be checked.")
+    print(len(clinvar_results),
+          "ClinVar variants found in database that will be checked.")
 
     # Load the clinvar summary file
     clinvar_summary_lines = []
@@ -1274,7 +1327,8 @@ def run():
             else:
                 pass
 
-    print(len(clinvar_summary_lines), "summaries fetched of", len(clinvar_results), "ClinVar variants.")
+    print(len(clinvar_summary_lines), "summaries fetched of",
+          len(clinvar_results), "ClinVar variants.")
 
     # We now have a list of the clinvar variants and a list of the clinvar summary.
     # Other tsvs form VarMap hopefully won't need this.

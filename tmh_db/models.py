@@ -8,6 +8,7 @@ class Database_Metadata(models.Model):
     last_run = models.DateTimeField(default=timezone.now)
     last_download = models.DateTimeField(default=timezone.now)
 
+
 class Protein(models.Model):
     uniprot_id = models.CharField(max_length=20, unique=True)
     full_sequence = models.TextField()
@@ -15,11 +16,13 @@ class Protein(models.Model):
     created_date = models.DateTimeField(default=timezone.now)
     updated_date = models.DateTimeField(default=timezone.now)
 
+
 class Funfamstatus(models.Model):
     protein = models.OneToOneField(Protein, on_delete=models.CASCADE)
     submission_key = models.TextField(default="NA")
     completed_date = models.DateTimeField(default=timezone.now)
     funfam_version = models.TextField()
+
 
 class Tmh(models.Model):
     # Several features should map to  a protein.
@@ -102,6 +105,7 @@ class Funfam_residue(models.Model):
 
 class Tmh_residue(models.Model):
     residue = models.ForeignKey(Residue, on_delete=models.CASCADE)
+    tmh_id = models.ForeignKey(Tmh, on_delete=models.CASCADE)
     amino_acid_type = models.CharField(max_length=1, default='')
     amino_acid_location = models.IntegerField(default=None)
     feature_location = models.TextField()
