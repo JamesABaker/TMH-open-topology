@@ -11,8 +11,7 @@ class Database_Metadata(models.Model):
 class Protein(models.Model):
     uniprot_id = models.CharField(max_length=20, unique=True)
     full_sequence = models.TextField()
-
-    #total_tmh_number = models.IntegerField(default=None)
+    total_tmh_number = models.IntegerField(default=0)
     created_date = models.DateTimeField(default=timezone.now)
     updated_date = models.DateTimeField(default=timezone.now)
 
@@ -54,7 +53,6 @@ class Tmh_tmsoc(models.Model):
     test_result = models.TextField()
     test_score = models.FloatField(default=None)
     created_date = models.DateTimeField(default=timezone.now)
-    # This also needs to have a tmh number. For example, we need to ask the question is this tmh 1 of 1 or 1 of 7. Can this information be obtained from elsewhere?
 
 
 class Tmh_deltag(models.Model):
@@ -70,7 +68,6 @@ class Tmh_deltag(models.Model):
     #test_result = models.TextField()
     test_score = models.FloatField(default=None)
     created_date = models.DateTimeField(default=timezone.now)
-    # This also needs to have a tmh number. For example, we need to ask the question is this tmh 1 of 1 or 1 of 7. Can this information be obtained from elsewhere?
 
 
 class Tmh_hydrophobicity(models.Model):
@@ -107,6 +104,8 @@ class Tmh_residue(models.Model):
     residue = models.ForeignKey(Residue, on_delete=models.CASCADE)
     amino_acid_type = models.CharField(max_length=1, default='')
     amino_acid_location = models.IntegerField(default=None)
+    feature_location = models.TextField()
+    evidence = models.TextField()
 
 
 class Variant(models.Model):

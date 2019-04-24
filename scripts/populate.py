@@ -436,6 +436,8 @@ def tmh_to_database(tmh_list):
         hydrophobicity(tmh_unique_id, full_sequence,
                        tmh_sequence, tmh_start, tmh_stop)
 
+        # Now we will add residues to the TM residues table
+
 
 def tmsoc(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_stop):
 
@@ -1110,7 +1112,9 @@ def sifts_mapping(a_query):
     sifts_file = str("scripts/external_datasets/sifts_mapping/" + a_query + ".json")
     sifts_url = f"https://www.ebi.ac.uk/pdbe/api/mappings/all_isoforms/{a_query}"
     download(sifts_url , sifts_file)
+
     #PARSE and add to database
+
 
 def run():
     '''
@@ -1124,9 +1128,9 @@ def run():
     ### Canonical script starts here ###
 
     # In full scale mode it will take a long time which may not be suitable for development.
-    #input_query = get_uniprot()
+    input_query = get_uniprot()
     # Here we will just use a watered down list of tricky proteins. Uncomment this line for testing the whole list.
-    input_query = ["Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q96E22", "P47869", "P28472", "P18507", "P05187", "O95477"]
+    # input_query = ["Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q96E22", "P47869", "P28472", "P18507", "P05187", "O95477"]
 
     # Parse the xml static files since this is the slowest part.
     # Ignore this for now -  we need to sort out uniprot before anything else!
@@ -1189,9 +1193,6 @@ def run():
     # Populate structures
     for a_query in input_query:
         sifts_mapping(a_query)
-
-
-
 
 
     ### Variant tables ###
