@@ -21,6 +21,7 @@ class Funfamstatus(models.Model):
     protein = models.OneToOneField(Protein, on_delete=models.CASCADE)
     submission_key = models.TextField(default="NA")
     completed_date = models.DateTimeField(default=timezone.now)
+    funfam_result = models.TextField()
     funfam_version = models.TextField()
 
 
@@ -107,8 +108,9 @@ class Tmh_residue(models.Model):
     residue = models.ForeignKey(Residue, on_delete=models.CASCADE)
     tmh_id = models.ForeignKey(Tmh, on_delete=models.CASCADE)
     amino_acid_type = models.CharField(max_length=1, default='')
-    amino_acid_location = models.IntegerField(default=None)
-    feature_location = models.TextField()
+    amino_acid_location_n_to_c = models.IntegerField()
+    amino_acid_location_in_to_out = models.IntegerField(null=True)
+    feature_location = models.TextField(default="Unknown") # This is either TMH or flank. TMH, inside flank, outside flank.
     evidence = models.TextField()
 
 

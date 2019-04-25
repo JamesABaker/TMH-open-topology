@@ -31,14 +31,13 @@ from django.utils import timezone
 from datetime import date
 import pytz
 
-#Complex query example. How many variants are in the TMH?
-#>>> Variant.objects.exclude(residue__tmh_residue=None).filter(disease_status='d').count()
-#1153
-#>>> Variant.objects.exclude(residue__tmh_residue=None).filter(disease_status='d', variant_source="ClinVar").count()
-#394
-#>>> Variant.objects.exclude(residue__tmh_residue=None).filter(disease_status='d', variant_source="Humsavar").count()
-#759
-
+# Complex query example. How many variants are in the TMH?
+# >>> Variant.objects.exclude(residue__tmh_residue=None).filter(disease_status='d').count()
+# 1153
+# >>> Variant.objects.exclude(residue__tmh_residue=None).filter(disease_status='d', variant_source="ClinVar").count()
+# 394
+# >>> Variant.objects.exclude(residue__tmh_residue=None).filter(disease_status='d', variant_source="Humsavar").count()
+# 759
 
 
 print("Usage:\npython manage.py runscript populate --traceback")
@@ -86,7 +85,7 @@ def uniprot_table(query_id):
     print("Checking UniProt for TM annotation in", query_id, ".")
     for record in SeqIO.parse(filename, input_format):
         list_of_tmhs = []
-        tmh_count=0
+        tmh_count = 0
         # features locations is a bit annoying as the start location needs +1 to match the sequence IO, but end is the correct sequence value.
         for i, f in enumerate(record.features):
             if f.type == feature_type:
@@ -458,29 +457,67 @@ def tmh_to_database(tmh_list):
         # Are there ever skips of unknow length? This could affect TMH number.
 
         # This method will not update. A separate out of date script should be used to check if this needs to be removed and updated.
-        existing = set(Residue.objects.values_list(
-            "protein__uniprot_id", "sequence_position"))
-        residues_to_create = []
 
-        for tmh_residue_number, a_residue in enumerate(tmh_sequence):
-            sequence_position = tmh_start + tmh_residue_number
-            #specific_residue = Residue.objects.get(
-            #    unique_together=[tmh_protein, sequence_position])
-            specific_residue = Residue.objects.get(protein = tmh_protein, sequence_position = sequence_position)
+        sequences_to_add = str(n_ter_seq + tmh_sequence + c_ter_seq)
 
-            if len(tmh_sequence) % 2 == 0: # This avoids odd numbers rounding to 0 twice at -1 and +1.
-                amino_acid_location = tmh_residue_number-len(tmh_sequence)/2
+        for tmh_residue_number, a_residue in enumerate(sequences_to_add):
+
+            # Where is the residue in reference to the TMH
+            sequence_position = int(tmh_start-len(n_ter_seq)) + tmh_residue_number
+
+            if sequence_position < tmh_start: # This doesn't make sense
+                #"N flank"
+                if n_terminal_inside == "Inside":
+                    feature_location = "Inside flank"
+                elif n_terminal_inside == "Outside":
+                    feature_location = "Outside flank"
+                else:
+                    feature_location = "Unknown"
+            elif sequence_position > tmh_stop:
+                #"C flank"
+                if n_terminal_inside == "Inside":
+                    feature_location = "Outside flank"
+                elif n_terminal_inside == "Outside":
+                    feature_location = "Inside flank"
+                else:
+                    feature_location = "Unknown"
+            elif sequence_position >= tmh_start and sequence_position <= tmh_stop:
+                feature_location = "TMH"
+
+            # What is the exact residue position.
+
+            # This avoids odd numbers rounding to 0 twice at -1 and +1.
+
+            if len(sequences_to_add) % 2 == 0:
+                amino_acid_location_n_to_c = tmh_residue_number - len(sequences_to_add)/2+len(n_ter_seq)  # These correction numbers are wrong!
             else:
-                amino_acid_location = tmh_residue_number-len(tmh_sequence+1)/2
+                amino_acid_location_n_to_c = tmh_residue_number - (len(sequences_to_add)+1/2)+len(n_ter_seq)
+
+            print(n_terminal_inside)
+
+
+            if "Inside" in n_terminal_inside:
+                amino_acid_location_in_to_out = amino_acid_location_n_to_c
+            elif "Outside" in n_terminal_inside:
+                amino_acid_location_in_to_out = 0-amino_acid_location_n_to_c
+            elif "Unknown" in n_terminal_inside:
+                amino_acid_location_in_to_out = None
+
+            # specific_residue = Residue.objects.get(
+            #    unique_together=[tmh_protein, sequence_position])
+
+            specific_residue = Residue.objects.get(
+                protein=tmh_protein, sequence_position=sequence_position)
 
             record_for_database, created = Tmh_residue.objects.update_or_create(
-                residue = specific_residue,
-                tmh_id = transmembrane_helix,
+                residue=specific_residue,
+                tmh_id=transmembrane_helix,
                 defaults={
                     "amino_acid_type": a_residue,
                     "evidence": evidence,
-                    "feature_location": "TMH",
-                    "amino_acid_location": amino_acid_location,
+                    "amino_acid_location_n_to_c": amino_acid_location_n_to_c,
+                    "amino_acid_location_in_to_out": amino_acid_location_in_to_out,
+                    "feature_location":  feature_location # This is either TMH or flank. TMH, inside flank, outside flank.
                 }
             )
 
@@ -569,8 +606,8 @@ def window_slice(list_for_slicing, window_length, start_slice, end_slice, full_s
     '''
     This checks that the slice needed does not exceed the final residue.
     '''
-    print(list_for_slicing, window_length,
-          start_slice, end_slice, full_sequence_length)
+    #print(list_for_slicing, window_length,
+    #      start_slice, end_slice, full_sequence_length)
     if int(window_length / 2) + start_slice >= full_sequence_length:
         windowed_values = list_for_slicing[start_slice +
                                            int(window_length / 2) - 1:]
@@ -582,7 +619,7 @@ def window_slice(list_for_slicing, window_length, start_slice, end_slice, full_s
     elif int(window_length / 2) + end_slice < full_sequence_length:
         windowed_values = list_for_slicing[int(
             start_slice + window_length / 2) - 1:int(end_slice + window_length / 2) - 1]
-    print(windowed_values)
+    # print(windowed_values) # These values should be printed to a graph and stored in a file.
     return(windowed_values)
 
 
@@ -1181,10 +1218,10 @@ def run():
     ### Canonical script starts here ###
 
     # In full scale mode it will take a long time which may not be suitable for development.
-    input_query = get_uniprot()
+    # input_query = get_uniprot()
     # Here we will just use a watered down list of tricky proteins. Uncomment this line for testing the whole list.
-    #input_query = ["Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q96E22", "P47869", "P28472", "P18507", "P05187", "O95477", "Q401N2", "O00299", "Q16515", "Q9UHC3", "P78348", "Q9Y6J6", "Q9Y6H6", "Q9Y696", "Q8WWG9", "P46098", "Q96FT7", "Q92508", "Q9H5I5", "Q14028", "Q15858", "Q9UI33", "P22459", "Q9NY46", "P29973", "O14649", "Q9H427", "O95069", "Q14524", "P35499", "Q09470", "P35498", "Q99250", "Q12791", "O00180", "Q14CN2", "Q16558",
-    #               "O00555", "Q9UQC9", "Q9HBA0", "O95259", "P16389", "P15382", "Q9NYG8", "P54289", "Q00975", "Q9NQW8", "Q15878", "Q9NY47", "Q9Y5Y9", "Q9NS61", "Q7Z3S7", "Q96T54", "P48544", "Q01118", "Q16281", "P14416", "P41180", "P34998", "O15303", "P21917", "B7ZAQ6", "P49407", "P41146", "P41594", "P35372", "Q14831", "P07550", "Q9GZQ4", "Q9HC97", "P30989", "O00144", "Q14289", "Q08499", "O43603", "P49146", "P49286", "P05067", "Q9NYW5", "P0CG08", "P59537"]
+    input_query = ["Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q96E22", "P47869", "P28472", "P18507", "P05187", "O95477", "Q401N2", "O00299", "Q16515", "Q9UHC3", "P78348", "Q9Y6J6", "Q9Y6H6", "Q9Y696", "Q8WWG9", "P46098", "Q96FT7", "Q92508", "Q9H5I5", "Q14028", "Q15858", "Q9UI33", "P22459", "Q9NY46", "P29973", "O14649", "Q9H427", "O95069", "Q14524", "P35499", "Q09470", "P35498", "Q99250", "Q12791", "O00180", "Q14CN2", "Q16558",
+                    "O00555", "Q9UQC9", "Q9HBA0", "O95259", "P16389", "P15382", "Q9NYG8", "P54289", "Q00975", "Q9NQW8", "Q15878", "Q9NY47", "Q9Y5Y9", "Q9NS61", "Q7Z3S7", "Q96T54", "P48544", "Q01118", "Q16281", "P14416", "P41180", "P34998", "O15303", "P21917", "B7ZAQ6", "P49407", "P41146", "P41594", "P35372", "Q14831", "P07550", "Q9GZQ4", "Q9HC97", "P30989", "O00144", "Q14289", "Q08499", "O43603", "P49146", "P49286", "P05067", "Q9NYW5", "P0CG08", "P59537"]
 
     # Parse the xml static files since this is the slowest part.
     # Ignore this for now -  we need to sort out uniprot before anything else!
