@@ -1279,8 +1279,8 @@ def run():
 
     for query_number, a_query in enumerate(input_query):
         print("Checking UniProt bin for", a_query)
-        uniprot_bin(a_query)
         a_query = clean_query(a_query)
+        uniprot_bin(a_query)
         print("Adding UniProt record", a_query, " to table,",
               query_number + 1, "of", len(input_query), "records...")
         uniprot_table(a_query)
