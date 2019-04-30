@@ -1,5 +1,6 @@
 # Database of Variants in TMPs.
-[![CodeFactor](https://www.codefactor.io/repository/github/jamesabaker/tip-top-table/badge)](https://www.codefactor.io/repository/github/jamesabaker/tip-top-table)
+[![CodeFactor](https://www.codefactor.io/repository/github/jamesabaker/vartmh/badge)](https://www.codefactor.io/repository/github/jamesabaker/vartmh)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/ac036f69485141a78b329ea35656ce03)](https://www.codacy.com?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=JamesABaker/Tip-Top-Table&amp;utm_campaign=Badge_Grade)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Build Status](https://travis-ci.com/JamesABaker/Tip-Top-Table.svg?token=Ge7HGfcCxBUTsSpxLzMX&branch=master)](https://travis-ci.com/JamesABaker/Tip-Top-Table.svg?token=Ge7HGfcCxBUTsSpxLzMX&branch=master)
 [![Issues](https://img.shields.io/github/issues/JamesABaker/Tip-Top-Table.svg)](https://img.shields.io/github/issues/:user/:repo.svg)

@@ -15,7 +15,6 @@ from Bio import SeqIO
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 # env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
 from django.conf import settings
-from django.utils import timezone
 from django.db import models
 from tmh_db.models import Database_Metadata, Funfam_residue, Funfamstatus, Protein, Residue, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Variant
 from datetime import datetime, timedelta
@@ -398,13 +397,13 @@ def topology_tidy(tmh_list):
         location = tmh_properties[7]
         if tmh_number % 2 == 0:
             # Even
-            if topology != None:
+            if topology is not None:
                 topo_even = topology
                 location_even = location
 
         else:
             # Odd
-            if topology != None:
+            if topology is not None:
                 topo_odd = topology
                 location_odd = location
 
@@ -1255,10 +1254,10 @@ def run():
     ### Canonical script starts here ###
 
     # In full scale mode it will take a long time which may not be suitable for development.
-    #input_query = get_uniprot()
+    input_query = get_uniprot()
     # Here we will just use a watered down list of tricky proteins. Uncomment this line for testing the whole list.
-    input_query = ["P22760", "Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q96E22", "P47869", "P28472", "P18507", "P05187", "O95477", "Q401N2", "O00299", "Q16515", "Q9UHC3", "P78348", "Q9Y6J6", "Q9Y6H6", "Q9Y696", "Q8WWG9", "P46098", "Q96FT7", "Q92508", "Q9H5I5", "Q14028", "Q15858", "Q9UI33", "P22459", "Q9NY46", "P29973", "O14649", "Q9H427", "O95069", "Q14524", "P35499", "Q09470", "P35498", "Q99250", "Q12791", "O00180", "Q14CN2", "Q16558",
-                   "O00555", "Q9UQC9", "Q9HBA0", "O95259", "P16389", "P15382", "Q9NYG8", "P54289", "Q00975", "Q9NQW8", "Q15878", "Q9NY47", "Q9Y5Y9", "Q9NS61", "Q7Z3S7", "Q96T54", "P48544", "Q01118", "Q16281", "P14416", "P41180", "P34998", "O15303", "P21917", "B7ZAQ6", "P49407", "P41146", "P41594", "P35372", "Q14831", "P07550", "Q9GZQ4", "Q9HC97", "P30989", "O00144", "Q14289", "Q08499", "O43603", "P49146", "P49286", "P05067", "Q9NYW5", "P0CG08", "P59537"]
+    #input_query = ["P22760", "Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q96E22", "P47869", "P28472", "P18507", "P05187", "O95477", "Q401N2", "O00299", "Q16515", "Q9UHC3", "P78348", "Q9Y6J6", "Q9Y6H6", "Q9Y696", "Q8WWG9", "P46098", "Q96FT7", "Q92508", "Q9H5I5", "Q14028", "Q15858", "Q9UI33", "P22459", "Q9NY46", "P29973", "O14649", "Q9H427", "O95069", "Q14524", "P35499", "Q09470", "P35498", "Q99250", "Q12791", "O00180", "Q14CN2", "Q16558",
+    #               "O00555", "Q9UQC9", "Q9HBA0", "O95259", "P16389", "P15382", "Q9NYG8", "P54289", "Q00975", "Q9NQW8", "Q15878", "Q9NY47", "Q9Y5Y9", "Q9NS61", "Q7Z3S7", "Q96T54", "P48544", "Q01118", "Q16281", "P14416", "P41180", "P34998", "O15303", "P21917", "B7ZAQ6", "P49407", "P41146", "P41594", "P35372", "Q14831", "P07550", "Q9GZQ4", "Q9HC97", "P30989", "O00144", "Q14289", "Q08499", "O43603", "P49146", "P49286", "P05067", "Q9NYW5", "P0CG08", "P59537"]
 
     # Parse the xml static files since this is the slowest part.
     # Ignore this for now -  we need to sort out uniprot before anything else!
