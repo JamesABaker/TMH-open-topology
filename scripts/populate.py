@@ -16,7 +16,7 @@ from Bio.SeqUtils.ProtParam import ProteinAnalysis
 # env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
 from django.conf import settings
 from django.db import models
-from tmh_db.models import Database_Metadata, Funfam_residue, Funfamstatus, Protein, Residue, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Variant
+from tmh_db.models import Database_Metadata, Funfam_residue, Funfamstatus, Protein, Residue, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Variant, Keyword
 from datetime import datetime, timedelta
 from django.utils import timezone
 from datetime import date
@@ -75,6 +75,8 @@ def uniprot_table(query_id):
     tm_protein = False
     print("Checking UniProt for TM annotation in", query_id, ".")
     for record in SeqIO.parse(filename, input_format):
+
+
         list_of_tmhs = []
         tmh_count = 0
         # features locations is a bit annoying as the start location needs +1 to match the sequence IO, but end is the correct sequence value.
@@ -90,35 +92,29 @@ def uniprot_table(query_id):
                     tmh_count = tmh_count + 1
                     tm_protein = True
         sequence = record.seq
-    # Add the protein to the protein table if it is a TMP
-    if tm_protein is True:
-        record_for_database, created = Protein.objects.update_or_create(
-            uniprot_id=query_id)
 
-        print("TM annotation found in", query_id, ".")
-        target_protein = Protein.objects.get(uniprot_id=query_id)
+    record_for_database, created = Protein.objects.update_or_create(
+        uniprot_id=query_id)
 
-        old_residue = Protein.objects.filter(
-            updated_date__gte=timezone.now() - timedelta(days=time_threshold))
+    print("TM annotation found in", query_id, ".")
+    target_protein = Protein.objects.get(uniprot_id=query_id)
 
-        if target_protein not in old_residue:
-            print("No recent database entry for", query_id,
-                  ". Adding to the database now.")
-            record_for_database, created = Protein.objects.update_or_create(
-                uniprot_id=query_id,
-                defaults={
-                    "total_tmh_number": tmh_count,
-                    "full_sequence": str(sequence),
-                    "updated_date": timezone.now()
-                }
-            )
+    record_for_database, created = Protein.objects.update_or_create(
+        uniprot_id=query_id,
+        defaults={
+            "total_tmh_number": tmh_count,
+            "full_sequence": str(sequence),
+            "updated_date": timezone.now()
+        }
+    )
 
-            residue_table(query_id, sequence)
+    residue_table(query_id, sequence)
 
-        elif target_protein in old_residue:
-            print(query_id, "residues were already added to database in previous",
-                  time_threshold, "days.")
-
+    for keyword in record.annotations["keywords"]:
+        keyword_to_database(keyword, query_id)
+    #print(record.cross_references)
+    #for map in record.annotations["features"]:
+    #    go_to_database(go_id, query_id)
 
 def residue_table(query_id, sequence):
     protein = Protein.objects.get(uniprot_id=query_id)
@@ -382,6 +378,19 @@ def topdb_check(query_id, topdb):
                                 return(tmh_list)
         sequence = None
         membrane_location = None
+
+
+def go_to_database(go_id, uniprot_id):
+    go_for_database, created = Go.objects.get_or_create(go_id=go_id)
+    target_protein = Protein.objects.get(uniprot_id=uniprot_id)
+    go_for_database.proteins.add(target_protein)
+
+
+def keyword_to_database(keyword, uniprot_id):
+    print("Mapping keyword to", uniprot_id, ":", keyword)
+    keyword_for_database, created = Keyword.objects.get_or_create(keyword=keyword)
+    target_protein = Protein.objects.get(uniprot_id=uniprot_id)
+    keyword_for_database.proteins.add(target_protein)
 
 
 def topology_tidy(tmh_list):
@@ -1156,40 +1165,41 @@ def funfam_submit(a_query):
     funfam_completed_date = Funfamstatus.objects.get(
         protein=protein).completed_date
     print("Funfam key for query", a_query, ":", funfam_key)
-    if funfam_key == "NA":
-        # Convert the UniProt binned file to a fasta.
-        fasta_file = f"./scripts/external_datasets/fasta_bin/{a_query}.fasta"
-        # print(fasta_file)
-        with open(str(f"./scripts/external_datasets/uniprot_bin/{a_query}.txt"), "rU") as input_handle:
-            with open(str(fasta_file), "w") as output_handle:
-                sequences = SeqIO.parse(input_handle, "swiss")
-                count = SeqIO.write(sequences, output_handle, "fasta")
 
-            # submit the query to CATH funfam
-            base_url = 'http://www.cathdb.info/search/by_funfhmmer'
 
-            with open(fasta_file) as x:
-                fasta_contents = x.read()
-                data = {'fasta': fasta_contents, "queue": "hmmscan_funvar"}
-                headers = {'accept': 'application/json'}
-                if len(str(fasta_contents)) > 2000:  # Quick FIX!!!
-                    pass
-                else:
+    # Convert the UniProt binned file to a fasta.
+    fasta_file = f"./scripts/external_datasets/fasta_bin/{a_query}.fasta"
+    # print(fasta_file)
+    with open(str(f"./scripts/external_datasets/uniprot_bin/{a_query}.txt"), "rU") as input_handle:
+        with open(str(fasta_file), "w") as output_handle:
+            sequences = SeqIO.parse(input_handle, "swiss")
+            count = SeqIO.write(sequences, output_handle, "fasta")
 
-                    r = requests.post(base_url, data=data, headers=headers)
-                    funfam_submission_code = r.json()
-                    print(funfam_submission_code)
-                    funfam_key = funfam_submission_code['task_id']
+        # submit the query to CATH funfam
+        base_url = 'http://www.cathdb.info/search/by_funfhmmer'
 
-                    print("submitted task: " + funfam_key)
+        with open(fasta_file) as x:
+            fasta_contents = x.read()
+            data = {'fasta': fasta_contents, "queue": "hmmscan_funvar"}
+            headers = {'accept': 'application/json'}
+            if len(str(fasta_contents)) > 2000:  # Quick FIX!!!
+                pass
+            else:
 
-                record_for_database, created = Funfamstatus.objects.update_or_create(
-                    protein=protein,
-                    defaults={
-                        "submission_key": funfam_key,
-                    }
-                )
-            return(funfam_key)
+                r = requests.post(base_url, data=data, headers=headers)
+                funfam_submission_code = r.json()
+                print(funfam_submission_code)
+                funfam_key = funfam_submission_code['task_id']
+
+                print("submitted task: " + funfam_key)
+
+            record_for_database, created = Funfamstatus.objects.update_or_create(
+                protein=protein,
+                defaults={
+                    "submission_key": funfam_key,
+                }
+            )
+        return(funfam_key)
 
 
 def funfam_result(a_query, funfam_submission_code):
@@ -1254,10 +1264,9 @@ def run():
     ### Canonical script starts here ###
 
     # In full scale mode it will take a long time which may not be suitable for development.
-    input_query = get_uniprot()
+    #input_query = get_uniprot()
     # Here we will just use a watered down list of tricky proteins. Uncomment this line for testing the whole list.
-    #input_query = ["P22760", "Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q96E22", "P47869", "P28472", "P18507", "P05187", "O95477", "Q401N2", "O00299", "Q16515", "Q9UHC3", "P78348", "Q9Y6J6", "Q9Y6H6", "Q9Y696", "Q8WWG9", "P46098", "Q96FT7", "Q92508", "Q9H5I5", "Q14028", "Q15858", "Q9UI33", "P22459", "Q9NY46", "P29973", "O14649", "Q9H427", "O95069", "Q14524", "P35499", "Q09470", "P35498", "Q99250", "Q12791", "O00180", "Q14CN2", "Q16558",
-    #               "O00555", "Q9UQC9", "Q9HBA0", "O95259", "P16389", "P15382", "Q9NYG8", "P54289", "Q00975", "Q9NQW8", "Q15878", "Q9NY47", "Q9Y5Y9", "Q9NS61", "Q7Z3S7", "Q96T54", "P48544", "Q01118", "Q16281", "P14416", "P41180", "P34998", "O15303", "P21917", "B7ZAQ6", "P49407", "P41146", "P41594", "P35372", "Q14831", "P07550", "Q9GZQ4", "Q9HC97", "P30989", "O00144", "Q14289", "Q08499", "O43603", "P49146", "P49286", "P05067", "Q9NYW5", "P0CG08", "P59537"]
+    input_query = ["P22760", "Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q9NS61"]
 
     # Parse the xml static files since this is the slowest part.
     # Ignore this for now -  we need to sort out uniprot before anything else!
@@ -1301,24 +1310,6 @@ def run():
     # Now get all TM information from these and build a residue table flat file.
     # Check residues in TMHs are consistent. Ditch anything that does not match uniprot and print to log.
     # now generate flat files for VarSite.
-
-    ### Redundancy tables ###
-
-    # The funfams need to be submitted, then checked for status and results.
-    # This submits all the ids to the funfams and gets job ids.
-    print("Finding closest funfams for records...")
-    uniprotid_funfam_dict = {}
-    for a_query in input_query:
-        this_funfam = funfam_submit(a_query)
-        uniprotid_funfam_dict.update({a_query: this_funfam})
-
-    # This uses the job id to wait until the job is complete and fetch the result.
-    for a_query in input_query:
-        funfam = funfam_result(a_query, uniprotid_funfam_dict[a_query])
-
-    # Populate structures
-    for a_query in input_query:
-        sifts_mapping(a_query)
 
     ### Variant tables ###
 
@@ -1429,5 +1420,28 @@ def run():
 
     for gnomad_variant in gnomad_results:
         gnomad_variant_check(gnomad_variant)
+
+
+    ### Redundancy tables ###
+
+    # The funfams need to be submitted, then checked for status and results.
+    # This submits all the ids to the funfams and gets job ids.
+    print("Finding closest funfams for records...")
+    uniprotid_funfam_dict = {}
+    for a_query in input_query:
+        a_query = clean_query(a_query)
+        this_funfam = funfam_submit(a_query)
+        uniprotid_funfam_dict.update({a_query: this_funfam})
+
+    # This uses the job id to wait until the job is complete and fetch the result.
+    for a_query in input_query:
+        a_query = clean_query(a_query)
+        funfam = funfam_result(a_query, uniprotid_funfam_dict[a_query])
+
+    # Populate structures
+    for a_query in input_query:
+        a_query = clean_query(a_query)
+        sifts_mapping(a_query)
+
 
     print("This is the end of the script. It seems like there were no script breaking errors along the way.")

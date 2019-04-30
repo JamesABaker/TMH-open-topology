@@ -17,12 +17,26 @@ class Protein(models.Model):
     updated_date = models.DateTimeField(default=timezone.now)
 
 
+class Go(models.Model):
+    go_id=models.CharField(max_length=20, unique=True)
+    proteins = models.ManyToManyField(Protein, related_name="gos")
+
+class Keyword(models.Model):
+    keyword=models.TextField(unique=True)
+    proteins = models.ManyToManyField(Protein, related_name="keywords")
+
 class Funfamstatus(models.Model):
     protein = models.OneToOneField(Protein, on_delete=models.CASCADE)
     submission_key = models.TextField(default="NA")
     completed_date = models.DateTimeField(default=timezone.now)
     funfam_result = models.TextField()
     funfam_version = models.TextField()
+
+
+class Funfam_residue(models.Model):
+    residue = models.ForeignKey("Residue", on_delete=models.CASCADE)
+    funfam_id = models.TextField()
+    e_value = models.FloatField()
 
 
 class Tmh(models.Model):
@@ -96,12 +110,6 @@ class Residue(models.Model):
 
     class Meta:
         unique_together = ["protein", "sequence_position"]
-
-
-class Funfam_residue(models.Model):
-    residue = models.ForeignKey(Residue, on_delete=models.CASCADE)
-    funfam_id = models.TextField()
-    e_value = models.FloatField()
 
 
 class Tmh_residue(models.Model):
