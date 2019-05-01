@@ -1252,6 +1252,19 @@ def sifts_mapping(a_query):
     data = "data"
 
 
+def tmh_input(input_query):
+    print("Extracting TMH bounadries from...")
+    for query_number, a_query in enumerate(input_query):
+        a_query = clean_query(a_query)
+        print("\nExtracting TMH boundaries for", a_query, ",",
+              query_number + 1, "of", len(input_query), "records.")
+        # print(clean_query(a_query))
+        ### OPM needs adding to here also. ###
+        # mptopo_tm_check(a_query)
+        uniprot_tm_check(a_query)
+        topdb_check(a_query, topdb)
+
+
 def run():
     '''
     This is what django runs. This is effectively the canonical script,
@@ -1264,9 +1277,9 @@ def run():
     ### Canonical script starts here ###
 
     # In full scale mode it will take a long time which may not be suitable for development.
-    #input_query = get_uniprot()
+    input_query = get_uniprot()
     # Here we will just use a watered down list of tricky proteins. Uncomment this line for testing the whole list.
-    input_query = ["P22760", "Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q9NS61"]
+    #input_query = ["P22760", "Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q9NS61"]
 
     # Parse the xml static files since this is the slowest part.
     # Ignore this for now -  we need to sort out uniprot before anything else!
@@ -1294,18 +1307,10 @@ def run():
               query_number + 1, "of", len(input_query), "records...")
         uniprot_table(a_query)
 
-    ### TMH Tables ###
 
-    print("Extracting TMH bounadries from...")
-    for query_number, a_query in enumerate(input_query):
-        a_query = clean_query(a_query)
-        print("\nExtracting TMH boundaries for", a_query, ",",
-              query_number + 1, "of", len(input_query), "records.")
-        # print(clean_query(a_query))
-        ### OPM needs adding to here also. ###
-        # mptopo_tm_check(a_query)
-        uniprot_tm_check(a_query)
-        topdb_check(a_query, topdb)
+    ### TMH Tables ###
+    tmh_input(input_query)
+
 
     # Now get all TM information from these and build a residue table flat file.
     # Check residues in TMHs are consistent. Ditch anything that does not match uniprot and print to log.
