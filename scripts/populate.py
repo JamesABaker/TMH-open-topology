@@ -322,7 +322,7 @@ def topdb_check(query_id, topdb):
                     if str(seq_info.tag) == str("Seq"):
                         sequence = str(seq_info.text).replace("\n", "")
                         sequence = sequence.replace(" ", "")
-                        # print(sequence)
+
         for features in records:
             if str(features.tag) == str("Membrane"):
 
@@ -338,46 +338,53 @@ def topdb_check(query_id, topdb):
                         acs = id_type.getchildren()
                         for ids in acs:
                             if str(ids.text) == query_id:
-                                tmh_list = []
-                                for feature in records:
-                                    if str(feature.tag) == str("Topology"):
-                                        topology = feature.getchildren()
-                                        for item in topology:
-                                            if str(item.tag) == str("Regions"):
-                                                tmhs = item.getchildren()
-                                                for feature_number, feature in enumerate(tmhs):
-                                                    tmh_details = feature.attrib
+                                uniprot_ref_sequence = Residue.objects.filter(protein__uniprot_id=query_id).count()
+                                if len(sequence) == uniprot_ref_sequence:
 
-                                                    # get total number of tmhs
-                                                    total_tmh_number = 0
-                                                    for a_feature_number, a_feature in enumerate(tmhs):
+                                    add_topdb=True
+                                elif len(sequence) != uniprot_ref_sequence:
+                                    print("TOPD Uniprot length mismatch in" , query_id, ". Aborting TOPDB TMH record")
+                                    add_topdb = False
+                                # print(sequence)
+                                if add_topdb == True:
+                                    tmh_list = []
+                                    for feature in records:
+                                        if str(feature.tag) == str("Topology"):
+                                            topology = feature.getchildren()
+                                            for item in topology:
+                                                if str(item.tag) == str("Regions"):
+                                                    tmhs = item.getchildren()
+                                                    for feature_number, feature in enumerate(tmhs):
+                                                        tmh_details = feature.attrib
+
+                                                        # get total number of tmhs
+                                                        total_tmh_number = 0
+                                                        for a_feature_number, a_feature in enumerate(tmhs):
+                                                            if str(tmh_details["Loc"]) == str("Membrane"):
+                                                                total_tmh_number = total_tmh_number + 1
+                                                        tmh_number = 0
                                                         if str(tmh_details["Loc"]) == str("Membrane"):
-                                                            total_tmh_number = total_tmh_number + 1
-                                                    tmh_number = 0
-                                                    if str(tmh_details["Loc"]) == str("Membrane"):
-                                                        tmh_number = tmh_number + 1
-                                                        tmh_start = int(
-                                                            tmh_details["Begin"])
-                                                        tmh_stop = int(
-                                                            tmh_details["End"])
-                                                        ### NO FLANK CLASH CHECKS! NUMBERS WILL BE WRONG!!! ###
-                                                        n_ter_seq = sequence[tmh_start
-                                                                             - 5:tmh_start]
-                                                        tmh_sequence = sequence[tmh_start:tmh_stop]
-                                                        c_ter_seq = sequence[tmh_stop:tmh_stop + 5]
+                                                            tmh_number = tmh_number + 1
+                                                            tmh_start = int(
+                                                                tmh_details["Begin"])
+                                                            tmh_stop = int(
+                                                                tmh_details["End"])
+                                                            ### NO FLANK CLASH CHECKS! NUMBERS WILL BE WRONG!!! ###
+                                                            n_ter_seq = sequence[tmh_start
+                                                                                 - 5:tmh_start]
+                                                            tmh_sequence = sequence[tmh_start:tmh_stop]
+                                                            c_ter_seq = sequence[tmh_stop:tmh_stop + 5]
 
-                                                        # preparing any non established variables for standard tmh recording.
-                                                        full_sequence = sequence
+                                                            # preparing any non established variables for standard tmh recording.
+                                                            full_sequence = sequence
 
-                                                        tmh_list.append([query_id, tmh_number, total_tmh_number, tmh_start + 1, tmh_stop, tmh_topology,
-                                                                         evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence_type, full_sequence])
-                                                    # Although it is about as elegant as a sledgehammer,
-                                                    # this catches the previous non tmh environment.
-                                                    tmh_topology = tmh_details["Loc"]
-                                tmh_to_database(tmh_list)
-                                return(tmh_list)
-        sequence = None
-        membrane_location = None
+                                                            tmh_list.append([query_id, tmh_number, total_tmh_number, tmh_start+1, tmh_stop, tmh_topology,
+                                                                             evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence_type, full_sequence])
+                                                        # Although it is about as elegant as a sledgehammer,
+                                                        # this catches the previous non tmh environment.
+                                                        tmh_topology = tmh_details["Loc"]
+                                    tmh_to_database(tmh_list)
+                                    return(tmh_list)
 
 
 def go_to_database(go_id, uniprot_id):
@@ -531,7 +538,7 @@ def tmh_to_database(tmh_list):
                     len(n_ter_seq)  # These correction numbers are wrong!
             else:
                 amino_acid_location_n_to_c = tmh_residue_number - \
-                    (len(sequences_to_add) + 1 / 2) + len(n_ter_seq)
+                    (len(sequences_to_add) - 1 / 2) + len(n_ter_seq)
 
             if "Inside" in n_terminal_inside:
                 amino_acid_location_in_to_out = amino_acid_location_n_to_c
@@ -1254,6 +1261,10 @@ def sifts_mapping(a_query):
 
 def tmh_input(input_query):
     print("Extracting TMH bounadries from...")
+    # Parse the xml static files since this is the slowest part.
+    # Ignore this for now -  we need to sort out uniprot before anything else!
+    topdb = ET.parse('scripts/external_datasets/topdb_all.xml')
+    # mptopo = ET.parse('mptopoTblXml.xml')
     for query_number, a_query in enumerate(input_query):
         a_query = clean_query(a_query)
         print("\nExtracting TMH boundaries for", a_query, ",",
@@ -1277,14 +1288,9 @@ def run():
     ### Canonical script starts here ###
 
     # In full scale mode it will take a long time which may not be suitable for development.
-    input_query = get_uniprot()
+    #input_query = get_uniprot()
     # Here we will just use a watered down list of tricky proteins. Uncomment this line for testing the whole list.
-    #input_query = ["P22760", "Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q9NS61"]
-
-    # Parse the xml static files since this is the slowest part.
-    # Ignore this for now -  we need to sort out uniprot before anything else!
-    topdb = ET.parse('scripts/external_datasets/topdb_all.xml')
-    # mptopo = ET.parse('mptopoTblXml.xml')
+    input_query = ["P01850", "P22760", "Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q9NS61"]
 
     # Also, parse the variant files which can be massive.
     # humsavar table

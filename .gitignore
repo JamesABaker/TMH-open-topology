@@ -24,5 +24,6 @@ tmh_database/tmh_database/settings.py
 
 tmh_database/*.xml
 
+!version_key.txt
 
 !requirements.txt
