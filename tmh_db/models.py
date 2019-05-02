@@ -21,9 +21,11 @@ class Go(models.Model):
     go_id=models.CharField(max_length=20, unique=True)
     proteins = models.ManyToManyField(Protein, related_name="gos")
 
+
 class Keyword(models.Model):
     keyword=models.TextField(unique=True)
     proteins = models.ManyToManyField(Protein, related_name="keywords")
+
 
 class Funfamstatus(models.Model):
     protein = models.OneToOneField(Protein, on_delete=models.CASCADE)
@@ -112,6 +114,11 @@ class Residue(models.Model):
         unique_together = ["protein", "sequence_position"]
 
 
+class Binding_residue(models.Model):
+    residue = models.ForeignKey(Residue, on_delete=models.CASCADE)
+    comment = models.TextField()
+
+
 class Tmh_residue(models.Model):
     residue = models.ForeignKey(Residue, on_delete=models.CASCADE)
     tmh_id = models.ForeignKey(Tmh, on_delete=models.CASCADE)
@@ -130,3 +137,16 @@ class Variant(models.Model):
     disease_comments = models.TextField()
     variant_source = models.TextField(default="Unknown")
     variant_source_id = models.TextField(default="No_ID")
+
+
+class Structure(models.Model):
+    uniprot_protein = models.ForeignKey(Protein, on_delete=models.CASCADE)
+    pdb_id = models.CharField(max_length=10, default='')
+
+
+class Structural_residue(models.Model):
+    structure = models.ForeignKey(Structure, on_delete=models.CASCADE)
+    residue = models.ForeignKey(Residue, on_delete=models.CASCADE)
+    pdb_position = models.IntegerField()
+    author_position = models.IntegerField()
+    uniprot_position = models.IntegerField()

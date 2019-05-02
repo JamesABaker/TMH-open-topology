@@ -1,10 +1,13 @@
 from __future__ import division
 import requests
+import urllib
 from requests import get
 import shutil
 import numpy as np
 import os
+import collections
 import time
+import gzip
 import subprocess
 import json
 from subprocess import check_output
@@ -21,6 +24,7 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from datetime import date
 import pytz
+from lxml import etree
 
 # Complex query example. How many variants are in the TMH?
 # >>> Variant.objects.exclude(residue__tmh_residue=None).filter(disease_status='d').count()
@@ -1258,7 +1262,59 @@ def sifts_mapping(a_query):
     sifts_url = f"https://www.ebi.ac.uk/pdbe/api/mappings/all_isoforms/{a_query}"
     download(sifts_url, sifts_file)
     # PARSE and add to database
-    data = "data"
+    with open(sifts_file, 'r') as file:
+        sifts_json = json.load(file)
+
+    for record in sifts_json:
+        pdb_codes=[]
+        for pdb_code in sifts_json[a_query]['PDB'].keys():
+            pdb_codes.append(pdb_code)
+        print(a_query, "maps to", pdb_codes)
+        for pdb_code in pdb_codes:
+            pdb_download_location=f"ftp://ftp.ebi.ac.uk/pub/databases/pdb/data/structures/divided/pdb/{pdb_code[1:3]}/pdb{pdb_code}.ent.gz"
+            pdb_file_location = f"./scripts/external_datasets/pdb/{pdb_code}.pdb"
+
+
+            pdb_str = gzip.open(urllib.request.urlopen(pdb_download_location)).read()
+            with open(pdb_file_location, 'w') as pdb_file:
+                pdb_file.write(pdb_str.decode("utf-8") )
+
+                print(get_sequence_resid_chains_dict(pdb_code))
+
+def get_sequence_resid_chains_dict(pdb_code, output_key="uniprot_resid"):
+    """Returns a dict where keys are Uniprot res and values are pdb res chains"""
+
+    url = ("ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/split_xml/"
+           "{0}/{1}.xml.gz".format(pdb_code[1:3], pdb_code))
+    xml_str = gzip.open(urllib.request.urlopen(url)).read()
+    xml_str = re.sub(b'\sxmlns="[^"]+"', b'', xml_str, count=1)
+    root = etree.fromstring(xml_str)
+    sequence_chain_dict = collections.defaultdict(list)
+    chain_resid_to_auth_dict = {}
+    for entity in root.findall(".//entity"):
+        chains = set()
+        for chain_group in entity.assembly_chains_groups:
+            if entity.attrib['entityId'] in chain_group:
+                chains.update(chain_group)
+        for residue in entity.findall(".//residue"):
+            uniprot_cross_rf = residue.find(
+                "./crossRefDb[@dbSource='UniProt']")
+            if uniprot_cross_rf is None:
+                continue
+            pdbe_resid = int(residue.attrib['dbResNum'])
+            pdb_resid = residue.find("./crossRefDb[@dbSource='PDB']").get('dbResNum')
+            pdb_resid = int(re.sub('[^0-9]', '', pdb_resid)) if pdb_resid != 'null' else None
+            pdb_resname = residue.find("./crossRefDb[@dbSource='PDB']").get('dbResName').capitalize()
+            u_resid = int(uniprot_cross_rf.attrib['dbResNum'])
+            uniprot_id = uniprot_cross_rf.attrib['dbAccessionId']
+            if (uniprot_id, u_resid) in sequence_chain_dict:
+                sequence_chain_dict[(uniprot_id, u_resid)][0].update(chains)
+            else:
+                sequence_chain_dict[(uniprot_id, u_resid)] = [set(chains), pdbe_resid, pdb_resid, pdb_resname]
+            for chain in chains:
+                chain_resid_to_auth_dict[(chain, pdbe_resid)] = pdb_resid
+    #print(chain_resid_to_auth_dict)
+    return sequence_chain_dict if output_key == "uniprot_resid" else chain_resid_to_auth_dict
 
 
 def tmh_input(input_query):
