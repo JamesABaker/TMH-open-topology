@@ -76,7 +76,6 @@ def uniprot_table(query_id):
     print("Checking UniProt for TM annotation in", query_id, ".")
     for record in SeqIO.parse(filename, input_format):
 
-
         list_of_tmhs = []
         tmh_count = 0
         # features locations is a bit annoying as the start location needs +1 to match the sequence IO, but end is the correct sequence value.
@@ -112,9 +111,10 @@ def uniprot_table(query_id):
 
     for keyword in record.annotations["keywords"]:
         keyword_to_database(keyword, query_id)
-    #print(record.cross_references)
-    #for map in record.annotations["features"]:
+    # print(record.cross_references)
+    # for map in record.annotations["features"]:
     #    go_to_database(go_id, query_id)
+
 
 def residue_table(query_id, sequence):
     protein = Protein.objects.get(uniprot_id=query_id)
@@ -338,15 +338,17 @@ def topdb_check(query_id, topdb):
                         acs = id_type.getchildren()
                         for ids in acs:
                             if str(ids.text) == query_id:
-                                uniprot_ref_sequence = Residue.objects.filter(protein__uniprot_id=query_id).count()
+                                uniprot_ref_sequence = Residue.objects.filter(
+                                    protein__uniprot_id=query_id).count()
                                 if len(sequence) == uniprot_ref_sequence:
 
-                                    add_topdb=True
+                                    add_topdb = True
                                 elif len(sequence) != uniprot_ref_sequence:
-                                    print("TOPD Uniprot length mismatch in" , query_id, ". Aborting TOPDB TMH record")
+                                    print("TOPD Uniprot length mismatch in",
+                                          query_id, ". Aborting TOPDB TMH record")
                                     add_topdb = False
                                 # print(sequence)
-                                if add_topdb == True:
+                                if add_topdb is True:
                                     tmh_list = []
                                     for feature in records:
                                         if str(feature.tag) == str("Topology"):
@@ -378,7 +380,7 @@ def topdb_check(query_id, topdb):
                                                             # preparing any non established variables for standard tmh recording.
                                                             full_sequence = sequence
 
-                                                            tmh_list.append([query_id, tmh_number, total_tmh_number, tmh_start+1, tmh_stop, tmh_topology,
+                                                            tmh_list.append([query_id, tmh_number, total_tmh_number, tmh_start + 1, tmh_stop, tmh_topology,
                                                                              evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence_type, full_sequence])
                                                         # Although it is about as elegant as a sledgehammer,
                                                         # this catches the previous non tmh environment.
@@ -395,7 +397,8 @@ def go_to_database(go_id, uniprot_id):
 
 def keyword_to_database(keyword, uniprot_id):
     print("Mapping keyword to", uniprot_id, ":", keyword)
-    keyword_for_database, created = Keyword.objects.get_or_create(keyword=keyword)
+    keyword_for_database, created = Keyword.objects.get_or_create(
+        keyword=keyword)
     target_protein = Protein.objects.get(uniprot_id=uniprot_id)
     keyword_for_database.proteins.add(target_protein)
 
@@ -403,10 +406,10 @@ def keyword_to_database(keyword, uniprot_id):
 def topology_tidy(tmh_list):
 
     # Is there any information on what odd/even tmh numbers should topologically be in terms of subcellular location and inside/outside?
-    topo_odd="Unknown"
-    topo_even="Unknown"
-    location_odd="Unknown"
-    location_even="Unknown"
+    topo_odd = "Unknown"
+    topo_even = "Unknown"
+    location_odd = "Unknown"
+    location_even = "Unknown"
 
     for tmh_number, tmh_properties in enumerate(tmh_list):
         topology = tmh_properties[5]
@@ -1173,7 +1176,6 @@ def funfam_submit(a_query):
         protein=protein).completed_date
     print("Funfam key for query", a_query, ":", funfam_key)
 
-
     # Convert the UniProt binned file to a fasta.
     fasta_file = f"./scripts/external_datasets/fasta_bin/{a_query}.fasta"
     # print(fasta_file)
@@ -1290,7 +1292,8 @@ def run():
     # In full scale mode it will take a long time which may not be suitable for development.
     #input_query = get_uniprot()
     # Here we will just use a watered down list of tricky proteins. Uncomment this line for testing the whole list.
-    input_query = ["P01850", "P22760", "Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q9NS61"]
+    input_query = ["P01850", "P22760", "Q5K4L6",
+                   "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q9NS61"]
 
     # Also, parse the variant files which can be massive.
     # humsavar table
@@ -1313,10 +1316,8 @@ def run():
               query_number + 1, "of", len(input_query), "records...")
         uniprot_table(a_query)
 
-
     ### TMH Tables ###
     tmh_input(input_query)
-
 
     # Now get all TM information from these and build a residue table flat file.
     # Check residues in TMHs are consistent. Ditch anything that does not match uniprot and print to log.
@@ -1432,7 +1433,6 @@ def run():
     for gnomad_variant in gnomad_results:
         gnomad_variant_check(gnomad_variant)
 
-
     ### Redundancy tables ###
 
     # The funfams need to be submitted, then checked for status and results.
@@ -1453,6 +1453,5 @@ def run():
     for a_query in input_query:
         a_query = clean_query(a_query)
         sifts_mapping(a_query)
-
 
     print("This is the end of the script. It seems like there were no script breaking errors along the way.")

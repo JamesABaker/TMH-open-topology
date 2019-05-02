@@ -27,3 +27,5 @@ tmh_database/*.xml
 !version_key.txt
 
 !requirements.txt
+
+tmve/

@@ -5,8 +5,14 @@
 [![Build Status](https://travis-ci.com/JamesABaker/Tip-Top-Table.svg?token=Ge7HGfcCxBUTsSpxLzMX&branch=master)](https://travis-ci.com/JamesABaker/Tip-Top-Table.svg?token=Ge7HGfcCxBUTsSpxLzMX&branch=master)
 [![Issues](https://img.shields.io/github/issues/JamesABaker/Tip-Top-Table.svg)](https://img.shields.io/github/issues/:user/:repo.svg)
 
+## Aims
 This is a tool to help to evaluate disease variants in the context of transmembrane proteins.
 It curates TMHs boundaries and topology from several sources and cross references those against several variant databases.
+
+## Back-end structure
+The current database structure is laid out below. The key thing to keep in mind is that all records are centered around the UniProt id and UniProt sequence.
+
+![Table structure of database.](images/graph.png)
 
 <!--
 TMs In Protein TOPology = TiPTop
@@ -16,7 +22,9 @@ Tip Top Protein Topology Table
 VarTMPs
  -->
 
-# Back-end sources and references
+## Back-end sources and references
+
+Several external tools are needed to generate the database. External programmes, software, and datasets are listed below.
 
 UniProt `uniprot_bin/*.txt` <https://www.uniprot.org/> Bateman, A. et al. UniProt: the universal protein knowledgebase. Nucleic Acids Res. 45, D158–D169 (2017).
 
