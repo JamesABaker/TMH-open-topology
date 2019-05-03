@@ -148,5 +148,6 @@ class Structural_residue(models.Model):
     structure = models.ForeignKey(Structure, on_delete=models.CASCADE)
     residue = models.ForeignKey(Residue, on_delete=models.CASCADE)
     pdb_position = models.IntegerField()
+    pdb_chain = models.CharField(max_length=10, default='')
     author_position = models.IntegerField()
     uniprot_position = models.IntegerField()

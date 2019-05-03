@@ -21,6 +21,7 @@ tmh_database/tmh_database/settings.py
 *.csv
 *.txt
 *.pdf
+*.pdb
 
 tmh_database/*.xml
 

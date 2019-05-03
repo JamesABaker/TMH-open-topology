@@ -19,7 +19,7 @@ from Bio.SeqUtils.ProtParam import ProteinAnalysis
 # env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
 from django.conf import settings
 from django.db import models
-from tmh_db.models import Database_Metadata, Funfam_residue, Funfamstatus, Protein, Residue, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Variant, Keyword
+from tmh_db.models import Database_Metadata, Funfam_residue, Funfamstatus, Protein, Residue, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Variant, Keyword, Binding_residue
 from datetime import datetime, timedelta
 from django.utils import timezone
 from datetime import date
@@ -113,12 +113,25 @@ def uniprot_table(query_id):
 
     residue_table(query_id, sequence)
 
+    binding_residues_to_table(filename)
+
+
     for keyword in record.annotations["keywords"]:
         keyword_to_database(keyword, query_id)
     # print(record.cross_references)
     # for map in record.annotations["features"]:
     #    go_to_database(go_id, query_id)
 
+def binding_residues_to_table(filename):
+    for record in SeqIO.parse(filename, "swiss"):
+        for i, f in enumerate(record.features):
+            if f.type == "BINDING":
+                for position in range(f.location.start,f.location.end):
+                    protein = Protein.objects.get(uniprot_id=record.id)
+                    specific_residue = Residue.objects.get(protein=protein, sequence_position=int(position))
+                    record_for_database, created = Binding_residue.objects.update_or_create(
+                        residue=specific_residue,
+                        comment=f.qualifiers,)
 
 def residue_table(query_id, sequence):
     protein = Protein.objects.get(uniprot_id=query_id)
@@ -1281,7 +1294,7 @@ def sifts_mapping(a_query):
 
                 print(get_sequence_resid_chains_dict(pdb_code))
 
-def get_sequence_resid_chains_dict(pdb_code, output_key="uniprot_resid"):
+def get_sequence_resid_chains_dict(pdb_code,):
     """Returns a dict where keys are Uniprot res and values are pdb res chains"""
 
     url = ("ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/split_xml/"
@@ -1289,13 +1302,9 @@ def get_sequence_resid_chains_dict(pdb_code, output_key="uniprot_resid"):
     xml_str = gzip.open(urllib.request.urlopen(url)).read()
     xml_str = re.sub(b'\sxmlns="[^"]+"', b'', xml_str, count=1)
     root = etree.fromstring(xml_str)
-    sequence_chain_dict = collections.defaultdict(list)
+    sequence_chain_dict = collections.defaultdict(dict)
     chain_resid_to_auth_dict = {}
     for entity in root.findall(".//entity"):
-        chains = set()
-        for chain_group in entity.assembly_chains_groups:
-            if entity.attrib['entityId'] in chain_group:
-                chains.update(chain_group)
         for residue in entity.findall(".//residue"):
             uniprot_cross_rf = residue.find(
                 "./crossRefDb[@dbSource='UniProt']")
@@ -1307,14 +1316,10 @@ def get_sequence_resid_chains_dict(pdb_code, output_key="uniprot_resid"):
             pdb_resname = residue.find("./crossRefDb[@dbSource='PDB']").get('dbResName').capitalize()
             u_resid = int(uniprot_cross_rf.attrib['dbResNum'])
             uniprot_id = uniprot_cross_rf.attrib['dbAccessionId']
-            if (uniprot_id, u_resid) in sequence_chain_dict:
-                sequence_chain_dict[(uniprot_id, u_resid)][0].update(chains)
-            else:
-                sequence_chain_dict[(uniprot_id, u_resid)] = [set(chains), pdbe_resid, pdb_resid, pdb_resname]
-            for chain in chains:
-                chain_resid_to_auth_dict[(chain, pdbe_resid)] = pdb_resid
+            sequence_chain_dict[(uniprot_id, u_resid)][entity.attrib['entityId']] = [pdbe_resid, pdb_resid, pdb_resname]
+
     #print(chain_resid_to_auth_dict)
-    return sequence_chain_dict if output_key == "uniprot_resid" else chain_resid_to_auth_dict
+    return sequence_chain_dict
 
 
 def tmh_input(input_query):
@@ -1509,5 +1514,6 @@ def run():
     for a_query in input_query:
         a_query = clean_query(a_query)
         sifts_mapping(a_query)
+
 
     print("This is the end of the script. It seems like there were no script breaking errors along the way.")
