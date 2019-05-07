@@ -20,24 +20,14 @@ from Bio.SeqUtils.ProtParam import ProteinAnalysis
 # env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
 from django.conf import settings
 from django.db import models
-from tmh_db.models import Database_Metadata, Go, Funfam_residue, Funfamstatus, Protein, Residue, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Variant, Keyword, Binding_residue
+from tmh_db.models import Database_Metadata, Go, Structure, Structural_residue, Funfam_residue, Funfamstatus, Protein, Residue, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Variant, Keyword, Binding_residue
 from datetime import datetime, timedelta
 from django.utils import timezone
 from datetime import date
 import pytz
 from lxml import etree
 
-# Complex query example. How many variants are in the TMH?
-# >>> Variant.objects.exclude(residue__tmh_residue=None).filter(disease_status='d').count()
-# 1153
-# >>> Variant.objects.exclude(residue__tmh_residue=None).filter(disease_status='d', variant_source="ClinVar").count()
-# 394
-# >>> Variant.objects.exclude(residue__tmh_residue=None).filter(disease_status='d', variant_source="Humsavar").count()
-# 759
-
-
 print("Usage:\npython manage.py runscript populate --traceback")
-
 
 # How many days should be allowed to not enforce updates
 time_threshold = 7
@@ -1276,6 +1266,7 @@ def funfam_result(a_query, funfam_submission_code):
 
 
 def sifts_mapping(a_query):
+    protein = Protein.objects.get(uniprot_id=a_query)
 
     # Download via the API
     print("Fetching sifts information")
@@ -1293,18 +1284,61 @@ def sifts_mapping(a_query):
             pdb_codes.append(pdb_code)
         print(a_query, "maps to", pdb_codes)
         for pdb_code in pdb_codes:
+
             pdb_download_location = f"ftp://ftp.ebi.ac.uk/pub/databases/pdb/data/structures/divided/pdb/{pdb_code[1:3]}/pdb{pdb_code}.ent.gz"
             pdb_file_location = f"./scripts/external_datasets/pdb/{pdb_code}.pdb"
 
             pdb_str = gzip.open(urllib.request.urlopen(
                 pdb_download_location)).read()
+
+            record_for_database, created = Structure.objects.update_or_create(uniprot_protein=protein, pdb_id = pdb_code)
+            structure = Structure.objects.get(pdb_id = pdb_code)
             with open(pdb_file_location, 'w') as pdb_file:
                 pdb_file.write(pdb_str.decode("utf-8"))
 
-                print(get_sequence_resid_chains_dict(pdb_code))
+                structure_sequence_map=get_sequence_resid_chains_dict(pdb_code)#[1]
+                #('Q95460', 36): {'A': [15, 14, 'Asp'], 'C': [15, 14, 'Asp']}
+
+                residue_list = list(Residue.objects.filter(protein=protein).values())
+                #print("Residue list", residue_list)
+                for residue in residue_list:
+                    for residue_details in residue_list:
+                        #print("Residue details", residue_details)
+                        try:
+                            #print("Trying to find ", (a_query, residue_details["sequence_position"]),  "in", structure_sequence_map)
+                            structural_residues_to_map = structure_sequence_map[(a_query, residue_details["sequence_position"])]
+
+                            seq_residue = Residue.objects.get(protein=protein, sequence_position=residue_details["sequence_position"])
+                            #print("Residues to map:", structural_residues_to_map)
+                            for chain, positions in structural_residues_to_map.items():
+                                pdb_chain=chain
+                                pdb_position = positions[0]
+                                author_position = positions[1]
+                                #print("Mapping:,", pdb_chain, pdb_position, author_position)
 
 
-def get_sequence_resid_chains_dict(pdb_code,):
+                                #structure = models.ForeignKey(Structure, on_delete=models.CASCADE)
+                                #residue = models.ForeignKey(Residue, on_delete=models.CASCADE)
+                                #pdb_position = models.IntegerField()
+                                #pdb_chain = models.CharField(max_length=10, default='')
+                                #author_position = models.IntegerField()
+                                #uniprot_position = models.IntegerField()
+
+                                record_for_database, created = Structural_residue.objects.update_or_create(
+                                    structure = structure,
+                                    residue = seq_residue,
+                                    pdb_position = pdb_position,
+                                    pdb_chain = pdb_chain,
+                                    author_position = author_position,
+                                    uniprot_position = residue_details["sequence_position"]
+                                )
+
+                        except KeyError:
+                            pass
+                #for residue in residue_list:
+                #    sequence_position
+                #    structure_sequence_map[(a_query, )]
+def get_sequence_resid_chains_dict(pdb_code):
     """Returns a dict where keys are Uniprot res and values are pdb res chains"""
 
     url = ("ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/split_xml/"
@@ -1365,9 +1399,9 @@ def run():
     ### Canonical script starts here ###
 
     # In full scale mode it will take a long time which may not be suitable for development.
-    #input_query = get_uniprot()
+    input_query = get_uniprot()
     # Here we will just use a watered down list of tricky proteins. Uncomment this line for testing the whole list.
-    input_query = ["P01850", "P22760", "Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q9NS61"]
+    #input_query = ["P01850", "P22760", "Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q9NS61"]
 
     # Also, parse the variant files which can be massive.
     # humsavar table
