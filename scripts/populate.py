@@ -389,6 +389,7 @@ def topdb_check(query_id, topdb):
                                                                 total_tmh_number = total_tmh_number + 1
                                                         tmh_number = 0
                                                         if str(tmh_details["Loc"]) == str("Membrane"):
+
                                                             tmh_number = tmh_number + 1
                                                             tmh_start = int(
                                                                 tmh_details["Begin"])
@@ -408,6 +409,7 @@ def topdb_check(query_id, topdb):
                                                         # Although it is about as elegant as a sledgehammer,
                                                         # this catches the previous non tmh environment.
                                                         tmh_topology = tmh_details["Loc"]
+
                                     tmh_to_database(tmh_list)
                                     return(tmh_list)
 
@@ -1365,8 +1367,7 @@ def run():
     # In full scale mode it will take a long time which may not be suitable for development.
     #input_query = get_uniprot()
     # Here we will just use a watered down list of tricky proteins. Uncomment this line for testing the whole list.
-    input_query = ["P01850", "P22760", "Q5K4L6",
-                   "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q9NS61"]
+    input_query = ["P01850", "P22760", "Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q9NS61"]
 
     # Also, parse the variant files which can be massive.
     # humsavar table
@@ -1505,8 +1506,7 @@ def run():
                 if UNIPROT_ACCESSION in input_query_set:
                     gnomad_results.append(var_database_entry)
 
-    print(len(gnomad_results),
-          "variants relating to query list found in gnomAD. Adding SNPs to database...")
+    print(len(gnomad_results), "variants relating to query list found in gnomAD. Adding SNPs to database...")
 
     for gnomad_variant in gnomad_results:
         gnomad_variant_check(gnomad_variant)
