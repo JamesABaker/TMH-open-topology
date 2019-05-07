@@ -15,11 +15,12 @@ import re
 import sys
 import defusedxml.ElementTree as ET
 from Bio import SeqIO
+from Bio import SwissProt
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 # env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
 from django.conf import settings
 from django.db import models
-from tmh_db.models import Database_Metadata, Funfam_residue, Funfamstatus, Protein, Residue, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Variant, Keyword, Binding_residue
+from tmh_db.models import Database_Metadata, Go, Funfam_residue, Funfamstatus, Protein, Residue, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Variant, Keyword, Binding_residue
 from datetime import datetime, timedelta
 from django.utils import timezone
 from datetime import date
@@ -115,23 +116,28 @@ def uniprot_table(query_id):
 
     binding_residues_to_table(filename)
 
-
     for keyword in record.annotations["keywords"]:
         keyword_to_database(keyword, query_id)
-    # print(record.cross_references)
-    # for map in record.annotations["features"]:
-    #    go_to_database(go_id, query_id)
+
+    record = SwissProt.read(open(filename))
+    cross_reference = (record.cross_references)
+    for map in cross_reference:
+        if map[0] == 'GO':
+            go_to_database(map[1], query_id)
+
 
 def binding_residues_to_table(filename):
     for record in SeqIO.parse(filename, "swiss"):
         for i, f in enumerate(record.features):
             if f.type == "BINDING":
-                for position in range(f.location.start,f.location.end):
+                for position in range(f.location.start, f.location.end):
                     protein = Protein.objects.get(uniprot_id=record.id)
-                    specific_residue = Residue.objects.get(protein=protein, sequence_position=int(position))
+                    specific_residue = Residue.objects.get(
+                        protein=protein, sequence_position=int(position))
                     record_for_database, created = Binding_residue.objects.update_or_create(
                         residue=specific_residue,
                         comment=f.qualifiers,)
+
 
 def residue_table(query_id, sequence):
     protein = Protein.objects.get(uniprot_id=query_id)
@@ -407,6 +413,7 @@ def topdb_check(query_id, topdb):
 
 
 def go_to_database(go_id, uniprot_id):
+    print("Mapping GO", go_id, "to", uniprot_id)
     go_for_database, created = Go.objects.get_or_create(go_id=go_id)
     target_protein = Protein.objects.get(uniprot_id=uniprot_id)
     go_for_database.proteins.add(target_protein)
@@ -1279,20 +1286,21 @@ def sifts_mapping(a_query):
         sifts_json = json.load(file)
 
     for record in sifts_json:
-        pdb_codes=[]
+        pdb_codes = []
         for pdb_code in sifts_json[a_query]['PDB'].keys():
             pdb_codes.append(pdb_code)
         print(a_query, "maps to", pdb_codes)
         for pdb_code in pdb_codes:
-            pdb_download_location=f"ftp://ftp.ebi.ac.uk/pub/databases/pdb/data/structures/divided/pdb/{pdb_code[1:3]}/pdb{pdb_code}.ent.gz"
+            pdb_download_location = f"ftp://ftp.ebi.ac.uk/pub/databases/pdb/data/structures/divided/pdb/{pdb_code[1:3]}/pdb{pdb_code}.ent.gz"
             pdb_file_location = f"./scripts/external_datasets/pdb/{pdb_code}.pdb"
 
-
-            pdb_str = gzip.open(urllib.request.urlopen(pdb_download_location)).read()
+            pdb_str = gzip.open(urllib.request.urlopen(
+                pdb_download_location)).read()
             with open(pdb_file_location, 'w') as pdb_file:
-                pdb_file.write(pdb_str.decode("utf-8") )
+                pdb_file.write(pdb_str.decode("utf-8"))
 
                 print(get_sequence_resid_chains_dict(pdb_code))
+
 
 def get_sequence_resid_chains_dict(pdb_code,):
     """Returns a dict where keys are Uniprot res and values are pdb res chains"""
@@ -1311,14 +1319,18 @@ def get_sequence_resid_chains_dict(pdb_code,):
             if uniprot_cross_rf is None:
                 continue
             pdbe_resid = int(residue.attrib['dbResNum'])
-            pdb_resid = residue.find("./crossRefDb[@dbSource='PDB']").get('dbResNum')
-            pdb_resid = int(re.sub('[^0-9]', '', pdb_resid)) if pdb_resid != 'null' else None
-            pdb_resname = residue.find("./crossRefDb[@dbSource='PDB']").get('dbResName').capitalize()
+            pdb_resid = residue.find(
+                "./crossRefDb[@dbSource='PDB']").get('dbResNum')
+            pdb_resid = int(re.sub('[^0-9]', '', pdb_resid)
+                            ) if pdb_resid != 'null' else None
+            pdb_resname = residue.find(
+                "./crossRefDb[@dbSource='PDB']").get('dbResName').capitalize()
             u_resid = int(uniprot_cross_rf.attrib['dbResNum'])
             uniprot_id = uniprot_cross_rf.attrib['dbAccessionId']
-            sequence_chain_dict[(uniprot_id, u_resid)][entity.attrib['entityId']] = [pdbe_resid, pdb_resid, pdb_resname]
+            sequence_chain_dict[(uniprot_id, u_resid)][entity.attrib['entityId']] = [
+                pdbe_resid, pdb_resid, pdb_resname]
 
-    #print(chain_resid_to_auth_dict)
+    # print(chain_resid_to_auth_dict)
     return sequence_chain_dict
 
 
@@ -1383,6 +1395,11 @@ def run():
     # Now get all TM information from these and build a residue table flat file.
     # Check residues in TMHs are consistent. Ditch anything that does not match uniprot and print to log.
     # now generate flat files for VarSite.
+
+    # Populate structures
+    for a_query in input_query:
+        a_query = clean_query(a_query)
+        sifts_mapping(a_query)
 
     ### Variant tables ###
 
@@ -1509,11 +1526,5 @@ def run():
     for a_query in input_query:
         a_query = clean_query(a_query)
         funfam = funfam_result(a_query, uniprotid_funfam_dict[a_query])
-
-    # Populate structures
-    for a_query in input_query:
-        a_query = clean_query(a_query)
-        sifts_mapping(a_query)
-
 
     print("This is the end of the script. It seems like there were no script breaking errors along the way.")

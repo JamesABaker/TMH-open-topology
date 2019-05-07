@@ -5,6 +5,8 @@ from django.utils import timezone
 # Create your models here.
 
 class Database_Metadata(models.Model):
+    version = models.TextField()
+    build = models.IntegerField()
     last_run = models.DateTimeField(default=timezone.now)
     last_download = models.DateTimeField(default=timezone.now)
 
