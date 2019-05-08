@@ -13,7 +13,7 @@ It curates TMHs boundaries and topology from several sources and cross reference
 
 ## Statistics
 
-![Barplot showing the number of disease variants per residue in transmembrane and non transmembrane regions.](images/enrichment_All\ disease\ variants.png)
+![Barplot showing the number of disease variants per residue in transmembrane and non transmembrane regions.](images/enrichment_All_disease_variants.png)
 
 **Figure** This is the number of disease variants per residue in transmembrane and non transmembrane regions held in the database. Disease variants are enriched in transmembrane helix regions compared to non-transmembrane helical regions of transmembrane proteins.
 

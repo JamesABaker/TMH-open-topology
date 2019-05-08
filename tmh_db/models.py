@@ -151,5 +151,10 @@ class Structural_residue(models.Model):
     residue = models.ForeignKey(Residue, on_delete=models.CASCADE)
     pdb_position = models.IntegerField()
     pdb_chain = models.CharField(max_length=10, default='')
-    author_position = models.IntegerField()
+    author_position = models.IntegerField(null=True)
+    structure_aa = models.CharField(max_length=1, default='X', null=True)
     uniprot_position = models.IntegerField()
+
+class Uniref(models.Model):
+    protein = models.ForeignKey(Protein, on_delete=models.CASCADE)
+    representitive_id = models.CharField(max_length=20, unique=True)

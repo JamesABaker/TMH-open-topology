@@ -33,6 +33,35 @@ def barchart(objects, performance, source, state):
     plt.savefig(filename)
     plt.clf()
 
+
+print("STATS OVERVIEW\n",)
+
+##General
+#print("Total UniProt IDs,",)
+#print("Total residues,",)
+#print("Total TMH residues,",)
+#print("Total UniProt TMH residues,",)
+#
+##structure
+#print("Number of UniProt IDs with structures,",)
+#print("Number of structures,",)
+#print("Total residues from structures,",)
+#print("Total TMH residues from structures,",)
+#
+##topology
+#print("Total known topologies TOPDB,",)
+#print("Total known topologies UniProt,",)
+#
+##variants
+#print("Total variants,",)
+#print("Total disease variants,",)
+#print("Total TMH variants,",)
+#print("Total TMH+flanks variants,",)
+#print("Total TMH disease variants,",)
+#print("Total TMH+flanks disease variants,",)
+#print("Total TMH+flanks disease variants in binding residues,",)
+#print("Total TMH+flanks disease variants in catalytic residues,",)
+
 def run():
     # Tmh.objects.exclude(residue__tmh_residue=None).filter(disease_status='d').count()
     print("\n\nResidues\n")
@@ -44,6 +73,14 @@ def run():
     print("TMH residues,", tmh_residue_num)
     non_tmh_residue_num = Residue.objects.filter(tmh_residue=None).count()
     print("Non-TMH residues,", non_tmh_residue_num)
+    structural_residue_num = Residue.objects.exclude(structural_residue=None).count()
+    print("Residues with a map to at least one residue in a structure,", structural_residue_num)
+    non_structural_residue_num = Residue.objects.filter(structural_residue=None).count()
+    print("Residues with no map to a residue in a structure,", non_structural_residue_num)
+    tmh_structural_residue_num = Residue.objects.exclude(tmh_residue=None).exclude(structural_residue=None).count()
+    print("TMH residues with a map to at least one residue in a structure,", tmh_structural_residue_num)
+    tmh_non_structural_residue_num = Residue.objects.exclude(tmh_residue=None).filter(structural_residue=None).count()
+    print("TMH residues with no map to a residue in a structure,", tmh_non_structural_residue_num)
 
     print("\n\nTMH boundaries\n")
     tmh_boundary_num = Tmh.objects.count()

@@ -14,18 +14,20 @@ from subprocess import check_output
 import re
 import sys
 import defusedxml.ElementTree as ET
+import Bio
 from Bio import SeqIO
 from Bio import SwissProt
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 # env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
 from django.conf import settings
 from django.db import models
-from tmh_db.models import Database_Metadata, Go, Structure, Structural_residue, Funfam_residue, Funfamstatus, Protein, Residue, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Variant, Keyword, Binding_residue
+from tmh_db.models import Database_Metadata, Uniref, Go, Structure, Structural_residue, Funfam_residue, Funfamstatus, Protein, Residue, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Variant, Keyword, Binding_residue
 from datetime import datetime, timedelta
 from django.utils import timezone
 from datetime import date
 import pytz
 from lxml import etree
+
 
 print("Usage:\npython manage.py runscript populate --traceback")
 
@@ -1284,60 +1286,58 @@ def sifts_mapping(a_query):
             pdb_codes.append(pdb_code)
         print(a_query, "maps to", pdb_codes)
         for pdb_code in pdb_codes:
-
+            print("Processing and mapping into database", pdb_code)
             pdb_download_location = f"ftp://ftp.ebi.ac.uk/pub/databases/pdb/data/structures/divided/pdb/{pdb_code[1:3]}/pdb{pdb_code}.ent.gz"
             pdb_file_location = f"./scripts/external_datasets/pdb/{pdb_code}.pdb"
 
             pdb_str = gzip.open(urllib.request.urlopen(
                 pdb_download_location)).read()
 
-            record_for_database, created = Structure.objects.update_or_create(uniprot_protein=protein, pdb_id = pdb_code)
-            structure = Structure.objects.get(pdb_id = pdb_code)
+            record_for_database, created = Structure.objects.update_or_create(
+                uniprot_protein=protein, pdb_id=pdb_code)
+            structure = Structure.objects.get(pdb_id=pdb_code)
             with open(pdb_file_location, 'w') as pdb_file:
                 pdb_file.write(pdb_str.decode("utf-8"))
 
-                structure_sequence_map=get_sequence_resid_chains_dict(pdb_code)#[1]
-                #('Q95460', 36): {'A': [15, 14, 'Asp'], 'C': [15, 14, 'Asp']}
+                structure_sequence_map = get_sequence_resid_chains_dict(
+                    pdb_code)  # [1]
+                # ('Q95460', 36): {'A': [15, 14, 'Asp'], 'C': [15, 14, 'Asp']}
 
-                residue_list = list(Residue.objects.filter(protein=protein).values())
+                residue_list = list(
+                    Residue.objects.filter(protein=protein).values())
                 #print("Residue list", residue_list)
                 for residue in residue_list:
                     for residue_details in residue_list:
                         #print("Residue details", residue_details)
                         try:
                             #print("Trying to find ", (a_query, residue_details["sequence_position"]),  "in", structure_sequence_map)
-                            structural_residues_to_map = structure_sequence_map[(a_query, residue_details["sequence_position"])]
+                            structural_residues_to_map = structure_sequence_map[(
+                                a_query, residue_details["sequence_position"])]
 
-                            seq_residue = Residue.objects.get(protein=protein, sequence_position=residue_details["sequence_position"])
+                            seq_residue = Residue.objects.get(
+                                protein=protein, sequence_position=residue_details["sequence_position"])
                             #print("Residues to map:", structural_residues_to_map)
                             for chain, positions in structural_residues_to_map.items():
-                                pdb_chain=chain
+                                pdb_chain = chain
                                 pdb_position = positions[0]
                                 author_position = positions[1]
+                                structure_aa = Bio.SeqUtils.IUPACData.protein_letters_3to1[positions[2]]
                                 #print("Mapping:,", pdb_chain, pdb_position, author_position)
 
-
-                                #structure = models.ForeignKey(Structure, on_delete=models.CASCADE)
-                                #residue = models.ForeignKey(Residue, on_delete=models.CASCADE)
-                                #pdb_position = models.IntegerField()
-                                #pdb_chain = models.CharField(max_length=10, default='')
-                                #author_position = models.IntegerField()
-                                #uniprot_position = models.IntegerField()
-
                                 record_for_database, created = Structural_residue.objects.update_or_create(
-                                    structure = structure,
-                                    residue = seq_residue,
-                                    pdb_position = pdb_position,
-                                    pdb_chain = pdb_chain,
-                                    author_position = author_position,
-                                    uniprot_position = residue_details["sequence_position"]
+                                    structure=structure,
+                                    residue=seq_residue,
+                                    pdb_position=pdb_position,
+                                    pdb_chain=pdb_chain,
+                                    author_position=author_position,
+                                    structure_aa=structure_aa,
+                                    uniprot_position=residue_details["sequence_position"]
                                 )
 
                         except KeyError:
                             pass
-                #for residue in residue_list:
-                #    sequence_position
-                #    structure_sequence_map[(a_query, )]
+
+
 def get_sequence_resid_chains_dict(pdb_code):
     """Returns a dict where keys are Uniprot res and values are pdb res chains"""
 
@@ -1387,6 +1387,32 @@ def tmh_input(input_query):
         topdb_check(a_query, topdb)
 
 
+def uniref(a_query):
+    url = 'https://www.uniprot.org/uploadlists/'
+
+    params = {
+        'from': 'ACC',
+        'to': 'NF90',
+        'format': 'tab',
+        'query': a_query
+    }
+
+    data = urllib.urlencode(params)
+    request = urllib2.Request(url, data)
+    # Please set a contact email address here to help us debug in case of problems (see https://www.uniprot.org/help/privacy).
+    contact = ""
+    request.add_header('User-Agent', 'Python %s' % contact)
+    response = urllib.request.urlopen(request)
+    page = response.read(200000)
+    print(a_query, "is represented in UniRef90 by", page)
+    protein = Protein.objects.get(uniprot_id=a_query)
+    representative_id = clean_query(page)
+    record_for_database, created = Structural_residue.objects.update_or_create(
+        protein=protein,
+        representitive_id=representative_id,
+    )
+
+
 def run():
     '''
     This is what django runs. This is effectively the canonical script,
@@ -1399,9 +1425,10 @@ def run():
     ### Canonical script starts here ###
 
     # In full scale mode it will take a long time which may not be suitable for development.
-    input_query = get_uniprot()
+    #input_query = get_uniprot()
     # Here we will just use a watered down list of tricky proteins. Uncomment this line for testing the whole list.
-    #input_query = ["P01850", "P22760", "Q5K4L6", "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q9NS61"]
+    input_query = ["P01850", "P22760", "Q5K4L6",
+                   "Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q9NS61"]
 
     # Also, parse the variant files which can be massive.
     # humsavar table
@@ -1540,16 +1567,21 @@ def run():
                 if UNIPROT_ACCESSION in input_query_set:
                     gnomad_results.append(var_database_entry)
 
-    print(len(gnomad_results), "variants relating to query list found in gnomAD. Adding SNPs to database...")
+    print(len(gnomad_results),
+          "variants relating to query list found in gnomAD. Adding SNPs to database...")
 
     for gnomad_variant in gnomad_results:
         gnomad_variant_check(gnomad_variant)
 
     ### Redundancy tables ###
 
+    for a_query in input_query:
+        a_query = clean_query(a_query)
+        uniref(a_query)
     # The funfams need to be submitted, then checked for status and results.
     # This submits all the ids to the funfams and gets job ids.
     print("Finding closest funfams for records...")
+
     uniprotid_funfam_dict = {}
     for a_query in input_query:
         a_query = clean_query(a_query)
