@@ -33,36 +33,25 @@ def barchart(objects, performance, source, state):
     plt.savefig(filename)
     plt.clf()
 
-
-print("STATS OVERVIEW\n",)
-
-##General
-#print("Total UniProt IDs,",)
-#print("Total residues,",)
-#print("Total TMH residues,",)
-#print("Total UniProt TMH residues,",)
-#
-##structure
-#print("Number of UniProt IDs with structures,",)
-#print("Number of structures,",)
-#print("Total residues from structures,",)
-#print("Total TMH residues from structures,",)
-#
-##topology
-#print("Total known topologies TOPDB,",)
-#print("Total known topologies UniProt,",)
-#
-##variants
-#print("Total variants,",)
-#print("Total disease variants,",)
-#print("Total TMH variants,",)
-#print("Total TMH+flanks variants,",)
-#print("Total TMH disease variants,",)
-#print("Total TMH+flanks disease variants,",)
-#print("Total TMH+flanks disease variants in binding residues,",)
-#print("Total TMH+flanks disease variants in catalytic residues,",)
-
 def run():
+
+    ##topology
+    #print("Total known topologies TOPDB,",)
+    #print("Total known topologies UniProt,",)
+    #
+    ##variants
+    #print("Total variants,",)
+    #print("Total disease variants,",)
+    #print("Total TMH variants,",)
+    #print("Total TMH+flanks variants,",)
+    #print("Total TMH disease variants,",)
+    #print("Total TMH+flanks disease variants,",)
+    #print("Total TMH+flanks disease variants in binding residues,",)
+    #print("Total TMH+flanks disease variants in catalytic residues,",)
+
+    
+    print("STATS OVERVIEW\n",)
+
     # Tmh.objects.exclude(residue__tmh_residue=None).filter(disease_status='d').count()
     print("\n\nResidues\n")
     protein_num = Protein.objects.count()
@@ -121,12 +110,12 @@ def run():
 
     objects = ("Residues","TMH ±5 residues", "Non-TMH residues")
     performance = [d_variants_num/residue_num, tmh_d_variants_num/tmh_residue_num, non_tmh_d_variants_num/non_tmh_residue_num]
-    barchart (objects, performance, "All disease variants", "d")
+    barchart (objects, performance, "All_disease_variants", "d")
 
     objects = ("Residues","TMH ±5 residues", "Non-TMH residues")
     performance = [d_variants_clinvar_num/residue_num, tmh_d_variants_clinvar_num/tmh_residue_num, non_tmh_d_variants_clinvar_num/non_tmh_residue_num]
-    barchart (objects, performance, "ClinVar disease variants", "d")
+    barchart (objects, performance, "ClinVar_disease_variants", "d")
 
     objects = ("Residues","TMH ±5 residues", "Non-TMH residues")
     performance = [d_variants_humsavar_num/residue_num, tmh_d_variants_humsavar_num/tmh_residue_num, non_tmh_d_variants_humsavar_num/non_tmh_residue_num]
-    barchart (objects, performance, "Humsavar disease variants", "d")
+    barchart (objects, performance, "Humsavar_disease_variants", "d")
