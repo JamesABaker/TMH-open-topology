@@ -12,19 +12,20 @@ from django.db import transaction
 from django.db.models import Avg, Case, Count, F, Max, Min, Prefetch, Q, Sum, When, Exists, OuterRef, Subquery
 from django.utils import timezone
 from django.urls import reverse
-#Charts
+# Charts
 import matplotlib.pyplot as plt
 import numpy as np
 
 
 def barchart(objects, performance, source, state):
-    color_dic ={
-      "d": "red",
-      "b": "green",
-      "a": "yellow"
+    color_dic = {
+        "d": "red",
+        "b": "green",
+        "a": "yellow"
     }
     y_pos = np.arange(len(objects))
-    plt.bar(y_pos, performance, color = color_dic[state], align='center', alpha=0.5, edgecolor="grey", width = 0.3)
+    plt.bar(y_pos, performance,
+            color=color_dic[state], align='center', alpha=0.5, edgecolor="grey", width=0.3)
     plt.xticks(y_pos, objects)
     plt.xlabel('Residue type')
     plt.ylabel('Variants per residue')
@@ -33,13 +34,14 @@ def barchart(objects, performance, source, state):
     plt.savefig(filename)
     plt.clf()
 
+
 def run():
 
-    ##topology
+    # topology
     #print("Total known topologies TOPDB,",)
     #print("Total known topologies UniProt,",)
     #
-    ##variants
+    # variants
     #print("Total variants,",)
     #print("Total disease variants,",)
     #print("Total TMH variants,",)
@@ -49,7 +51,6 @@ def run():
     #print("Total TMH+flanks disease variants in binding residues,",)
     #print("Total TMH+flanks disease variants in catalytic residues,",)
 
-    
     print("STATS OVERVIEW\n",)
 
     # Tmh.objects.exclude(residue__tmh_residue=None).filter(disease_status='d').count()
@@ -62,14 +63,22 @@ def run():
     print("TMH residues,", tmh_residue_num)
     non_tmh_residue_num = Residue.objects.filter(tmh_residue=None).count()
     print("Non-TMH residues,", non_tmh_residue_num)
-    structural_residue_num = Residue.objects.exclude(structural_residue=None).count()
-    print("Residues with a map to at least one residue in a structure,", structural_residue_num)
-    non_structural_residue_num = Residue.objects.filter(structural_residue=None).count()
-    print("Residues with no map to a residue in a structure,", non_structural_residue_num)
-    tmh_structural_residue_num = Residue.objects.exclude(tmh_residue=None).exclude(structural_residue=None).count()
-    print("TMH residues with a map to at least one residue in a structure,", tmh_structural_residue_num)
-    tmh_non_structural_residue_num = Residue.objects.exclude(tmh_residue=None).filter(structural_residue=None).count()
-    print("TMH residues with no map to a residue in a structure,", tmh_non_structural_residue_num)
+    structural_residue_num = Residue.objects.exclude(
+        structural_residue=None).count()
+    print("Residues with a map to at least one residue in a structure,",
+          structural_residue_num)
+    non_structural_residue_num = Residue.objects.filter(
+        structural_residue=None).count()
+    print("Residues with no map to a residue in a structure,",
+          non_structural_residue_num)
+    tmh_structural_residue_num = Residue.objects.exclude(
+        tmh_residue=None).exclude(structural_residue=None).count()
+    print("TMH residues with a map to at least one residue in a structure,",
+          tmh_structural_residue_num)
+    tmh_non_structural_residue_num = Residue.objects.exclude(
+        tmh_residue=None).filter(structural_residue=None).count()
+    print("TMH residues with no map to a residue in a structure,",
+          tmh_non_structural_residue_num)
 
     print("\n\nTMH boundaries\n")
     tmh_boundary_num = Tmh.objects.count()
@@ -81,41 +90,54 @@ def run():
     mptopo_tmh_boundary = Tmh.objects.filter(tmh_evidence='MPTOPO').count()
     print("MPTOPO TMH boundaries,", mptopo_tmh_boundary)
 
-
     print("\n\nVariants\n")
     # Complex query example. How many variants are in the TMH?
     d_variants_num = Variant.objects.filter(disease_status='d').count()
     print("Disease variants,", d_variants_num)
-    tmh_d_variants_num = Variant.objects.exclude(residue__tmh_residue=None).filter(disease_status='d').count()
+    tmh_d_variants_num = Variant.objects.exclude(
+        residue__tmh_residue=None).filter(disease_status='d').count()
     print("TMH disease variants,", tmh_d_variants_num)
-    d_variants_clinvar_num = Variant.objects.filter(disease_status='d', variant_source="ClinVar").count()
+    d_variants_clinvar_num = Variant.objects.filter(
+        disease_status='d', variant_source="ClinVar").count()
     print("ClinVar disease variants,", d_variants_clinvar_num)
-    tmh_d_variants_clinvar_num = Variant.objects.exclude(residue__tmh_residue=None).filter(disease_status='d', variant_source="ClinVar").count()
+    tmh_d_variants_clinvar_num = Variant.objects.exclude(residue__tmh_residue=None).filter(
+        disease_status='d', variant_source="ClinVar").count()
     print("TMH ClinVar disease variants,", tmh_d_variants_clinvar_num)
-    tmh_d_variants_humsavar_num = Variant.objects.exclude(residue__tmh_residue=None).filter(disease_status='d', variant_source="Humsavar").count()
-    d_variants_humsavar_num = Variant.objects.filter(disease_status='d', variant_source="Humsavar").count()
+    tmh_d_variants_humsavar_num = Variant.objects.exclude(residue__tmh_residue=None).filter(
+        disease_status='d', variant_source="Humsavar").count()
+    d_variants_humsavar_num = Variant.objects.filter(
+        disease_status='d', variant_source="Humsavar").count()
     print("Humsavar disease variants,", d_variants_humsavar_num)
     print("TMH Humsavar disease variants,", tmh_d_variants_humsavar_num)
-    non_tmh_d_variants_num = Variant.objects.filter(residue__tmh_residue=None).filter(disease_status='d').count()
+    non_tmh_d_variants_num = Variant.objects.filter(
+        residue__tmh_residue=None).filter(disease_status='d').count()
     print("Non-TMH disease variants,", non_tmh_d_variants_num)
-    non_tmh_d_variants_clinvar_num = Variant.objects.filter(residue__tmh_residue=None).filter(disease_status='d', variant_source="ClinVar").count()
+    non_tmh_d_variants_clinvar_num = Variant.objects.filter(
+        residue__tmh_residue=None).filter(disease_status='d', variant_source="ClinVar").count()
     print("Non-TMH ClinVar disease variants,", non_tmh_d_variants_clinvar_num)
-    non_tmh_d_variants_humsavar_num = Variant.objects.filter(residue__tmh_residue=None).filter(disease_status='d', variant_source="Humsavar").count()
-    print("Non-TMH Humsavar disease variants,", non_tmh_d_variants_humsavar_num)
+    non_tmh_d_variants_humsavar_num = Variant.objects.filter(
+        residue__tmh_residue=None).filter(disease_status='d', variant_source="Humsavar").count()
+    print("Non-TMH Humsavar disease variants,",
+          non_tmh_d_variants_humsavar_num)
 
     print("\n\nVariant enrichment\n")
-    print("Disease variants per residue,", d_variants_num/residue_num)
-    print("Disease variants per TMH residue,", tmh_d_variants_num/tmh_residue_num)
-    print("Disease variants per non-TMH residue,", non_tmh_d_variants_num/non_tmh_residue_num)
+    print("Disease variants per residue,", d_variants_num / residue_num)
+    print("Disease variants per TMH residue,",
+          tmh_d_variants_num / tmh_residue_num)
+    print("Disease variants per non-TMH residue,",
+          non_tmh_d_variants_num / non_tmh_residue_num)
 
-    objects = ("Residues","TMH ±5 residues", "Non-TMH residues")
-    performance = [d_variants_num/residue_num, tmh_d_variants_num/tmh_residue_num, non_tmh_d_variants_num/non_tmh_residue_num]
-    barchart (objects, performance, "All_disease_variants", "d")
+    objects = ("Residues", "TMH ±5 residues", "Non-TMH residues")
+    performance = [d_variants_num / residue_num, tmh_d_variants_num /
+                   tmh_residue_num, non_tmh_d_variants_num / non_tmh_residue_num]
+    barchart(objects, performance, "All_disease_variants", "d")
 
-    objects = ("Residues","TMH ±5 residues", "Non-TMH residues")
-    performance = [d_variants_clinvar_num/residue_num, tmh_d_variants_clinvar_num/tmh_residue_num, non_tmh_d_variants_clinvar_num/non_tmh_residue_num]
-    barchart (objects, performance, "ClinVar_disease_variants", "d")
+    objects = ("Residues", "TMH ±5 residues", "Non-TMH residues")
+    performance = [d_variants_clinvar_num / residue_num, tmh_d_variants_clinvar_num /
+                   tmh_residue_num, non_tmh_d_variants_clinvar_num / non_tmh_residue_num]
+    barchart(objects, performance, "ClinVar_disease_variants", "d")
 
-    objects = ("Residues","TMH ±5 residues", "Non-TMH residues")
-    performance = [d_variants_humsavar_num/residue_num, tmh_d_variants_humsavar_num/tmh_residue_num, non_tmh_d_variants_humsavar_num/non_tmh_residue_num]
-    barchart (objects, performance, "Humsavar_disease_variants", "d")
+    objects = ("Residues", "TMH ±5 residues", "Non-TMH residues")
+    performance = [d_variants_humsavar_num / residue_num, tmh_d_variants_humsavar_num /
+                   tmh_residue_num, non_tmh_d_variants_humsavar_num / non_tmh_residue_num]
+    barchart(objects, performance, "Humsavar_disease_variants", "d")

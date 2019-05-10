@@ -14,6 +14,7 @@ from subprocess import check_output
 import re
 import sys
 import defusedxml.ElementTree as ET
+from defusedxml.lxml import fromstring
 import Bio
 from Bio import SeqIO
 from Bio import SwissProt
@@ -26,7 +27,6 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from datetime import date
 import pytz
-from lxml import etree
 from scripts.populate_general_functions import *
 
 print("Usage:\npython manage.py runscript populate --traceback")
@@ -116,7 +116,7 @@ def get_sequence_resid_chains_dict(pdb_code):
            "{0}/{1}.xml.gz".format(pdb_code[1:3], pdb_code))
     xml_str = gzip.open(urllib.request.urlopen(url)).read()
     xml_str = re.sub(b'\sxmlns="[^"]+"', b'', xml_str, count=1)
-    root = etree.fromstring(xml_str)
+    root = fromstring(xml_str)
     sequence_chain_dict = collections.defaultdict(dict)
     chain_resid_to_auth_dict = {}
     for entity in root.findall(".//entity"):
@@ -151,11 +151,8 @@ def run():
     '''
 
     ### Canonical script starts here ###
+    input_query = input_query_get()
 
-    # In full scale mode it will take a long time which may not be suitable for development.
-    #input_query = get_uniprot()
-    # Here we will just use a watered down list of tricky proteins. Uncomment this line for testing the whole list.
-    input_query = ["P01850", "P22760", "Q5K4L6","Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q9NS61"]
 
     # Also, parse the variant files which can be massive.
     # humsavar table

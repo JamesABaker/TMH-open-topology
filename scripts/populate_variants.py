@@ -26,7 +26,7 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from datetime import date
 import pytz
-from lxml import etree
+from scripts.populate_general_functions import *
 
 
 print("Usage:\npython manage.py runscript populate --traceback")
@@ -36,44 +36,6 @@ time_threshold = 7
 today = date.today()
 todaysdate = today.strftime("%d_%m_%Y")
 
-
-def download(url, file_name):
-    '''
-    Downloads the content of a url to a local file.
-    '''
-    # open in binary mode
-    with open(file_name, "wb") as file:
-        # get request
-        response = get(url)
-        # write to file
-        file.write(response.content)
-
-
-def clean_query(query):
-    '''
-    This aims to generate a clean ascii query of a viable UniProt ID from a
-     dirty input like a user input.
-    '''
-
-    illegal_characters = ["!", "\n", " ", "@"]
-    for char in illegal_characters:
-        query = query.replace(char, "")
-    a_clean_query = query
-    # print("Clean query result:", a_clean_query)
-    return(a_clean_query)
-
-
-def input_query_process(input_query):
-    input_queries = []
-    for query_number, a_query in enumerate(input_query):
-        a_query = clean_query(a_query)
-        print("Checking cache/downloading", a_query, ",",
-              query_number + 1, "of", len(input_query), "records...")
-
-        input_queries.append(a_query)
-
-    input_query_set = set(input_queries)
-    return([input_queries, input_query_set])
 
 def disease_class(disease_type):
     '''
@@ -448,7 +410,6 @@ def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_
                   var_record_location, "for record", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
 
 
-
 def run():
     '''
     This is what django runs. This is effectively the canonical script,
@@ -460,10 +421,7 @@ def run():
 
     ### Canonical script starts here ###
 
-    # In full scale mode it will take a long time which may not be suitable for development.
-    #input_query = get_uniprot()
-    # Here we will just use a watered down list of tricky proteins. Uncomment this line for testing the whole list.
-    input_query = ["P01850", "P22760", "Q5K4L6","Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q9NS61"]
+    input_query = input_query_get()
 
 
     # Also, parse the variant files which can be massive.

@@ -26,7 +26,6 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from datetime import date
 import pytz
-from lxml import etree
 from scripts.populate_general_functions import *
 
 print("Usage:\npython manage.py runscript populate --traceback")
@@ -123,6 +122,7 @@ def funfam_result(a_query, funfam_submission_code):
             for key, value in funfam_api_result.items():
                 print("Key:", key, "Value:", value)
                 print("\n")
+    return([key, value])
 
 def uniref(a_query):
     url = 'https://www.uniprot.org/uploadlists/'
@@ -169,10 +169,7 @@ def run():
 
     ### Canonical script starts here ###
 
-    # In full scale mode it will take a long time which may not be suitable for development.
-    #input_query = get_uniprot()
-    # Here we will just use a watered down list of tricky proteins. Uncomment this line for testing the whole list.
-    input_query = ["P01850", "P22760", "Q5K4L6","Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q9NS61"]
+    input_query = input_query_get()
 
     # Also, parse the variant files which can be massive.
     # humsavar table

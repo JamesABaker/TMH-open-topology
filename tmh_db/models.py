@@ -118,7 +118,7 @@ class Residue(models.Model):
 
 class Binding_residue(models.Model):
     residue = models.ForeignKey(Residue, on_delete=models.CASCADE)
-    comment = models.TextField()
+    comment = models.TextField(null=True)
 
 
 class Tmh_residue(models.Model):
@@ -137,8 +137,8 @@ class Variant(models.Model):
     residue = models.ForeignKey(Residue, on_delete=models.CASCADE)
     disease_status = models.TextField()  # either disease or benign or uncertain
     disease_comments = models.TextField()
-    variant_source = models.TextField(default="Unknown")
-    variant_source_id = models.TextField(default="No_ID")
+    variant_source = models.TextField(default="Unknown", null=True)
+    variant_source_id = models.TextField(default="No_ID", null=True)
 
 
 class Structure(models.Model):

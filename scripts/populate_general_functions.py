@@ -1,3 +1,43 @@
+from requests import get
+
+
+def get_uniprot():
+    '''
+    Downloads UniProt IDs from Human transmembrane proteins from UniProt.org.
+    '''
+    # Grab the input list
+    print("Fetching UniProt TM protein IDs")
+    uniprot_list_url = "https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+organism%3A%22Homo+sapiens+%28Human%29+%5B9606%5D%22+AND+annotation%3A%28type%3Atransmem%29&sort=score&columns=id,&format=tab"
+    # "https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+annotation%3A(type%3Atransmem)&sort=score&columns=id,&format=tab"
+    # uniprot_list = 'https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+organism%3A"Homo+sapiens+(Human)+[9606]"+AND+annotation%3A(type%3Atransmem)&sort=score&columns=id,&format=tab'
+    uniprot_list_file = "scripts/external_datasets/uniprot_bin/uniprot_list" + \
+        todaysdate + ".txt"
+
+    download(uniprot_list_url, uniprot_list_file)
+
+    # This saves the request to a file for reasons beyond me.
+    # So we now need to open the file to recover the items as a list.
+    with open(uniprot_list_file) as f:
+        # Somehow this has already made a list.
+        lines = f
+
+        input_query = list(lines)
+        # Entry is the first line, which will break later code as it is not a valid uniprot id!
+        input_query = input_query[1:]
+
+    return(input_query)
+
+def input_query_get():
+    '''
+    Returns a list of uniprot ids.
+    '''
+    # In full scale mode it will take a long time which may not be suitable for development.
+    #input_query = get_uniprot()
+    # Here we will just use a watered down list of tricky proteins. Uncomment this line for testing the whole list.
+    input_query_list = ["P01850", "P22760", "Q5K4L6","Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q9NS61"]
+
+    return(input_query_list)
+
 
 def download(url, file_name):
     '''

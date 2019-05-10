@@ -81,11 +81,11 @@ WSGI_APPLICATION = 'tmh_database.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'tmhdb',
-        'USER': 'bakerjames',
+        'NAME': 'thgvartmhdev',
+        'USER': 'vartmh',
         'PASSWORD': PASSWORD,
-        'HOST': 'localhost',
-        'PORT': ''
+        'HOST': 'pgsql-hxvm-018',
+        'PORT': '5432'
     }
 }
 
