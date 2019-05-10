@@ -22,6 +22,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # SECURITY WARNING: keep the secret key used in production secret!
 with open('secret_key.txt', 'r') as myfile:
     SECRET_KEY=myfile.read().replace('\n', '')
+with open('password.txt', 'r') as myfile:
+    PASSWORD=myfile.read().replace('\n', '')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -81,7 +83,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'tmhdb',
         'USER': 'bakerjames',
-        'PASSWORD': 'tmhdbadmin',
+        'PASSWORD': PASSWORD,
         'HOST': 'localhost',
         'PORT': ''
     }
