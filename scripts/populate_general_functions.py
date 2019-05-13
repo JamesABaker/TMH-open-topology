@@ -1,10 +1,14 @@
 from requests import get
+from datetime import date
 
 """
 These functions are used repeatedly throughout the population process.
 To keep things consistent and easy to manage, they have all been bundled into one file.
 """
 
+time_threshold = 7
+today = date.today()
+todaysdate = today.strftime("%d_%m_%Y")
 
 def get_uniprot():
     '''
@@ -37,9 +41,9 @@ def input_query_get():
     Returns a list of uniprot ids.
     '''
     # In full scale mode it will take a long time which may not be suitable for development.
-    #input_query = get_uniprot()
+    input_query_list = get_uniprot()
     # Here we will just use a watered down list of tricky proteins. Uncomment this line for testing the whole list.
-    input_query_list = ["P01850", "P22760", "Q5K4L6","Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q9NS61"]
+    #input_query_list = ["P01850", "P22760", "Q5K4L6","Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q9NS61"]
 
     return(input_query_list)
 
