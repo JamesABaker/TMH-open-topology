@@ -1,4 +1,4 @@
-# VarTMH: Database of Variants in Transmembrane Helices.
+# VarTMH: Database of Variants in Transmembrane Helices
 
 [![CodeFactor](https://www.codefactor.io/repository/github/jamesabaker/vartmh/badge)](https://www.codefactor.io/repository/github/jamesabaker/vartmh)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/ac036f69485141a78b329ea35656ce03)](https://www.codacy.com?utm_source=github.com&utm_medium=referral&utm_content=JamesABaker/Tip-Top-Table&utm_campaign=Badge_Grade)

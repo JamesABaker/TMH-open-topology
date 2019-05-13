@@ -1,5 +1,10 @@
 from requests import get
 
+"""
+These functions are used repeatedly throughout the population process.
+To keep things consistent and easy to manage, they have all been bundled into one file.
+"""
+
 
 def get_uniprot():
     '''
