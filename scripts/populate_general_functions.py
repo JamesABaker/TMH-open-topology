@@ -55,7 +55,16 @@ def download(url, file_name):
     # open in binary mode
     with open(file_name, "wb") as file:
         # get request
-        response = get(url)
+        response = None
+        while response is None:
+            try:
+                print("Donwloading", url, "to", file_name, "...")
+                # connect
+                response = get(url)
+            except:
+                print("Connection dropped during download.")
+                pass
+
         # write to file
         file.write(response.content)
 
