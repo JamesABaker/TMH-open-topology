@@ -1,4 +1,5 @@
 from requests import get
+from requests.exceptions import ConnectionError
 from datetime import date
 
 """
@@ -61,9 +62,8 @@ def download(url, file_name):
                 print("Donwloading", url, "to", file_name, "...")
                 # connect
                 response = get(url)
-            except:
+            except ConnectionError:
                 print("Connection dropped during download.")
-                pass
 
         # write to file
         file.write(response.content)

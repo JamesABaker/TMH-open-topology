@@ -743,7 +743,10 @@ def tmh_input(input_query):
     print("Extracting TMH bounadries from...")
     # Parse the xml static files since this is the slowest part.
     # Ignore this for now -  we need to sort out uniprot before anything else!
-    topdb = ET.parse('scripts/external_datasets/topdb_all.xml')
+    topdb_url="http://topdb.enzim.hu/?m=download&file=topdb_all.xml"
+    topdb_file = 'scripts/external_datasets/topdb_all.xml'
+    download(topdb_url, topdb_file)
+    topdb = ET.parse(topdb_file)
     # mptopo = ET.parse('mptopoTblXml.xml')
     for query_number, a_query in enumerate(input_query):
         a_query = clean_query(a_query)

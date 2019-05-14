@@ -3,6 +3,8 @@
 
 #Even git-lfs won't handle these...
 uniprot-all-list.txt
+scripts/external_datasets/topdb_all.xml
+
 
 # UniProt files
 scripts/external_datasets/uniprot_bin/*.txt
@@ -12,6 +14,9 @@ scripts/external_datasets/sifts_mapping/*.json
 
 # Fasta files
 scripts/external_datasets/fasta_bin/*.fasta
+scripts/external_scripts/dgpred/inputseq.fasta
+scripts/external_scripts/tmsoc/inputseq.fasta
+
 
 # Secrets secrets
 tmh_database/tmh_database/secret_key.txt
