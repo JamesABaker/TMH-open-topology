@@ -5,7 +5,8 @@
 uniprot-all-list.txt
 scripts/external_datasets/topdb_all.xml
 
-
+# pyc files.
+*.pyc
 # UniProt files
 scripts/external_datasets/uniprot_bin/*.txt
 
