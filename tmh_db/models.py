@@ -144,6 +144,8 @@ class Variant(models.Model):
 class Structure(models.Model):
     uniprot_protein = models.ForeignKey(Protein, on_delete=models.CASCADE)
     pdb_id = models.CharField(max_length=10, default='')
+    class Meta:
+        unique_together = ["pdb_id", "uniprot_protein"]
 
 
 class Structural_residue(models.Model):
