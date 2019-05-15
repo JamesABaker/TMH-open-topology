@@ -35,6 +35,22 @@ def barchart(objects, performance, source, state):
     plt.savefig(filename)
     plt.clf()
 
+def heatmap(var_freqs_list, title, aa_list_baezo_order):
+    fig, ax = plt.subplots()
+    im = ax.imshow(var_freqs_list, cmap='hot', interpolation='nearest')
+
+    # We want to show all ticks...
+    ax.set_xticks(np.arange(len(aa_list_baezo_order)))
+    ax.set_yticks(np.arange(len(aa_list_baezo_order)))
+    # ... and label them with the respective list entries
+    ax.set_xticklabels(aa_list_baezo_order)
+    ax.set_yticklabels(aa_list_baezo_order)
+    ax.set_title(title)
+    fig.tight_layout()
+    filename = f"images/{title}.png"
+    plt.savefig(filename)
+    plt.clf()
+
 
 def run():
 
@@ -137,7 +153,7 @@ def run():
     print("Disease variants per non-TMH residue,",
           non_tmh_d_variants_num / non_tmh_residue_num)
 
-    fisher_oddsratio, fisher_pvalue = stats.fisher_exact([[tmh_d_variants_num, non_tmh_d_variants_num], [tmh_g_variants_num, non_tmh_g_variants_num]])
+    fisher_oddsratio, fisher_pvalue = stats.fisher_exact([[tmh_d_variants_num, non_tmh_d_variants_num], [tmh_g_variants_num, non_tmh_g_variants_num]], alternative='two-sided')
 
 
     print("Fisher test Disease TMH non-TMH versus gnomAD TMH non-TMH,", fisher_pvalue)
@@ -166,3 +182,96 @@ def run():
     performance = [g_variants_num / residue_num, tmh_g_variants_num /
                    tmh_residue_num, non_tmh_g_variants_num / non_tmh_residue_num]
     barchart(objects, performance, "All_gnomAD_variants", "b")
+
+    print("HEATMAPS")
+    ### HEATMAPS ###
+    aa_list_alpha=['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y', 'X']
+
+    aa_list_baezo_order=['K', 'R', 'E', 'D', 'Q', 'H', 'N', 'P', 'Y', 'W', 'C', 'M', 'T', 'S', 'G', 'V', 'F', 'A', 'I', 'L']
+
+    title = "TMH_disease"
+    var_freqs_list = []
+    for aa_wt in aa_list_baezo_order:
+        var_freqs = []
+        for aa_mut in aa_list_baezo_order:
+            print("Checking", aa_wt, "to", aa_mut, "...")
+            var_freq=Variant.objects.exclude(residue__tmh_residue=None).filter(aa_wt=aa_wt, aa_mut=aa_mut, disease_status='d').count()
+            var_freqs.append(var_freq)
+            print(var_freq, "hits")
+        var_freqs_list.append(np.array(var_freqs))
+    var_freqs_list = np.array(var_freqs_list)
+    print(var_freqs_list)
+    heatmap(var_freqs_list, title, aa_list_baezo_order)
+
+    title = "non_TMH_disease"
+    var_freqs_list = []
+    for aa_wt in aa_list_baezo_order:
+        var_freqs = []
+        for aa_mut in aa_list_baezo_order:
+            print("Checking", aa_wt, "to", aa_mut, "...")
+            var_freq=Variant.objects.filter(residue__tmh_residue=None).filter(aa_wt=aa_wt, aa_mut=aa_mut, disease_status='d').count()
+            var_freqs.append(var_freq)
+            print(var_freq, "hits")
+        var_freqs_list.append(np.array(var_freqs))
+    var_freqs_list = np.array(var_freqs_list)
+    print(var_freqs_list)
+    heatmap(var_freqs_list, title, aa_list_baezo_order)
+
+
+    title = "TMH_disease_clinvar"
+    var_freqs_list = []
+    for aa_wt in aa_list_baezo_order:
+        var_freqs = []
+        for aa_mut in aa_list_baezo_order:
+            print("Checking", aa_wt, "to", aa_mut, "...")
+            var_freq=Variant.objects.exclude(residue__tmh_residue=None).filter(aa_wt=aa_wt, aa_mut=aa_mut, variant_source="ClinVar", disease_status='d').count()
+            var_freqs.append(var_freq)
+            print(var_freq, "hits")
+        var_freqs_list.append(np.array(var_freqs))
+    var_freqs_list = np.array(var_freqs_list)
+    print(var_freqs_list)
+    heatmap(var_freqs_list, title, aa_list_baezo_order)
+
+
+    title = "non_TMH_disease_clinvar"
+    var_freqs_list = []
+    for aa_wt in aa_list_baezo_order:
+        var_freqs = []
+        for aa_mut in aa_list_baezo_order:
+            print("Checking", aa_wt, "to", aa_mut, "...")
+            var_freq=Variant.objects.filter(residue__tmh_residue=None).filter(aa_wt=aa_wt, aa_mut=aa_mut, variant_source="ClinVar", disease_status='d').count()
+            var_freqs.append(var_freq)
+            print(var_freq, "hits")
+        var_freqs_list.append(np.array(var_freqs))
+    var_freqs_list = np.array(var_freqs_list)
+    print(var_freqs_list)
+    heatmap(var_freqs_list, title, aa_list_baezo_order)
+
+    title = "TMH_gnomAD"
+    var_freqs_list = []
+    for aa_wt in aa_list_baezo_order:
+        var_freqs = []
+        for aa_mut in aa_list_baezo_order:
+            print("Checking", aa_wt, "to", aa_mut, "...")
+            var_freq=Variant.objects.exclude(residue__tmh_residue=None).filter(aa_wt=aa_wt, aa_mut=aa_mut, variant_source='gnomAD').count()
+            var_freqs.append(var_freq)
+            print(var_freq, "hits")
+        var_freqs_list.append(np.array(var_freqs))
+    var_freqs_list = np.array(var_freqs_list)
+    print(var_freqs_list)
+    heatmap(var_freqs_list, title, aa_list_baezo_order)
+
+
+    title = "non_TMH_gnomAD"
+    var_freqs_list = []
+    for aa_wt in aa_list_baezo_order:
+        var_freqs = []
+        for aa_mut in aa_list_baezo_order:
+            print("Checking", aa_wt, "to", aa_mut, "...")
+            var_freq=Variant.objects.filter(residue__tmh_residue=None).filter(aa_wt=aa_wt, aa_mut=aa_mut, variant_source='gnomAD').count()
+            var_freqs.append(var_freq)
+            print(var_freq, "hits")
+        var_freqs_list.append(np.array(var_freqs))
+    var_freqs_list = np.array(var_freqs_list)
+    print(var_freqs_list)
+    heatmap(var_freqs_list, title, aa_list_baezo_order)
