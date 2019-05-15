@@ -52,11 +52,13 @@ def sifts_mapping(a_query):
         sifts_json = json.load(file)
 
     for record in sifts_json:
+        print(record)
         pdb_codes = []
         for pdb_code in sifts_json[a_query]['PDB'].keys():
             pdb_codes.append(pdb_code)
         print(a_query, "maps to", pdb_codes)
         for pdb_code in pdb_codes:
+
             print("Processing and mapping into database", pdb_code)
             pdb_download_location = f"ftp://ftp.ebi.ac.uk/pub/databases/pdb/data/structures/divided/pdb/{pdb_code[1:3]}/pdb{pdb_code}.ent.gz"
             pdb_file_location = f"./scripts/external_datasets/pdb/{pdb_code}.pdb"
@@ -64,29 +66,28 @@ def sifts_mapping(a_query):
             pdb_str = gzip.open(urllib.request.urlopen(
                 pdb_download_location)).read()
 
-            record_for_database, created = Structure.objects.update_or_create(
-                uniprot_protein=protein, pdb_id=pdb_code)
+            record_for_database, created = Structure.objects.update_or_create(uniprot_protein=protein, pdb_id=pdb_code)
             structure = Structure.objects.get(pdb_id=pdb_code)
             with open(pdb_file_location, 'w') as pdb_file:
                 pdb_file.write(pdb_str.decode("utf-8"))
 
-                structure_sequence_map = get_sequence_resid_chains_dict(
-                    pdb_code)  # [1]
+                structure_sequence_map = get_sequence_resid_chains_dict(pdb_code)  # [1]
                 # ('Q95460', 36): {'A': [15, 14, 'Asp'], 'C': [15, 14, 'Asp']}
 
-                residue_list = list(
-                    Residue.objects.filter(protein=protein).values())
+                residue_list = list(Residue.objects.filter(protein=protein).values())
                 #print("Residue list", residue_list)
                 for residue in residue_list:
-                    for residue_details in residue_list:
+                    print(residue)
+                    for residue_details in residue:
+                        print(residue_details)
+
                         #print("Residue details", residue_details)
                         try:
                             #print("Trying to find ", (a_query, residue_details["sequence_position"]),  "in", structure_sequence_map)
                             structural_residues_to_map = structure_sequence_map[(
                                 a_query, residue_details["sequence_position"])]
 
-                            seq_residue = Residue.objects.get(
-                                protein=protein, sequence_position=residue_details["sequence_position"])
+                            seq_residue = Residue.objects.get(protein=protein, sequence_position=residue_details["sequence_position"])
                             #print("Residues to map:", structural_residues_to_map)
                             for chain, positions in structural_residues_to_map.items():
                                 pdb_chain = chain

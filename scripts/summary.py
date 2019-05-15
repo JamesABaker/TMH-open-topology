@@ -15,6 +15,7 @@ from django.urls import reverse
 # Charts
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy.stats as stats
 
 
 def barchart(objects, performance, source, state):
@@ -92,6 +93,13 @@ def run():
 
     print("\n\nVariants\n")
     # Complex query example. How many variants are in the TMH?
+    g_variants_num = Variant.objects.filter(variant_source='gnomAD').count()
+    print("gnomAD variants,", g_variants_num)
+    tmh_g_variants_num = Variant.objects.exclude(residue__tmh_residue=None).filter(variant_source='gnomAD').count()
+    print("TMH gnomAD variants,", tmh_g_variants_num)
+    non_tmh_g_variants_num = Variant.objects.filter(residue__tmh_residue=None).filter(variant_source='gnomAD').count()
+    print("Non-TMH gnomAD variants,", non_tmh_g_variants_num)
+
     d_variants_num = Variant.objects.filter(disease_status='d').count()
     print("Disease variants,", d_variants_num)
     tmh_d_variants_num = Variant.objects.exclude(
@@ -103,8 +111,10 @@ def run():
     tmh_d_variants_clinvar_num = Variant.objects.exclude(residue__tmh_residue=None).filter(
         disease_status='d', variant_source="ClinVar").count()
     print("TMH ClinVar disease variants,", tmh_d_variants_clinvar_num)
+
     tmh_d_variants_humsavar_num = Variant.objects.exclude(residue__tmh_residue=None).filter(
         disease_status='d', variant_source="Humsavar").count()
+
     d_variants_humsavar_num = Variant.objects.filter(
         disease_status='d', variant_source="Humsavar").count()
     print("Humsavar disease variants,", d_variants_humsavar_num)
@@ -127,6 +137,16 @@ def run():
     print("Disease variants per non-TMH residue,",
           non_tmh_d_variants_num / non_tmh_residue_num)
 
+    fisher_oddsratio, fisher_pvalue = stats.fisher_exact([[tmh_d_variants_num, non_tmh_d_variants_num], [tmh_g_variants_num, non_tmh_g_variants_num]])
+
+
+    print("Fisher test Disease TMH non-TMH versus gnomAD TMH non-TMH,", fisher_pvalue)
+
+    obs = np.array([[tmh_d_variants_num, non_tmh_d_variants_num], [tmh_g_variants_num, non_tmh_g_variants_num]])
+    chi_test = stats.chi2_contingency(obs)
+
+    print("Chi 2 test Disease TMH non-TMH versus gnomAD TMH non-TMH,", chi_test)
+
     objects = ("Residues", "TMH ±5 residues", "Non-TMH residues")
     performance = [d_variants_num / residue_num, tmh_d_variants_num /
                    tmh_residue_num, non_tmh_d_variants_num / non_tmh_residue_num]
@@ -141,3 +161,8 @@ def run():
     performance = [d_variants_humsavar_num / residue_num, tmh_d_variants_humsavar_num /
                    tmh_residue_num, non_tmh_d_variants_humsavar_num / non_tmh_residue_num]
     barchart(objects, performance, "Humsavar_disease_variants", "d")
+
+    objects = ("Residues", "TMH ±5 residues", "Non-TMH residues")
+    performance = [g_variants_num / residue_num, tmh_g_variants_num /
+                   tmh_residue_num, non_tmh_g_variants_num / non_tmh_residue_num]
+    barchart(objects, performance, "All_gnomAD_variants", "b")
