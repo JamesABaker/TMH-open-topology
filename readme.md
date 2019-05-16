@@ -27,6 +27,14 @@ The current database structure is laid out below. The key thing to keep in mind 
 
 ![Table structure of database.](images/graph.png)
 
+### Installation
+ 1. `git clone https://github.com/JamesABaker/VarTMH.git`
+ 2. `pip install -r requirements` I suggest working in a virtual environment for this.
+ 3. Change the `tmh_database/settings.py` to your server settings.
+ 3. `bash populate.sh`
+ 4. `bash db_summary.sh`
+
+
 ## Back-end sources and references
 
 Several external tools are needed to generate the database. External programmes, software, and datasets are listed below.

@@ -36,11 +36,24 @@ class Funfamstatus(models.Model):
     funfam_result = models.TextField()
     funfam_version = models.TextField()
 
+class Funfam(models.Model):
+    funfam_id = models.TextField()
 
 class Funfam_residue(models.Model):
+    funfam = models.ForeignKey("Funfam", on_delete=models.CASCADE)
     residue = models.ForeignKey("Residue", on_delete=models.CASCADE)
-    funfam_id = models.TextField()
     e_value = models.FloatField()
+    funfam_position = models.IntegerField()
+
+class Pfam(models.Model):
+    pfam_id = models.TextField()
+
+class Pfam_residue(models.Model):
+    pfam = models.ForeignKey("Pfam", on_delete=models.CASCADE)
+    residue = models.ForeignKey("Residue", on_delete=models.CASCADE)
+    e_value = models.FloatField()
+    pfam_position = models.IntegerField()
+
 
 
 class Tmh(models.Model):
