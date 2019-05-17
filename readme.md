@@ -8,8 +8,20 @@
 
 ## Aims
 
-This is a tool to help to evaluate disease variants in the context of transmembrane proteins.
+This is a tool to help to evaluate coding SNP disease variants in the context of transmembrane proteins.
 It curates TMHs boundaries and topology from several sources and cross references those against several variant databases.
+
+## Abstract
+Around 25% of human proteins are membrane bound.
+However, membrane proteins account for more than 40% of drug targets, which demonstrates their importance in biology, therapeutics, and disease.
+The defining region of these proteins is the membrane embedded region.
+These protein segments experience a very different biochemical environment to their soluble counterparts.
+The membrane imposes biophysical constraints that are reflected in the amino acid composition; crucially these regions contain a relatively high frequency of hydrophobic residues.
+Some evidence in the literature suggests disease variants in these regions may have different effects than an equivalent variant in a soluble region.
+
+Here, we take genomic disease single nucleotide variants from gnomAD (non-disease), ClinVar (disease), Humsavar (disease), and map them to their position in the coding proteins.
+We cross reference these positions with transmembrane boundaries from several source.
+By stratifying the proteins into families, sub-cellular locations, topology, and function, we examine how different variants have effects on disease given the biophysical and evolutionary context of proteins.
 
 ## Statistics
 
@@ -32,7 +44,7 @@ The current database structure is laid out below. The key thing to keep in mind 
  2. `pip install -r requirements` I suggest working in a virtual environment for this.
  3. Change the `tmh_database/settings.py` to your server settings.
  3. `bash populate.sh`
- 4. `bash db_summary.sh`
+ 4. `bash summary.sh`
 
 
 ## Back-end sources and references
