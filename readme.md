@@ -15,12 +15,12 @@ It curates TMHs boundaries and topology from several sources and cross reference
 Around 25% of human proteins are membrane bound.
 However, membrane proteins account for more than 40% of drug targets, which demonstrates their importance in biology, therapeutics, and disease.
 The defining region of these proteins is the membrane embedded region.
-These protein segments experience a very different biochemical environment to their soluble counterparts.
-The membrane imposes biophysical constraints that are reflected in the amino acid composition; crucially these regions contain a relatively high frequency of hydrophobic residues.
-Some evidence in the literature suggests disease variants in these regions may have different effects than an equivalent variant in a soluble region.
+These protein segments are located in a biochemically distinct environment to their soluble counterparts.
+The membrane imposes biophysical constraints that are reflected in the amino acid composition; crucially these regions contain a relatively high frequency of hydrophobic residues as well as more nuanced factors such as the positive inside rule, and the aromatic belt.
+Some evidence in the literature suggests coding variants in these regions may have different effects than a similar amino acid change in a soluble region.
 
 Here, we take genomic disease single nucleotide variants from gnomAD (non-disease), ClinVar (disease), Humsavar (disease), and map them to their position in the coding proteins.
-We cross reference these positions with transmembrane boundaries from several source.
+We cross reference these positions with transmembrane boundaries from several sources.
 By stratifying the proteins into families, sub-cellular locations, topology, and function, we examine how different variants have effects on disease given the biophysical and evolutionary context of proteins.
 
 ## Statistics
@@ -43,8 +43,8 @@ The current database structure is laid out below. The key thing to keep in mind 
  1. `git clone https://github.com/JamesABaker/VarTMH.git`
  2. `pip install -r requirements` I suggest working in a virtual environment for this.
  3. Change the `tmh_database/settings.py` to your server settings.
- 3. `bash populate.sh`
- 4. `bash summary.sh`
+ 4. `bash populate.sh`
+ 5. `bash summary.sh`
 
 
 ## Back-end sources and references

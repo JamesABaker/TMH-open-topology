@@ -21,7 +21,7 @@ from Bio.SeqUtils.ProtParam import ProteinAnalysis
 # env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
 from django.conf import settings
 from django.db import models
-from tmh_db.models import Database_Metadata, Uniref, Go, Structure, Structural_residue, Funfam_residue, Funfamstatus, Protein, Residue, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Variant, Keyword, Binding_residue
+from tmh_db.models import Database_Metadata, Subcellular_location, Uniref, Go, Structure, Structural_residue, Funfam_residue, Funfamstatus, Protein, Residue, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Variant, Keyword, Binding_residue
 from datetime import datetime, timedelta
 from django.utils import timezone
 from datetime import date
@@ -38,8 +38,7 @@ todaysdate = today.strftime("%d_%m_%Y")
 
 def uniprot_bin(query_id):
     try:
-        filename = str(
-            "scripts/external_datasets/uniprot_bin/" + query_id + ".txt")
+        filename = str(f"scripts/external_datasets/uniprot_bin/{query_id}.txt")
         file = open(filename, "r")
         file_test = file.readlines
     # If the file is not found, an attempt is made to grab the file from the internet.
@@ -47,13 +46,12 @@ def uniprot_bin(query_id):
         print("File not found.", query_id, ".")
         uniprot_url = str(f'https://www.uniprot.org/uniprot/{query_id}.txt')
         uniprot_bin = str(
-            "scripts/external_datasets/uniprot_bin/" + query_id + ".txt")
+            f"scripts/external_datasets/uniprot_bin/{query_id}.txt")
         download(uniprot_url, uniprot_bin)
 
 
 def uniprot_table(query_id):
-    filename = str("scripts/external_datasets/uniprot_bin/" +
-                   query_id + ".txt")
+    filename = str(f"scripts/external_datasets/uniprot_bin/{query_id}.txt")
     input_format = "swiss"
     feature_type = "TRANSMEM"
     tm_protein = False
@@ -94,6 +92,7 @@ def uniprot_table(query_id):
     residue_table(query_id, sequence)
 
     binding_residues_to_table(filename)
+    subcellular_location(filename)
 
     for keyword in record.annotations["keywords"]:
         keyword_to_database(keyword, query_id)
@@ -107,16 +106,31 @@ def uniprot_table(query_id):
 
 def binding_residues_to_table(filename):
     for record in SeqIO.parse(filename, "swiss"):
+        protein = Protein.objects.get(uniprot_id=record.id)
         for i, f in enumerate(record.features):
             if f.type == "BINDING":
                 for position in range(f.location.start, f.location.end):
-                    protein = Protein.objects.get(uniprot_id=record.id)
+
                     specific_residue = Residue.objects.get(
                         protein=protein, sequence_position=int(position))
                     record_for_database, created = Binding_residue.objects.update_or_create(
                         residue=specific_residue,
                         comment=f.qualifiers,)
 
+def subcellular_location(filename):
+    for record in SeqIO.parse(filename, "swiss"):
+        protein = Protein.objects.get(uniprot_id=record.id)
+        for i, f in enumerate(record.features):
+            if f.type == "TOPO_DOM":
+                subcellular_location_for_database, created = Subcellular_location.objects.get_or_create(location=f.qualifiers["description"])
+                subcellular_location_for_database.proteins.add(protein)
+
+
+def go_to_database(go_id, uniprot_id):
+    print("Mapping GO", go_id, "to", uniprot_id)
+    go_for_database, created = Go.objects.get_or_create(go_id=go_id)
+    target_protein = Protein.objects.get(uniprot_id=uniprot_id)
+    go_for_database.proteins.add(target_protein)
 
 def residue_table(query_id, sequence):
     protein = Protein.objects.get(uniprot_id=query_id)
@@ -154,8 +168,7 @@ def uniprot_tm_check(query_id):
 
     # These are the parameters used by the biopython Seq.IO module
 
-    filename = str("scripts/external_datasets/uniprot_bin/" +
-                   query_id + ".txt")
+    filename = str(f"scripts/external_datasets/uniprot_bin/{query_id}.txt")
     input_format = "swiss"
     feature_type = "TRANSMEM"
     subcellular_location = "TOPO_DOM"
@@ -393,11 +406,6 @@ def topdb_check(query_id, topdb):
                                     return(tmh_list)
 
 
-def go_to_database(go_id, uniprot_id):
-    print("Mapping GO", go_id, "to", uniprot_id)
-    go_for_database, created = Go.objects.get_or_create(go_id=go_id)
-    target_protein = Protein.objects.get(uniprot_id=uniprot_id)
-    go_for_database.proteins.add(target_protein)
 
 
 def keyword_to_database(keyword, uniprot_id):

@@ -156,6 +156,34 @@ def heatmap_run():
         p_matrix.append(p_list)
     heatmap(np.array(p_matrix), "fisher_pvalue_[clin_tmh±5,clin_nontmh±5][gnom_tmh±5,gnom_nontmh±5]", aa_list_baezo_order, "s", LogNorm()) #needs a better scale
 
+    # normalised to residue count presence #
+    residue_count_dict={}
+    for aa in aa_list_baezo_order:
+        aa_count = Residue.objects.filter(tmh_residue=None).count()
+        residue_count_dict[aa]=aa_count
+
+    color_dict_list = {
+    "gnomAD" : "b",
+    "ClinVar": "d"
+    }
+
+    tmh_datasets= [gnomad_tmh_var_array, clinvar_tmh_disease_var_array]
+    for dataset in tmh_datasets:
+        residue_normalised_count_matrix = []
+        for var_aa_num, aa_var in enumerate(aa_list_baezo_order):
+            residue_normalised_list = []
+            for wt_aa_num, aa_wt in enumerate(aa_list_baezo_order):
+                residue_normalised_value = dataset[var_aa_num][wt_aa_num]/residue_count_dict[aa_wt]
+                fisher_oddsratio, fisher_pvalue = stats.fisher_exact([[clinvar_tmh_disease_var_array[var_aa_num][wt_aa_num], clinvar_non_tmh_disease_var_array[var_aa_num][wt_aa_num]], [gnomad_tmh_var_array[var_aa_num][wt_aa_num], gnomad_non_tmh_var_array[var_aa_num][wt_aa_num]]], alternative='two-sided')
+                residue_normalised_list.append(residue_normalised_value)
+            residue_normalised_count_matrix.append(residue_normalised_list)
+        if dataset == clinvar_tmh_disease_var_array:
+            source="ClinVar"
+        elif dataset == gnomad_tmh_disease_var_array:
+            source="gnomAD"
+
+        heatmap(np.array(residue_normalised_count_matrix), f"Residue normalised according to WT residue in TMH residue population in {color_dict_list[color]} state", aa_list_baezo_order, color_dict_list[color]) #needs a better scale
+
 
 
 def basic_num():
@@ -189,7 +217,7 @@ def basic_num():
 
     print("\n\nTMH boundaries\n")
     tmh_boundary_num = Tmh.objects.count()
-    print("All TMH boundaries,", tmh_boundary_num)
+    print("TMP TMH boundaries,", tmh_boundary_num)
     uniprot_tmh_boundary = Tmh.objects.filter(tmh_evidence='UniProt').count()
     print("UniProt TMH boundaries,", uniprot_tmh_boundary)
     topdb_tmh_boundary = Tmh.objects.filter(tmh_evidence='TOPDB').count()
@@ -256,7 +284,7 @@ def basic_num():
     objects = ("Residues", "TMH ±5 residues", "Non-TMH residues")
     performance = [d_variants_num / residue_num, tmh_d_variants_num /
                    tmh_residue_num, non_tmh_d_variants_num / non_tmh_residue_num]
-    barchart(objects, performance, "All_disease_variants", "d")
+    barchart(objects, performance, "TMP_disease_variants", "d")
 
     objects = ("Residues", "TMH ±5 residues", "Non-TMH residues")
     performance = [d_variants_clinvar_num / residue_num, tmh_d_variants_clinvar_num /
@@ -271,7 +299,7 @@ def basic_num():
     objects = ("Residues", "TMH ±5 residues", "Non-TMH residues")
     performance = [g_variants_num / residue_num, tmh_g_variants_num /
                    tmh_residue_num, non_tmh_g_variants_num / non_tmh_residue_num]
-    barchart(objects, performance, "All_gnomAD_variants", "b")
+    barchart(objects, performance, "TMP_gnomAD_variants", "b")
 
 
 def run():
