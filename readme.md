@@ -12,16 +12,17 @@ This is a tool to help to evaluate coding SNP disease variants in the context of
 It curates TMHs boundaries and topology from several sources and cross references those against several variant databases.
 
 ## Abstract
-Around 25% of human proteins are membrane bound.
+Around 25% of human proteins are membrane-bound.
 However, membrane proteins account for more than 40% of drug targets, which demonstrates their importance in biology, therapeutics, and disease.
-The defining region of these proteins is the membrane embedded region.
-These protein segments are located in a biochemically distinct environment to their soluble counterparts.
-The membrane imposes biophysical constraints that are reflected in the amino acid composition; crucially these regions contain a relatively high frequency of hydrophobic residues as well as more nuanced factors such as the positive inside rule, and the aromatic belt.
-Some evidence in the literature suggests coding variants in these regions may have different effects than a similar amino acid change in a soluble region.
-
-Here, we take genomic disease single nucleotide variants from gnomAD (non-disease), ClinVar (disease), Humsavar (disease), and map them to their position in the coding proteins.
-We cross reference these positions with transmembrane boundaries from several sources.
-By stratifying the proteins into families, sub-cellular locations, topology, and function, we examine how different variants have effects on disease given the biophysical and evolutionary context of proteins.
+The defining region of these proteins is the membrane-embedded region.
+The membrane imposes biophysical constraints that are reflected in the amino acid composition.
+Crucially these regions contain a relatively high frequency of hydrophobic residues as well as more subtle factors such as the positive-inside rule and the aromatic belt.
+Evidence in the literature suggests coding variants in these regions generally have different effects than a similar amino acid change in a soluble region.  
+Here, we took genomic disease single nucleotide variants from gnomAD (non-disease variants), ClinVar (disease variants), Humsavar (disease variants), and mapped them to their position in the coding proteins.
+We cross-referenced these positions with transmembrane boundaries from several sources.
+We then stratified the proteins into families, sub-cellular locations, topology, and function.
+This allowed us to examine the nuances of how different variants impact transmembrane proteins in the context of the biophysical environment and evolutionary history.
+As well as gaining an understanding of the concepts of disease variants in transmembrane proteins, the tools we have developed will increase the ability to predict the variant effect in the biochemically distinct membrane regions.
 
 ## Statistics
 

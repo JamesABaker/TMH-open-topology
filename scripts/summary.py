@@ -18,56 +18,7 @@ import numpy as np
 import scipy.stats as stats
 import collections
 from matplotlib.colors import LogNorm
-
-def barchart(objects, performance, source, state):
-    color_dic = {
-        "d": "red",
-        "b": "green",
-        "a": "grey"
-    }
-    y_pos = np.arange(len(objects))
-    plt.bar(y_pos, performance, color=color_dic[state], align='center', alpha=0.5, edgecolor="grey", width=0.3)
-    plt.xticks(y_pos, objects)
-    plt.xlabel('Residue type')
-    plt.ylabel('Variants per residue')
-    plt.title(source)
-    filename = f"images/enrichment_{source}.png"
-    plt.savefig(filename)
-    plt.clf()
-
-
-def heatmap(var_freqs_list, title, aa_list_baezo_order, state, is_it_log):
-
-    color_dic = {
-        "d": "Reds",
-        "b": "Greens",
-        "a": "Greys",
-        "s": "cubehelix"
-    }
-
-    fig, ax = plt.subplots()
-    im = ax.imshow(var_freqs_list, cmap=color_dic[state], interpolation='nearest', norm=is_it_log)
-
-    # We want to show all ticks...
-    ax.set_xticks(np.arange(len(aa_list_baezo_order)))
-    ax.set_yticks(np.arange(len(aa_list_baezo_order)))
-    # ... and label them with the respective list entries
-    ax.set_xticklabels(aa_list_baezo_order)
-    ax.set_yticklabels(aa_list_baezo_order)
-    # Add boxes
-    ax.grid(which='minor', color='b', linestyle='-', linewidth=2)
-    ax.set_xlabel("Wildtype (from)")
-    ax.set_ylabel("Variant (to)")
-    ax.set_title(title)
-    fig.tight_layout()
-    filename = f"images/{title}.png"
-    # And now the colorbar
-    # --------------------------------------------------------
-    fig.colorbar(im)
-
-    plt.savefig(filename)
-    plt.clf()
-
+from scripts.graphs import *
 
 def heatmap_array(var_freq_dict, aa_order):
     var_freq = collections.Counter(var_freq_dict)
@@ -97,6 +48,7 @@ def normalise_tmh_resid_array(var_freqs_list, aa_list):
         large_array.append(aa_mut_row_normalised)
     #print(np.array(large_array))
     return(np.array(large_array))
+
 
 def heatmap_run():
     print("HEATMAPS")
@@ -183,7 +135,6 @@ def heatmap_run():
             source="gnomAD"
 
         heatmap(np.array(residue_normalised_count_matrix), f"Residue normalised according to WT residue in TMH residue population in {color_dict_list[color]} state", aa_list_baezo_order, color_dict_list[color]) #needs a better scale
-
 
 
 def basic_num():
@@ -284,22 +235,22 @@ def basic_num():
     objects = ("Residues", "TMH ±5 residues", "Non-TMH residues")
     performance = [d_variants_num / residue_num, tmh_d_variants_num /
                    tmh_residue_num, non_tmh_d_variants_num / non_tmh_residue_num]
-    barchart(objects, performance, "TMP_disease_variants", "d")
+    barchart(objects, performance, "TMP_disease_variants", "d", "Residue type", "Variants per residue")
 
     objects = ("Residues", "TMH ±5 residues", "Non-TMH residues")
     performance = [d_variants_clinvar_num / residue_num, tmh_d_variants_clinvar_num /
                    tmh_residue_num, non_tmh_d_variants_clinvar_num / non_tmh_residue_num]
-    barchart(objects, performance, "ClinVar_disease_variants", "d")
+    barchart(objects, performance, "ClinVar_disease_variants", "d", "Residue type", "Variants per residue")
 
     objects = ("Residues", "TMH ±5 residues", "Non-TMH residues")
     performance = [d_variants_humsavar_num / residue_num, tmh_d_variants_humsavar_num /
                    tmh_residue_num, non_tmh_d_variants_humsavar_num / non_tmh_residue_num]
-    barchart(objects, performance, "Humsavar_disease_variants", "d")
+    barchart(objects, performance, "Humsavar_disease_variants", "d", "Residue type", "Variants per residue")
 
     objects = ("Residues", "TMH ±5 residues", "Non-TMH residues")
     performance = [g_variants_num / residue_num, tmh_g_variants_num /
                    tmh_residue_num, non_tmh_g_variants_num / non_tmh_residue_num]
-    barchart(objects, performance, "TMP_gnomAD_variants", "b")
+    barchart(objects, performance, "TMP_gnomAD_variants", "b", "Residue type", "Variants per residue")
 
 
 def run():
