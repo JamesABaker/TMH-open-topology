@@ -157,6 +157,7 @@ def uniref(a_query):
         protein=protein,
         representitive_id=representative_id,
     )
+    return(True)
 
 def run():
     '''
@@ -184,6 +185,7 @@ def run():
 
     for a_query in input_query:
         a_query = clean_query(a_query)
+        print("Checking", a_query, "in Uniref...")
         uniref(a_query)
     # The funfams need to be submitted, then checked for status and results.
     # This submits all the ids to the funfams and gets job ids.
@@ -192,10 +194,12 @@ def run():
     uniprotid_funfam_dict = {}
     for a_query in input_query:
         a_query = clean_query(a_query)
+        print("Submitting", a_query, "to FunFam in CATH...")
         this_funfam = funfam_submit(a_query)
         uniprotid_funfam_dict.update({a_query: this_funfam})
 
     # This uses the job id to wait until the job is complete and fetch the result.
     for a_query in input_query:
         a_query = clean_query(a_query)
+        print("Checking results for", a_query, "in FunFam in CATH...")
         funfam = funfam_result(a_query, uniprotid_funfam_dict[a_query])

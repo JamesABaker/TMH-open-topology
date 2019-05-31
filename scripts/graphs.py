@@ -18,11 +18,26 @@ def barchart(objects, performance, source, state, x_label, y_label):
     plt.xticks(y_pos, objects)
     #plt.xlabel('Residue type')
     plt.xlabel(x_label)
+    plt.xticks(rotation=45)
     #plt.ylabel('Variants per residue')
     plt.ylabel(y_label)
     plt.title(source)
-    filename = f"images/enrichment_{source}.png"
-    plt.savefig(filename)
+    filename = f"images/{source}.png"
+    plt.savefig(filename, bbox_inches='tight')
+    plt.clf()
+
+def histogram(performance, source, state,x_label, y_label):
+    color_dic = {
+        "d": "red",
+        "b": "green",
+        "a": "grey"
+    }
+    plt.yscale('log', nonposy='clip')
+    plt.hist(performance, bins=len(performance))
+    plt.gca().set(title=source, ylabel=y_label, xlabel=x_label);
+    plt.title(source)
+    filename = f"images/{source}.png"
+    plt.savefig(filename, bbox_inches='tight')
     plt.clf()
 
 def heatmap(var_freqs_list, title, aa_list_baezo_order, state, is_it_log):

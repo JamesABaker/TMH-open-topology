@@ -166,4 +166,5 @@ def run():
     # Populate structures
     for a_query in input_query:
         a_query = clean_query(a_query)
+        print("Mapping", a_query, "via SIFTS...")
         sifts_mapping(a_query)

@@ -43,7 +43,7 @@ def uniprot_bin(query_id):
         file_test = file.readlines
     # If the file is not found, an attempt is made to grab the file from the internet.
     except(FileNotFoundError):
-        print("File not found.", query_id, ".")
+        print("File not found:", filename)
         uniprot_url = str(f'https://www.uniprot.org/uniprot/{query_id}.txt')
         uniprot_bin = str(
             f"scripts/external_datasets/uniprot_bin/{query_id}.txt")

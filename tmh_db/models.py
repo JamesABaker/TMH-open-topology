@@ -157,7 +157,7 @@ class Variant(models.Model):
     aa_wt = models.CharField(max_length=1, default='')
     aa_mut = models.CharField(max_length=1, default='')
     residue = models.ForeignKey(Residue, on_delete=models.CASCADE)
-    disease_status = models.TextField()  # either disease or benign or uncertain
+    disease_status = models.TextField()  # either disease (d) or benign (n) or uncertain (u)
     disease_comments = models.TextField()
     variant_source = models.TextField(default="Unknown", null=True)
     variant_source_id = models.TextField(default="No_ID", null=True)
