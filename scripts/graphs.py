@@ -29,7 +29,7 @@ def barchart(objects, performance, source, state, x_label, y_label):
 def histogram(performance, source, state,x_label, y_label):
     color_dic = {
         "d": "red",
-        "b": "green",
+        "n": "green",
         "a": "grey"
     }
     plt.yscale('log', nonposy='clip')
@@ -44,7 +44,7 @@ def heatmap(var_freqs_list, title, aa_list_baezo_order, state, is_it_log):
 
     color_dic = {
         "d": "Reds",
-        "b": "Greens",
+        "n": "Greens",
         "a": "Greys",
         "s": "cubehelix"
     }

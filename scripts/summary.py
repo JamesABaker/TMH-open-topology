@@ -94,12 +94,12 @@ def heatmap_run():
     title = "TMH±5_gnomAD"
     gnomad_tmh_var_freq=list(Variant.objects.exclude(residue__tmh_residue=None).filter(variant_source='gnomAD').values_list("aa_wt", "aa_mut"))
     gnomad_tmh_var_array = heatmap_array(gnomad_tmh_var_freq, aa_list_baezo_order)
-    heatmap(gnomad_tmh_var_array, title, aa_list_baezo_order, "b", None)
+    heatmap(gnomad_tmh_var_array, title, aa_list_baezo_order, "n", None)
 
     title = "non_TMH±5_gnomAD"
     gnomad_non_tmh_var_freq=list(Variant.objects.filter(residue__tmh_residue=None).filter(variant_source='gnomAD').values_list("aa_wt", "aa_mut"))
     gnomad_non_tmh_var_array=heatmap_array(gnomad_non_tmh_var_freq, aa_list_baezo_order)
-    heatmap(gnomad_non_tmh_var_array, title, aa_list_baezo_order, "b", None)
+    heatmap(gnomad_non_tmh_var_array, title, aa_list_baezo_order, "n", None)
 
     # bonkers contingency table idea #
     p_matrix = []
@@ -118,7 +118,7 @@ def heatmap_run():
         residue_count_dict[aa]=aa_count
 
     color_dict_list = {
-    "gnomAD" : "b",
+    "gnomAD" : "n",
     "ClinVar": "d"
     }
 
@@ -224,12 +224,18 @@ def basic_num():
         histogram(performance, f"Frequency of proteins with TMH {disease_status[state]} variants", state,"Number of TMH disease variants", "Number of proteins")
 
 
-        #proteins =  Protein.objects.filter(residue__in=residues).distinct()
-        #location_tmh_var_dict=collections.Counter([i.subcellular_locations.location for i in residues])
-        #print(location_tmh_var_dict)
-        #performance = list(location_tmh_var_dict.values())
-        #objects = list(location_tmh_var_dict.keys())
-        #barchart(objects, performance, f"Frequency of TMH {disease_status[state]} variants in subceullar locations", state, "Subcellular Location", "Number of variants")
+        proteins =  Protein.objects.filter(residue__in=residues).distinct()
+        location_tmh_var_dict=[]
+        for i in proteins:
+            multi_maps=i.subcellular_locations
+            for a_location in multi_maps:
+                location_tmh_var_dict.append(a_location.location)
+
+        collections.Counter(location_tmh_var_dict)
+        print(location_tmh_var_dict)
+        performance = list(location_tmh_var_dict.values())
+        objects = list(location_tmh_var_dict.keys())
+        barchart(objects, performance, f"Frequency of TMH {disease_status[state]} variants in subceullar locations", state, "Subcellular Location", "Number of variants")
 
     #Variant.objects.filter(residue__tmh_residue__feature_location="TMH", disease_status='d', variant_source="ClinVar").count()
 
@@ -268,7 +274,7 @@ def basic_num():
     objects = ("Residues", "TMH ±5 residues", "Non-TMH residues")
     performance = [g_variants_num / residue_num, tmh_g_variants_num /
                    tmh_residue_num, non_tmh_g_variants_num / non_tmh_residue_num]
-    barchart(objects, performance, "TMP_gnomAD_variants", "b", "Residue type", "Variants per residue")
+    barchart(objects, performance, "TMP_gnomAD_variants", "n", "Residue type", "Variants per residue")
 
 
 def run():

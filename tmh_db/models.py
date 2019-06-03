@@ -180,5 +180,21 @@ class Structural_residue(models.Model):
     uniprot_position = models.IntegerField()
 
 class Uniref(models.Model):
-    protein = models.ForeignKey(Protein, on_delete=models.CASCADE)
-    representitive_id = models.CharField(max_length=20, unique=True)
+    proteins = models.ManyToManyField(Protein)
+    representative_id = models.CharField(max_length=20, unique=True)
+
+class Phmmer_proteins(models.Model):
+    protein_query = models.ForeignKey(Protein, on_delete=models.CASCADE, related_name='protein_query_uniprot_id')
+    protein_database = models.ForeignKey(Protein, on_delete=models.CASCADE, related_name='protein_database_uniprot_id')
+    sequence_e_value = models.FloatField(null=True)
+    domain_e_value = models.FloatField(null=True)
+    class Meta:
+        unique_together = ["protein_query", "protein_database"]
+
+class Phmmer_residues(models.Model):
+    phmmer_alignment = models.ForeignKey(Phmmer_proteins, on_delete=models.CASCADE)
+    position_in_alignment = models.IntegerField()
+    residue_query = models.ForeignKey(Residue, on_delete=models.CASCADE, related_name='residue_query')
+    residue_database = models.ForeignKey(Residue, on_delete=models.CASCADE, related_name='residue_database')
+    class Meta:
+        unique_together = ["phmmer_alignment", "residue_query", "residue_database"]

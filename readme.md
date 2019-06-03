@@ -26,11 +26,11 @@ As well as gaining an understanding of the concepts of disease variants in trans
 
 ## Statistics
 
-![Barplot showing the number of disease variants per residue in transmembrane and non transmembrane regions.](images/enrichment_All_disease_variants.png)
+![Barplot showing the number of disease variants per residue in transmembrane and non transmembrane regions.](images/TMP_disease_variants.png)
 
 **Figure** This is the number of disease variants per residue in transmembrane and non transmembrane regions held in the database. Disease variants are enriched in transmembrane helix regions compared to non-transmembrane helical regions of transmembrane proteins.
 
-![Barplot showing the number of gnomAD variants per residue in transmembrane and non transmembrane regions.](images/enrichment_All_gnomAD_variants.png)
+![Barplot showing the number of gnomAD variants per residue in transmembrane and non transmembrane regions.](images/TMP_gnomAD_variants.png)
 
 **Figure** This is the number of gnomAD variants per residue in transmembrane and non transmembrane regions held in the database.
 

@@ -124,6 +124,38 @@ def funfam_result(a_query, funfam_submission_code):
                 print("\n")
     return([key, value])
 
+
+def phmmer(a_query):
+    # phmmer scripts/external_datasets/fasta_bin/P30872.fasta scripts/external_datasets/fasta_bin/all/all_fasta.fasta
+    # Usage: phmmer [-options] <seqfile> <seqdb>
+    phmmer_result = check_output(["/usr/local/bin/phmmer", "-E 0.0000000001", "--noali", f"scripts/external_datasets/fasta_bin/{a_query}.fasta", "scripts/external_datasets/fasta_bin/all/all_fasta.fasta"])  # stdout=subprocess.PIPE)
+    overall_results=[]
+    below_threshold = True
+    while below_threshold = True:
+        for n, i in enumerate(phmmer_result):
+            result_line=[]
+            if str("inclusion threshold") in str(result_line):
+                below_threshold = False
+            i=i.split('\t')
+            result_line.append(i)
+            if len(result_line) == 10:
+                overall_results.append(result_line)
+
+        for n, i in enumerate(overall_results):
+            seq_e_value=i[0]
+            dom_e_value=i[3]
+            database_id=i[8]
+
+            query_protein = Protein.objects.get(uniprot_id=a_query)
+            database_protein = Protein.objects.get(uniprot_id=database_id)
+            #THIS IS BROKEN!
+            #phmmer_for_database, created = Uniref.objects.get_or_create(protein_query=query_protein, protein_database=database_protein)
+
+
+
+
+
+
 def uniref(a_query):
     url = 'https://www.uniprot.org/uploadlists/'
 
@@ -140,24 +172,34 @@ def uniref(a_query):
     contact = ""
     request.add_header('User-Agent', 'Python %s' % contact)
     #request=bytes(request, 'utf-8')
-    response = urllib.request.urlopen(request)
-    page = response.read(200000)
-    page=page.decode(encoding='utf-8', errors='strict')
-    page=page.split('\n')
+    response = None
+    while response is None:
+        try:
+            response = urllib.request.urlopen(request)
+            page = response.read(200000)
+            page=page.decode(encoding='utf-8', errors='strict')
+            page=page.split('\n')
+        except ConnectionError:
+            print("Connection dropped during download.")
+    #print(page)
     for n, i in enumerate(page):
         i=i.split('\t')
         page[n]=i
 
-    representative_id=page[1][1]
+    if len(page)>1:
+        representative_id=page[1][1]
 
-    print(a_query, "is represented in UniRef90 by", representative_id)
-    protein = Protein.objects.get(uniprot_id=a_query)
-    representative_id = clean_query(representative_id)
-    record_for_database, created = Uniref.objects.update_or_create(
-        protein=protein,
-        representitive_id=representative_id,
-    )
-    return(True)
+        print(a_query, "is represented in UniRef90 by", representative_id)
+        protein = Protein.objects.get(uniprot_id=a_query)
+        representative_id = clean_query(representative_id)
+        uniref_for_database, created = Uniref.objects.get_or_create(representative_id=representative_id)
+        uniref_for_database.proteins.add(protein)
+
+        return(True)
+    else:
+        print(a_query, "returned no data via UniRef90 API")
+        return(False)
+
 
 def run():
     '''
