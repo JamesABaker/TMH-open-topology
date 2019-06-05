@@ -59,7 +59,7 @@ def heatmap_run():
     aa_list_baezo_order=['K', 'R', 'E', 'D', 'Q', 'H', 'N', 'P', 'Y', 'W', 'C', 'M', 'T', 'S', 'G', 'V', 'F', 'A', 'I', 'L']
     title = "TMH±5_disease"
 
-    Residue.object.all().prefetch_related("variant")
+    Residue.objects.all().prefetch_related("variant")
 
     var_freq=list(Variant.objects.exclude(residue__tmh_residue=None).filter(disease_status='d').values_list("aa_wt", "aa_mut"))
     var_freqs_list=heatmap_array(var_freq, aa_list_baezo_order)
@@ -73,8 +73,8 @@ def heatmap_run():
     var_freq=list(Variant.objects.filter(residue__tmh_residue=None).filter(disease_status='d').values_list("aa_wt", "aa_mut"))
     heatmap(heatmap_array(var_freq, aa_list_baezo_order), title, aa_list_baezo_order, "d", None)
 
-    title = "TMH±5_disease_clinvar"
-    clinvar_tmh_var_freq=list(Variant.objects.exclude(residue__tmh_residue=None).filter(variant_source="ClinVar", disease_status='d').values_list("aa_wt", "aa_mut"))
+    title = "TMH_disease_clinvar"
+    clinvar_tmh_var_freq=list(Variant.objects.exclude(residue__tmh_residue__feature_location="TMH").filter(variant_source="ClinVar", disease_status='d').values_list("aa_wt", "aa_mut"))
     clinvar_tmh_disease_var_array = heatmap_array(clinvar_tmh_var_freq, aa_list_baezo_order)
     heatmap(clinvar_tmh_disease_var_array, title, aa_list_baezo_order , "d", None)
 
@@ -91,13 +91,13 @@ def heatmap_run():
     var_freq=list(Variant.objects.filter(residue__tmh_residue=None).filter(variant_source="Humsavar", disease_status='d').values_list("aa_wt", "aa_mut"))
     heatmap(heatmap_array(var_freq, aa_list_baezo_order), title, aa_list_baezo_order, "d", None)
 
-    title = "TMH±5_gnomAD"
-    gnomad_tmh_var_freq=list(Variant.objects.exclude(residue__tmh_residue=None).filter(variant_source='gnomAD').values_list("aa_wt", "aa_mut"))
+    title = "TMH_gnomAD"
+    gnomad_tmh_var_freq=list(Variant.objects.exclude(aa_mut=F("aa_wt")).filter(residue__tmh_residue__feature_location="TMH").filter(variant_source='gnomAD').values_list("aa_wt", "aa_mut"))
     gnomad_tmh_var_array = heatmap_array(gnomad_tmh_var_freq, aa_list_baezo_order)
     heatmap(gnomad_tmh_var_array, title, aa_list_baezo_order, "n", None)
 
     title = "non_TMH±5_gnomAD"
-    gnomad_non_tmh_var_freq=list(Variant.objects.filter(residue__tmh_residue=None).filter(variant_source='gnomAD').values_list("aa_wt", "aa_mut"))
+    gnomad_non_tmh_var_freq=list(Variant.objects.exclude(aa_mut=F("aa_wt")).filter(residue__tmh_residue=None).filter(variant_source='gnomAD').values_list("aa_wt", "aa_mut"))
     gnomad_non_tmh_var_array=heatmap_array(gnomad_non_tmh_var_freq, aa_list_baezo_order)
     heatmap(gnomad_non_tmh_var_array, title, aa_list_baezo_order, "n", None)
 
@@ -113,9 +113,18 @@ def heatmap_run():
 
     # normalised to residue count presence #
     residue_count_dict={}
+    print("Residue counts that fall outside TMH±5 in TMPs")
     for aa in aa_list_baezo_order:
-        aa_count = Residue.objects.filter(tmh_residue=None).count()
+        aa_count = Residue.objects.filter(tmh_residue=None, amino_acid_type=aa).count()
+        print(aa, aa_count)
         residue_count_dict[aa]=aa_count
+
+    tmh_residue_count_dict={}
+    print("Residue counts that fall within the TMH in TMPs")
+    for aa in aa_list_baezo_order:
+        aa_count = Residue.objects.filter(tmh_residue__feature_location="TMH", amino_acid_type=aa).count()
+        print(aa, aa_count)
+        tmh_residue_count_dict[aa]=aa_count
 
     color_dict_list = {
     "gnomAD" : "n",
@@ -123,21 +132,37 @@ def heatmap_run():
     }
 
     tmh_datasets= [gnomad_tmh_var_array, clinvar_tmh_disease_var_array]
-    for dataset in tmh_datasets:
+    for n, dataset in enumerate(tmh_datasets):
+        residue_normalised_count_matrix = []
+        for var_aa_num, aa_var in enumerate(aa_list_baezo_order):
+            residue_normalised_list = []
+            for wt_aa_num, aa_wt in enumerate(aa_list_baezo_order):
+                #print(dataset[var_aa_num][wt_aa_num], tmh_residue_count_dict[aa_wt])
+                residue_normalised_value = dataset[var_aa_num][wt_aa_num]/tmh_residue_count_dict[aa_wt]
+                residue_normalised_list.append(residue_normalised_value)
+            residue_normalised_count_matrix.append(residue_normalised_list)
+        if n == 1:
+            source="ClinVar"
+        elif n == 0:
+            source="gnomAD"
+
+        heatmap(np.array(residue_normalised_count_matrix), f"Residue normalised according to WT residue in TMH residue population in {color_dict_list[source]} state", aa_list_baezo_order, color_dict_list[source], None) #needs a better scale
+
+    non_tmh_datasets= [gnomad_non_tmh_var_array, clinvar_non_tmh_disease_var_array]
+    for n, dataset in enumerate(non_tmh_datasets):
         residue_normalised_count_matrix = []
         for var_aa_num, aa_var in enumerate(aa_list_baezo_order):
             residue_normalised_list = []
             for wt_aa_num, aa_wt in enumerate(aa_list_baezo_order):
                 residue_normalised_value = dataset[var_aa_num][wt_aa_num]/residue_count_dict[aa_wt]
-                fisher_oddsratio, fisher_pvalue = stats.fisher_exact([[clinvar_tmh_disease_var_array[var_aa_num][wt_aa_num], clinvar_non_tmh_disease_var_array[var_aa_num][wt_aa_num]], [gnomad_tmh_var_array[var_aa_num][wt_aa_num], gnomad_non_tmh_var_array[var_aa_num][wt_aa_num]]], alternative='two-sided')
                 residue_normalised_list.append(residue_normalised_value)
             residue_normalised_count_matrix.append(residue_normalised_list)
-        if dataset == clinvar_tmh_disease_var_array:
+        if n == 1:
             source="ClinVar"
-        elif dataset == gnomad_tmh_disease_var_array:
+        elif n == 0:
             source="gnomAD"
 
-        heatmap(np.array(residue_normalised_count_matrix), f"Residue normalised according to WT residue in TMH residue population in {color_dict_list[color]} state", aa_list_baezo_order, color_dict_list[color]) #needs a better scale
+        heatmap(np.array(residue_normalised_count_matrix), f"Residue normalised according to WT residue in non_TMH residue population in {color_dict_list[source]} state", aa_list_baezo_order, color_dict_list[source], None) #needs a better scale
 
 
 def basic_num():
@@ -148,8 +173,9 @@ def basic_num():
     print("UniProt IDs,", protein_num)
     residue_num = Residue.objects.count()
     print("Residues,", residue_num)
-    tmh_residue_num = Residue.objects.exclude(tmh_residue=None).count()
+    tmh_residue_num = Residue.objects.filter(tmh_residue__feature_location="TMH").count()
     print("TMH residues,", tmh_residue_num)
+
     non_tmh_residue_num = Residue.objects.filter(tmh_residue=None).count()
     print("Non-TMH residues,", non_tmh_residue_num)
     structural_residue_num = Residue.objects.exclude(structural_residue=None).count()
@@ -224,18 +250,18 @@ def basic_num():
         histogram(performance, f"Frequency of proteins with TMH {disease_status[state]} variants", state,"Number of TMH disease variants", "Number of proteins")
 
 
-        proteins =  Protein.objects.filter(residue__in=residues).distinct()
-        location_tmh_var_dict=[]
-        for i in proteins:
-            multi_maps=i.subcellular_locations
-            for a_location in multi_maps:
-                location_tmh_var_dict.append(a_location.location)
+        #proteins =  Protein.objects.filter(residue__in=residues).distinct()
+        #location_tmh_var_dict=[]
+        #for i in proteins:
+        #    multi_maps=i.subcellular_locations
+        #    for a_location in multi_maps:
+        #        location_tmh_var_dict.append(a_location.location)
 
-        collections.Counter(location_tmh_var_dict)
-        print(location_tmh_var_dict)
-        performance = list(location_tmh_var_dict.values())
-        objects = list(location_tmh_var_dict.keys())
-        barchart(objects, performance, f"Frequency of TMH {disease_status[state]} variants in subceullar locations", state, "Subcellular Location", "Number of variants")
+        #collections.Counter(location_tmh_var_dict)
+        #print(location_tmh_var_dict)
+        #performance = list(location_tmh_var_dict.values())
+        #objects = list(location_tmh_var_dict.keys())
+        #barchart(objects, performance, f"Frequency of TMH {disease_status[state]} variants in subceullar locations", state, "Subcellular Location", "Number of variants")
 
     #Variant.objects.filter(residue__tmh_residue__feature_location="TMH", disease_status='d', variant_source="ClinVar").count()
 

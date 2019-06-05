@@ -10,7 +10,7 @@ from matplotlib.colors import LogNorm
 def barchart(objects, performance, source, state, x_label, y_label):
     color_dic = {
         "d": "red",
-        "b": "green",
+        "n": "green",
         "a": "grey"
     }
     y_pos = np.arange(len(objects))
