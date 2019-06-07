@@ -130,6 +130,7 @@ def heatmap_run():
     "gnomAD" : "n",
     "ClinVar": "d"
     }
+    #Normalise according to residue populations
 
     tmh_datasets= [gnomad_tmh_var_array, clinvar_tmh_disease_var_array]
     for n, dataset in enumerate(tmh_datasets):
@@ -163,6 +164,82 @@ def heatmap_run():
             source="gnomAD"
 
         heatmap(np.array(residue_normalised_count_matrix), f"Residue normalised according to WT residue in non_TMH residue population in {color_dict_list[source]} state", aa_list_baezo_order, color_dict_list[source], None) #needs a better scale
+
+    #Normalise ClinVar acording to gnomAD in TMHs
+    residue_normalised_count_matrix = []
+    for var_aa_num, aa_var in enumerate(aa_list_baezo_order):
+        residue_normalised_list = []
+        for wt_aa_num, aa_wt in enumerate(aa_list_baezo_order):
+
+            #print(dataset[var_aa_num][wt_aa_num], tmh_residue_count_dict[aa_wt])
+            normalised_gnomad_value=gnomad_tmh_var_array[var_aa_num][wt_aa_num]
+
+            if var_aa_num==wt_aa_num:
+                residue_normalised_value = 0
+
+            elif normalised_gnomad_value == 0:
+                residue_normalised_value = clinvar_tmh_disease_var_array[var_aa_num][wt_aa_num]
+
+            else:
+                residue_normalised_value = clinvar_tmh_disease_var_array[var_aa_num][wt_aa_num]/gnomad_tmh_var_array[var_aa_num][wt_aa_num]
+
+
+            residue_normalised_list.append(residue_normalised_value)
+        residue_normalised_count_matrix.append(residue_normalised_list)
+    source="ClinVar"
+    heatmap(np.array(residue_normalised_count_matrix), f"Residue normalised according to ClinVar div gnomAd in TMH residue population in {color_dict_list[source]} state", aa_list_baezo_order, color_dict_list[source], None)
+
+    #Normalise ClinVar acording to gnomAD in non-TMHs
+    residue_normalised_count_matrix = []
+    for var_aa_num, aa_var in enumerate(aa_list_baezo_order):
+        residue_normalised_list = []
+        for wt_aa_num, aa_wt in enumerate(aa_list_baezo_order):
+
+            #print(dataset[var_aa_num][wt_aa_num], tmh_residue_count_dict[aa_wt])
+            normalised_gnomad_value=gnomad_non_tmh_var_array[var_aa_num][wt_aa_num]
+
+            if var_aa_num==wt_aa_num:
+                residue_normalised_value = 0
+
+            elif normalised_gnomad_value == 0:
+                residue_normalised_value = clinvar_non_tmh_disease_var_array[var_aa_num][wt_aa_num]
+
+            else:
+                residue_normalised_value = clinvar_non_tmh_disease_var_array[var_aa_num][wt_aa_num]/gnomad_non_tmh_var_array[var_aa_num][wt_aa_num]
+
+
+            residue_normalised_list.append(residue_normalised_value)
+        residue_normalised_count_matrix.append(residue_normalised_list)
+    source="ClinVar"
+    heatmap(np.array(residue_normalised_count_matrix), f"Residue normalised according to ClinVar div gnomAd in non_TMH residue population in {color_dict_list[source]} state", aa_list_baezo_order, color_dict_list[source], None)
+
+
+    #Normalise ClinVar acording to gnomAD and get a p-value
+    residue_normalised_count_matrix = []
+    for var_aa_num, aa_var in enumerate(aa_list_baezo_order):
+        residue_normalised_list = []
+        for wt_aa_num, aa_wt in enumerate(aa_list_baezo_order):
+
+            #print(dataset[var_aa_num][wt_aa_num], tmh_residue_count_dict[aa_wt])
+            normalised_gnomad_value=gnomad_tmh_var_array[var_aa_num][wt_aa_num]
+
+            if var_aa_num==wt_aa_num:
+                residue_normalised_value = 1 #fake test data
+
+            elif normalised_gnomad_value == 0:
+                residue_normalised_value = 1
+
+            else:
+                stats_oddsratio, stats_pvalue = stats.binom_test(clinvar_tmh_disease_var_array[var_aa_num][wt_aa_num], n=gnomad_tmh_var_array[var_aa_num][wt_aa_num], p=sum(sum(np.array(clinvar_tmh_disease_var_array)))/sum(sum(np.array(gnomad_tmh_var_array))), alternative='two-sided')
+                residue_normalised_value = fisher_pvalue
+            print(residue_normalised_value)
+
+            residue_normalised_list.append(residue_normalised_value)
+
+        residue_normalised_count_matrix.append(residue_normalised_list)
+
+    source="ClinVar"
+    heatmap(np.array(residue_normalised_count_matrix), f"Residue normalised according to ClinVar gnomAdchi sqaure in TMH residue population in {color_dict_list[source]} state", aa_list_baezo_order, color_dict_list[source], LogNorm())
 
 
 def basic_num():

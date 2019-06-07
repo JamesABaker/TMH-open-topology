@@ -46,7 +46,7 @@ def heatmap(var_freqs_list, title, aa_list_baezo_order, state, is_it_log):
         "d": "Reds",
         "n": "Greens",
         "a": "Greys",
-        "s": "cubehelix"
+        "s": "afmhot"
     }
 
     fig, ax = plt.subplots()
