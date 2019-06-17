@@ -131,7 +131,7 @@ def phmmer(a_query):
     phmmer_result = check_output(["/usr/local/bin/phmmer", "-E 0.0000000001", "--noali", f"scripts/external_datasets/fasta_bin/{a_query}.fasta", "scripts/external_datasets/fasta_bin/all/all_fasta.fasta"])  # stdout=subprocess.PIPE)
     overall_results=[]
     below_threshold = True
-    while below_threshold = True:
+    while below_threshold == True:
         for n, i in enumerate(phmmer_result):
             result_line=[]
             if str("inclusion threshold") in str(result_line):
