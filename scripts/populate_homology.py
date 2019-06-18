@@ -145,15 +145,10 @@ def phmmer(a_query):
             seq_e_value=i[0]
             dom_e_value=i[3]
             database_id=i[8]
-
-            query_protein = Protein.objects.get(uniprot_id=a_query)
-            database_protein = Protein.objects.get(uniprot_id=database_id)
             #THIS IS BROKEN!
             #phmmer_for_database, created = Uniref.objects.get_or_create(protein_query=query_protein, protein_database=database_protein)
-
-
-
-
+            query_protein = Protein.objects.get(uniprot_id=a_query)
+            database_protein = Protein.objects.get(uniprot_id=database_id)
 
 
 def uniref(a_query):
@@ -179,8 +174,11 @@ def uniref(a_query):
             page = response.read(200000)
             page=page.decode(encoding='utf-8', errors='strict')
             page=page.split('\n')
-        except ConnectionError:
+
+        # Catch exceptions that are out of the control of these scripts
+        except (ConnectionError, RemoteDisconnected) as e:
             print("Connection dropped during download.")
+
     #print(page)
     for n, i in enumerate(page):
         i=i.split('\t')

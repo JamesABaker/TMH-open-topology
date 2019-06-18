@@ -62,7 +62,7 @@ def download(url, file_name):
                 print("Donwloading", url, "to", file_name, "...")
                 # connect
                 response = get(url)
-            except ConnectionError:
+            except (ConnectionError, RemoteDisconnected) as e:
                 print("Connection dropped during download.")
 
         # write to file
