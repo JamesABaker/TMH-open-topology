@@ -168,3 +168,5 @@ def run():
         a_query = clean_query(a_query)
         print("Mapping", a_query, "via SIFTS...")
         sifts_mapping(a_query)
+
+# sftp://ebi-login.ebi.ac.uk/nfs/public2/release/thornton-www/software/html/PoreWalker PORE WALKER FILES

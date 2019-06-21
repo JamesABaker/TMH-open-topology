@@ -91,6 +91,8 @@ def uniprot_table(query_id):
 
     residue_table(query_id, sequence)
 
+    tmh_input([query_id])
+
     binding_residues_to_table(filename)
     subcellular_location(filename)
 
@@ -190,6 +192,7 @@ def uniprot_tm_check(query_id):
                 else:
                     list_of_tmhs.append(int(f.location.start) + 1)
                     list_of_tmhs.append(int(f.location.end))
+                    print(f"TMH found in {query_id}:", int(f.location.start) + 1, int(f.location.end))
                     total_tmh_number = total_tmh_number + 1
 
         if list_of_tmhs:  # Checks if it is a TM protein.
@@ -200,18 +203,18 @@ def uniprot_tm_check(query_id):
         else:
             print("No TMHs found in UniProt text file for", query_id)
 
-        # We can also check if any isoforms are in or near the TM region
-        for i, f in enumerate(record.features):
-            if f.type == "VAR_SEQ":
-                for n, x in enumerate(record.features):
-                    # Remember, feature type is set to transmembrane regions
-                    if x.type == feature_type:
-                        if int(x.location.start) + 1 - 5 <= int(f.location.end) and int(f.location.end) <= int(x.location.end) + 5:
-                            # print("An isoform will interfere with record", record.id)
-                            pass
-                        elif int(x.location.start) + 1 - 5 < int(f.location.start) + 1 and int(f.location.start) + 1 <= int(x.location.end) + 5:
-                            # print("An isoform will interfere with record", record.id)
-                            pass
+        ## We can also check if any isoforms are in or near the TM region
+        #for i, f in enumerate(record.features):
+        #    if f.type == "VAR_SEQ":
+        #        for n, x in enumerate(record.features):
+        #            # Remember, feature type is set to transmembrane regions
+        #            if x.type == feature_type:
+        #                if int(x.location.start) + 1 - 5 <= int(f.location.end) and int(f.location.end) <= int(x.location.end) + 5:
+        #                    # print("An isoform will interfere with record", record.id)
+        #                    pass
+        #                elif int(x.location.start) + 1 - 5 < int(f.location.start) + 1 and int(f.location.start) + 1 <= int(x.location.end) + 5:
+        #                    # print("An isoform will interfere with record", record.id)
+        #                    pass
 
     # Now we can go through the record and write each TMH to the database (separate function)
     for record in SeqIO.parse(filename, input_format):
@@ -226,7 +229,17 @@ def uniprot_tm_check(query_id):
                     # Let's count the tmhs even though they do not have a position and will not be in the database.
                     tmd_count = tmd_count + 1
                 else:
-
+                    # The variables need to be flushed
+                    # query_id = None
+                    tmh_start = None
+                    tmh_stop = None
+                    tmh_topology = None
+                    #evidence_type = None
+                    membrane_location = None
+                    n_ter_seq = None
+                    tmh_sequence = None
+                    c_ter_seq=None
+                    #tmh_number=None
                     tmd_count = tmd_count + 1
                     tmh_number = tmd_count
                     n_terminal_start = "none"
@@ -457,7 +470,9 @@ def tmh_to_database(tmh_list):
     The function also has some integrity checks.
     '''
     # Now we have a complete list of the TMHs.
+
     for tmh_number_iteration, a_tmh in enumerate(tmh_list):
+        print("TMH info:",a_tmh)
         query_id = a_tmh[0]
         tmh_number = a_tmh[1]
         tmh_total_number = a_tmh[2]
@@ -483,6 +498,7 @@ def tmh_to_database(tmh_list):
         else:
             n_terminal_inside = "Unknown"
         tmh_protein = Protein.objects.get(uniprot_id=query_id)
+        print("Generating tmh id key from\nQuery id:",query_id,"\nTMH number:",tmh_number,"\nEvidence:",evidence)
         tmh_unique_id = str(query_id + "." + str(tmh_number) + "." + evidence)
 
         print(tmh_unique_id)
@@ -522,8 +538,7 @@ def tmh_to_database(tmh_list):
         for tmh_residue_number, a_residue in enumerate(sequences_to_add):
 
             # Where is the residue in reference to the TMH
-            sequence_position = int(
-                tmh_start - len(n_ter_seq)) + tmh_residue_number
+            sequence_position = int(tmh_start - len(n_ter_seq)) + tmh_residue_number
 
             if sequence_position < tmh_start:  # This doesn't make sense
                 #"N flank"
@@ -753,8 +768,11 @@ def tmh_input(input_query):
     # Ignore this for now -  we need to sort out uniprot before anything else!
     topdb_url="http://topdb.enzim.hu/?m=download&file=topdb_all.xml"
     topdb_file = 'scripts/external_datasets/topdb_all.xml'
-    download(topdb_url, topdb_file)
-    topdb = ET.parse(topdb_file)
+    try:
+        topdb = ET.parse(topdb_file)
+    except:
+        download(topdb_url, topdb_file)
+        topdb = ET.parse(topdb_file)
     # mptopo = ET.parse('mptopoTblXml.xml')
     for query_number, a_query in enumerate(input_query):
         a_query = clean_query(a_query)
@@ -763,7 +781,11 @@ def tmh_input(input_query):
         # print(clean_query(a_query))
         ### OPM needs adding to here also. ###
         # mptopo_tm_check(a_query)
+        print("Checking tmhs in...")
+        print("UniProt...")
         uniprot_tm_check(a_query)
+        print("Checking tmhs in...")
+        print("TopDB...")
         topdb_check(a_query, topdb)
 
 
@@ -802,4 +824,4 @@ def run():
         uniprot_table(a_query)
 
     ### TMH Tables ###
-    tmh_input(input_query)
+    #tmh_input(input_query)

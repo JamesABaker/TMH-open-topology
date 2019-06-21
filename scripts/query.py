@@ -16,6 +16,10 @@ from scripts.populate_general_functions import *
 from scripts.graphs import *
 import numpy as np
 
+
+#This will eventually act as a test file
+
+
 def protein_query(args):
     print(args)
     return()
@@ -34,8 +38,7 @@ def raw_variant_query(*args):
     tmh_normalised_per_protein = 0
     tmh_flank_count_normalised_per_protein = 0
     non_tmh_count_normalised_per_protein = 0
-
-    list_of_ids = [] #this makes sure we don't double count!
+    tmp_ids_done=[]
 
     for paired_data in f:
 
@@ -47,41 +50,34 @@ def raw_variant_query(*args):
         tmh_residues = Residue.objects.filter(protein__uniprot_id=uniprot_ids, tmh_residue__evidence="UniProt", tmh_residue__feature_location="TMH").count()
         flank_residues = Residue.objects.filter(protein__uniprot_id=uniprot_ids, tmh_residue__evidence="UniProt").exclude(tmh_residue__feature_location="TMH").count()
 
-        if uniprot_ids in list_of_ids:
-            pass
-
-        elif uniprot_ids not in list_of_ids:
+        if uniprot_ids not in tmp_ids_done:
+            print("\n",uniprot_ids,"\nTotal residues\t",total_residues ,"\nTMH residues\t", tmh_residues, "\nNon-TMH residues\t", non_tmh_residues, "\nFlank Residues\t", flank_residues)
             total_flank = total_flank + flank_residues
-            tmh_residue_type="non-TMH"
             total_tmh = total_tmh + tmh_residues
             total_non_tmh= total_non_tmh + non_tmh_residues
-            list_of_ids.append(uniprot_ids)
+            tmp_ids_done.append(uniprot_ids)
 
 
-
-
+        tmh_residue_type="non-TMH"
         is_it_in_a_tmh = Residue.objects.filter(protein__uniprot_id=uniprot_ids, sequence_position=positions, tmh_residue__evidence="UniProt")
         try:
             if is_it_in_a_tmh.count() == 0:
-                tmh_residue=False
                 non_tmh_count=non_tmh_count+1
-                non_tmh_count_normalised_per_protein=non_tmh_count_normalised_per_protein+1/(non_tmh_residues/total_residues)
+                #non_tmh_count_normalised_per_protein=non_tmh_count_normalised_per_protein+1/(non_tmh_residues/total_residues)
 
 
             elif is_it_in_a_tmh.count() == 1:
                 is_it_in_a_tmh_core = Residue.objects.filter(protein__uniprot_id=uniprot_ids, sequence_position=positions, tmh_residue__evidence="UniProt", tmh_residue__feature_location="TMH")
                 if is_it_in_a_tmh_core.count() == 1:
-                    tmh_residue=True
                     tmh_residue_type="TMH"
                     tmh_count=tmh_count+1
-                    tmh_normalised_per_protein = tmh_normalised_per_protein+1/(tmh_residues/total_residues)
+                    #tmh_normalised_per_protein = tmh_normalised_per_protein+1/(tmh_residues/total_residues)
 
                 is_it_in_a_tmh_flank = Residue.objects.filter(protein__uniprot_id=uniprot_ids, sequence_position=positions, tmh_residue__evidence="UniProt").exclude(tmh_residue__feature_location="TMH")
                 if is_it_in_a_tmh_flank.count() == 1:
-                    tmh_residue=True
                     tmh_residue_type="Flank"
                     tmh_flank_count=tmh_flank_count+1
-                    tmh_flank_count_normalised_per_protein=tmh_flank_count_normalised_per_protein+1/(flank_residues/total_residues)
+                    #tmh_flank_count_normalised_per_protein=tmh_flank_count_normalised_per_protein+1/(flank_residues/total_residues)
 
         except(ZeroDivisionError):
             pass
@@ -96,12 +92,12 @@ def raw_variant_query(*args):
     print(source, "\n" ,objects, "\n", performance)
     barchart(objects, performance, source, state, "Variant location", "Variant count")
 
-    objects = ["TMH", "±5 flanking residues", "Not in TMH nor ±5 residues"]
-    performance = [tmh_normalised_per_protein, tmh_flank_count_normalised_per_protein, non_tmh_count_normalised_per_protein]
-    source="Cys loop receptor disease variants normalised 1 div per protein tm to non-tm ratio"
-    state = "d"
-    print(source, "\n" ,objects, "\n", performance)
-    barchart(objects, performance, source, state, "Variant location", "Variant count")
+    #objects = ["TMH", "±5 flanking residues", "Not in TMH nor ±5 residues"]
+    #performance = [tmh_normalised_per_protein, tmh_flank_count_normalised_per_protein, non_tmh_count_normalised_per_protein]
+    #source="Cys loop receptor disease variants normalised 1 div per protein tm to non-tm ratio"
+    #state = "d"
+    #print(source, "\n" ,objects, "\n", performance)
+    #barchart(objects, performance, source, state, "Variant location", "Variant count")
 
     objects = ["TMH", "±5 flanking residues", "Not in TMH nor ±5 residues"]
     performance = [tmh_count/total_tmh, tmh_flank_count/total_flank, non_tmh_count/total_non_tmh]
