@@ -73,13 +73,21 @@ def heatmap_run():
     heatmap(heatmap_array(var_freq, aa_list_baezo_order), title, aa_list_baezo_order, "d", None)
 
     title = "TMH_disease_clinvar"
-    clinvar_tmh_var_freq=list(Variant.objects.exclude(residue__tmh_residue__feature_location="TMH").filter(variant_source="ClinVar", disease_status='d').values_list("aa_wt", "aa_mut"))
-    clinvar_tmh_disease_var_array = heatmap_array(clinvar_tmh_var_freq, aa_list_baezo_order)
+    clinvar_tmh_var_freq=Variant.objects.filter(residue__tmh_residue__feature_location="TMH", variant_source="ClinVar", disease_status='d').values_list("aa_wt", "aa_mut")
+    print(title, clinvar_tmh_var_freq.count())
+    clinvar_tmh_disease_var_array = heatmap_array(list(clinvar_tmh_var_freq), aa_list_baezo_order)
     heatmap(clinvar_tmh_disease_var_array, title, aa_list_baezo_order , "d", None)
 
+    title = "Flank_disease_clinvar"
+    clinvar_flank_var_freq=Variant.objects.exclude(residue__tmh_residue=None).exclude(residue__tmh_residue__feature_location="TMH").filter(variant_source="ClinVar", disease_status='d').values_list("aa_wt", "aa_mut")
+    print(title, clinvar_flank_var_freq.count())
+    clinvar_flank_disease_var_array = heatmap_array(list(clinvar_flank_var_freq), aa_list_baezo_order)
+    heatmap(clinvar_flank_disease_var_array, title, aa_list_baezo_order , "d", None)
+
     title = "non_TMH±5_disease_clinvar"
-    clinvar_non_tmh_var_freq=list(Variant.objects.filter(residue__tmh_residue=None).filter(variant_source="ClinVar", disease_status='d').values_list("aa_wt", "aa_mut"))
-    clinvar_non_tmh_disease_var_array = heatmap_array(clinvar_non_tmh_var_freq, aa_list_baezo_order)
+    clinvar_non_tmh_var_freq=Variant.objects.filter(residue__tmh_residue=None).filter(variant_source="ClinVar", disease_status='d').values_list("aa_wt", "aa_mut")
+    print(title, clinvar_non_tmh_var_freq.count())
+    clinvar_non_tmh_disease_var_array = heatmap_array(list(clinvar_non_tmh_var_freq), aa_list_baezo_order)
     heatmap(clinvar_non_tmh_disease_var_array, title, aa_list_baezo_order, "d", None)
 
     title = "TMH±5_disease_humsavar"
@@ -91,12 +99,20 @@ def heatmap_run():
     heatmap(heatmap_array(var_freq, aa_list_baezo_order), title, aa_list_baezo_order, "d", None)
 
     title = "TMH_gnomAD"
-    gnomad_tmh_var_freq=list(Variant.objects.exclude(aa_mut=F("aa_wt")).filter(residue__tmh_residue__feature_location="TMH").filter(variant_source='gnomAD').values_list("aa_wt", "aa_mut"))
+    gnomad_tmh_var_freq=Variant.objects.exclude(aa_mut=F("aa_wt")).filter(residue__tmh_residue__feature_location="TMH").filter(variant_source='gnomAD').values_list("aa_wt", "aa_mut")
+    print(title, gnomad_tmh_var_freq.count())
     gnomad_tmh_var_array = heatmap_array(gnomad_tmh_var_freq, aa_list_baezo_order)
     heatmap(gnomad_tmh_var_array, title, aa_list_baezo_order, "n", None)
 
+    title = "Flank_gnomAD"
+    gnomad_flank_var_freq=Variant.objects.exclude(aa_mut=F("aa_wt")).exclude(residue__tmh_residue=None).exclude(residue__tmh_residue__feature_location="TMH").filter(variant_source='gnomAD').values_list("aa_wt", "aa_mut")
+    print(title, gnomad_flank_var_freq.count())
+    gnomad_flank_var_array = heatmap_array(gnomad_flank_var_freq, aa_list_baezo_order)
+    heatmap(gnomad_flank_var_array, title, aa_list_baezo_order, "n", None)
+
     title = "non_TMH±5_gnomAD"
-    gnomad_non_tmh_var_freq=list(Variant.objects.exclude(aa_mut=F("aa_wt")).filter(residue__tmh_residue=None).filter(variant_source='gnomAD').values_list("aa_wt", "aa_mut"))
+    gnomad_non_tmh_var_freq=Variant.objects.exclude(aa_mut=F("aa_wt")).filter(residue__tmh_residue=None).filter(variant_source='gnomAD').values_list("aa_wt", "aa_mut")
+    print(title,gnomad_non_tmh_var_freq.count())
     gnomad_non_tmh_var_array=heatmap_array(gnomad_non_tmh_var_freq, aa_list_baezo_order)
     heatmap(gnomad_non_tmh_var_array, title, aa_list_baezo_order, "n", None)
 
@@ -187,6 +203,36 @@ def heatmap_run():
         residue_normalised_count_matrix.append(residue_normalised_list)
     source="ClinVar"
     heatmap(np.array(residue_normalised_count_matrix), f"Residue normalised according to ClinVar div gnomAd in TMH residue population in {color_dict_list[source]} state", aa_list_baezo_order, color_dict_list[source], None)
+
+
+
+
+    #Normalise ClinVar acording to gnomAD in flanks
+    residue_normalised_count_matrix = []
+    for var_aa_num, aa_var in enumerate(aa_list_baezo_order):
+        residue_normalised_list = []
+        for wt_aa_num, aa_wt in enumerate(aa_list_baezo_order):
+
+            #print(dataset[var_aa_num][wt_aa_num], tmh_residue_count_dict[aa_wt])
+            normalised_gnomad_value=gnomad_flank_var_array[var_aa_num][wt_aa_num]
+
+            if var_aa_num==wt_aa_num:
+                residue_normalised_value = 0
+
+            elif normalised_gnomad_value == 0:
+                residue_normalised_value = clinvar_flank_disease_var_array[var_aa_num][wt_aa_num]
+
+            else:
+                residue_normalised_value = clinvar_flank_disease_var_array[var_aa_num][wt_aa_num]/gnomad_flank_var_array[var_aa_num][wt_aa_num]
+
+
+            residue_normalised_list.append(residue_normalised_value)
+        residue_normalised_count_matrix.append(residue_normalised_list)
+    source="ClinVar"
+    heatmap(np.array(residue_normalised_count_matrix), f"Residue normalised according to ClinVar div gnomAd in flank residue population in {color_dict_list[source]} state", aa_list_baezo_order, color_dict_list[source], None)
+
+
+
 
     #Normalise ClinVar acording to gnomAD in non-TMHs
     residue_normalised_count_matrix = []

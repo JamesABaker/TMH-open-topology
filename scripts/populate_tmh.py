@@ -101,9 +101,9 @@ def uniprot_table(query_id):
 
     record = SwissProt.read(open(filename))
     cross_reference = (record.cross_references)
-    for map in cross_reference:
-        if map[0] == 'GO':
-            go_to_database(map[1], query_id)
+    for go_mapping in cross_reference:
+        if go_mapping[0] == 'GO':
+            go_to_database(go_mapping[1], query_id)
 
 
 def binding_residues_to_table(filename):
@@ -664,8 +664,11 @@ def deltag(tmh_unique_id, tmh_sequence):
     print(deltag_result)
     deltag_result = deltag_result.decode("utf-8")
     deltag_result = deltag_result.split("\n")
-    deltag_result = deltag_result[8].split(" ")
-    deltag_result = deltag_result[1]
+    try:
+        deltag_result = deltag_result[8].split(" ")
+        deltag_result = deltag_result[1]
+    except(IndexError):
+        pass
     print("deltag=", deltag_result)
 
     tmh_protein = Tmh.objects.get(tmh_id=tmh_unique_id)

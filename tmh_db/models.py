@@ -178,6 +178,8 @@ class Structural_residue(models.Model):
     author_position = models.IntegerField(null=True)
     structure_aa = models.CharField(max_length=1, default='X', null=True)
     uniprot_position = models.IntegerField()
+    memprotmd_headgroups = models.FloatField(null=True)
+    memprotmd_tail = models.FloatField(null=True)
 
 class Uniref(models.Model):
     proteins = models.ManyToManyField(Protein)

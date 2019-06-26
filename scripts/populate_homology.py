@@ -130,18 +130,30 @@ def phmmer(a_query):
     # Usage: phmmer [-options] <seqfile> <seqdb>
     phmmer_result = check_output(["/usr/local/bin/phmmer", "-E 0.0000000001", "--noali", f"scripts/external_datasets/fasta_bin/{a_query}.fasta", "scripts/external_datasets/fasta_bin/all/all_fasta.fasta"])  # stdout=subprocess.PIPE)
     overall_results=[]
+
+    phmmer_result=str(phmmer_result.decode())
+    phmmer_result=phmmer_result.split('\n')
+    print(len(phmmer_result))
+
+
+    #print(phmmer_result)
     below_threshold = True
+
     while below_threshold == True:
+
+        phmmer_result=str(phmmer_result)
+
         for n, i in enumerate(phmmer_result):
-            result_line=[]
+            result_line=str(i)
+            #print(result_line)
             if str("inclusion threshold") in str(result_line):
                 below_threshold = False
-            i=i.split('\t')
-            result_line.append(i)
+            result_line=result_line.split('\t')
             if len(result_line) == 10:
                 overall_results.append(result_line)
 
         for n, i in enumerate(overall_results):
+            #print(i)
             seq_e_value=i[0]
             dom_e_value=i[3]
             database_id=i[8]
@@ -176,7 +188,7 @@ def uniref(a_query):
             page=page.split('\n')
 
         # Catch exceptions that are out of the control of these scripts
-        except (ConnectionError, RemoteDisconnected) as e:
+        except (ConnectionError, http.client.RemoteDisconnected, urllib.error.HTTPError):
             print("Connection dropped during download.")
 
     #print(page)
@@ -222,6 +234,11 @@ def run():
     inputs = input_query_process(input_query)
     input_queries = inputs[0]
     input_query_set = inputs[1]
+
+    for a_query in input_query:
+        a_query = clean_query(a_query)
+        print("Checking", a_query, "in phmmer...")
+        phmmer(a_query)
 
     for a_query in input_query:
         a_query = clean_query(a_query)
