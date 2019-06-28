@@ -173,51 +173,16 @@ def uniprot_tm_check(query_id):
     filename = str(f"scripts/external_datasets/uniprot_bin/{query_id}.txt")
     input_format = "swiss"
     feature_type = "TRANSMEM"
+
     subcellular_location = "TOPO_DOM"
-    # subcellular_location = "TOPO_DOM"
-    # avoid_features = ["TRANSMEM", "INTRAMEM"]
+    avoid_features = ["TRANSMEM", "INTRAMEM"]
 
     # We iterate through each record, parsed by biopython.
     # First we need a list of all the TMH stop start positions
+    # Now we can go through the record and write each TMH to the database (separate function)
     for record in SeqIO.parse(filename, input_format):
         list_of_tmhs = []
         total_tmh_number = 0
-        # features locations is a bit annoying as the start location needs +1 to match the sequence IO, but end is the correct sequence value.
-        for i, f in enumerate(record.features):
-            if f.type == feature_type:
-                if "UnknownPosition" in str(f.location.start) or "UnknownPosition" in str(f.location.end):
-                    print(record.id, "Unknown position for TMH in record")
-                    # this stops unknown tmhs masking polytopic as single pass
-                    total_tmh_number = total_tmh_number + 1
-                else:
-                    list_of_tmhs.append(int(f.location.start) + 1)
-                    list_of_tmhs.append(int(f.location.end))
-                    print(f"TMH found in {query_id}:", int(f.location.start) + 1, int(f.location.end))
-                    total_tmh_number = total_tmh_number + 1
-
-        if list_of_tmhs:  # Checks if it is a TM protein.
-            # The protein for the database
-            # This feels like it could go somewhere else...
-            print("TMHs found in", query_id)
-
-        else:
-            print("No TMHs found in UniProt text file for", query_id)
-
-        ## We can also check if any isoforms are in or near the TM region
-        #for i, f in enumerate(record.features):
-        #    if f.type == "VAR_SEQ":
-        #        for n, x in enumerate(record.features):
-        #            # Remember, feature type is set to transmembrane regions
-        #            if x.type == feature_type:
-        #                if int(x.location.start) + 1 - 5 <= int(f.location.end) and int(f.location.end) <= int(x.location.end) + 5:
-        #                    # print("An isoform will interfere with record", record.id)
-        #                    pass
-        #                elif int(x.location.start) + 1 - 5 < int(f.location.start) + 1 and int(f.location.start) + 1 <= int(x.location.end) + 5:
-        #                    # print("An isoform will interfere with record", record.id)
-        #                    pass
-
-    # Now we can go through the record and write each TMH to the database (separate function)
-    for record in SeqIO.parse(filename, input_format):
         full_sequence = str(record.seq)
         new_record = True
         tmd_count = 0
@@ -319,6 +284,9 @@ def uniprot_tm_check(query_id):
                                         if location in str(a_features.qualifiers):
                                             tmh_topology = "Outside"
                                             membrane_location = location
+
+                    #TMH, TMB, and SP should be sorted out here.
+                    #flank residues needs overhaul
 
                     tmh_list.append([query_id, tmh_number, total_tmh_number, tmh_start, tmh_stop, tmh_topology,
                                      evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence_type, full_sequence])

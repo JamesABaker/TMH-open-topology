@@ -3,6 +3,12 @@ from django.conf import settings
 from django.utils import timezone
 
 # Create your models here.
+from django.db import models
+from django.conf import settings
+from django.utils import timezone
+
+# Create your models here.
+
 
 class Database_Metadata(models.Model):
     version = models.TextField()
@@ -20,17 +26,18 @@ class Protein(models.Model):
 
 
 class Go(models.Model):
-    go_id=models.CharField(max_length=20, unique=True)
+    go_id = models.CharField(max_length=20, unique=True)
     proteins = models.ManyToManyField(Protein, related_name="gos")
 
 
 class Subcellular_location(models.Model):
-    location=models.TextField(default=None, null=True)
-    proteins = models.ManyToManyField(Protein, related_name="subcellular_locations")
+    location = models.TextField(default=None, null=True)
+    proteins = models.ManyToManyField(
+        Protein, related_name="subcellular_locations")
 
 
 class Keyword(models.Model):
-    keyword=models.TextField(unique=True)
+    keyword = models.TextField(unique=True)
     proteins = models.ManyToManyField(Protein, related_name="keywords")
 
 
@@ -64,7 +71,6 @@ class Pfam_residue(models.Model):
     pfam_position = models.IntegerField()
 
 
-
 class Tmh(models.Model):
     # Several features should map to  a protein.
     protein = models.ForeignKey(Protein, on_delete=models.CASCADE)
@@ -73,6 +79,8 @@ class Tmh(models.Model):
     tmh_id = models.TextField(unique=True)
 
     # tmh include the TMHs and stretches of protein.
+    # This is either: TMH, TMB, SP.
+    tm_type = models.TextField(default="Unknown")
     tmh_sequence = models.TextField()
     tmh_start = models.IntegerField()
     tmh_stop = models.IntegerField()
@@ -85,7 +93,6 @@ class Tmh(models.Model):
 
 
 class Tmh_tmsoc(models.Model):
-
     # Originally I thought this would be good for scores and results from
     # sequence analysis.
     tmh = models.ForeignKey(Tmh, on_delete=models.CASCADE)
@@ -143,13 +150,31 @@ class Binding_residue(models.Model):
     comment = models.TextField(null=True)
 
 
+class Flank(models.Model):
+    tmh = models.ForeignKey(Tmh, on_delete=models.CASCADE)
+    n_or_c = models.CharField(max_length=1, default='', null=True)
+    inside_or_outside = models.CharField(max_length=1, default='', null=True)
+
+
+class Flank_residue(models.Model):
+    residue = models.ForeignKey(Residue, on_delete=models.CASCADE)
+    flank = models.ForeignKey(Flank, on_delete=models.CASCADE)
+    amino_acid_type = models.CharField(max_length=1, default='')
+    amino_acid_location_n_to_c = models.IntegerField()
+    amino_acid_location_in_to_out = models.IntegerField(null=True)
+    # inside flank, outside flank. inside flank, outside flank are ONLY flanking TMHs.
+    feature_location = models.TextField(default="Unknown")
+    evidence = models.TextField()
+
+
 class Tmh_residue(models.Model):
     residue = models.ForeignKey(Residue, on_delete=models.CASCADE)
     tmh_id = models.ForeignKey(Tmh, on_delete=models.CASCADE)
     amino_acid_type = models.CharField(max_length=1, default='')
     amino_acid_location_n_to_c = models.IntegerField()
     amino_acid_location_in_to_out = models.IntegerField(null=True)
-    feature_location = models.TextField(default="Unknown") # This is either TMH or flank. TMH, inside flank, outside flank.
+    # This is either: TMH, TMB, SP.
+    feature_location = models.TextField(default="Unknown")
     evidence = models.TextField()
 
 
@@ -157,7 +182,8 @@ class Variant(models.Model):
     aa_wt = models.CharField(max_length=1, default='')
     aa_mut = models.CharField(max_length=1, default='')
     residue = models.ForeignKey(Residue, on_delete=models.CASCADE)
-    disease_status = models.TextField()  # either disease (d) or benign (n) or uncertain (u)
+    # either disease (d) or benign (n) or uncertain (u)
+    disease_status = models.TextField()
     disease_comments = models.TextField()
     variant_source = models.TextField(default="Unknown", null=True)
     variant_source_id = models.TextField(default="No_ID", null=True)
@@ -166,6 +192,7 @@ class Variant(models.Model):
 class Structure(models.Model):
     uniprot_protein = models.ForeignKey(Protein, on_delete=models.CASCADE)
     pdb_id = models.CharField(max_length=10, default='')
+
     class Meta:
         unique_together = ["pdb_id", "uniprot_protein"]
 
@@ -181,22 +208,38 @@ class Structural_residue(models.Model):
     memprotmd_headgroups = models.FloatField(null=True)
     memprotmd_tail = models.FloatField(null=True)
 
+
 class Uniref(models.Model):
     proteins = models.ManyToManyField(Protein)
     representative_id = models.CharField(max_length=20, unique=True)
 
+
 class Phmmer_proteins(models.Model):
-    protein_query = models.ForeignKey(Protein, on_delete=models.CASCADE, related_name='protein_query_uniprot_id')
-    protein_database = models.ForeignKey(Protein, on_delete=models.CASCADE, related_name='protein_database_uniprot_id')
+    protein_query = models.ForeignKey(
+        Protein, on_delete=models.CASCADE, related_name='protein_query_uniprot_id')
+    protein_database = models.ForeignKey(
+        Protein, on_delete=models.CASCADE, related_name='protein_database_uniprot_id')
     sequence_e_value = models.FloatField(null=True)
     domain_e_value = models.FloatField(null=True)
+
     class Meta:
         unique_together = ["protein_query", "protein_database"]
 
+
 class Phmmer_residues(models.Model):
-    phmmer_alignment = models.ForeignKey(Phmmer_proteins, on_delete=models.CASCADE)
+    phmmer_alignment = models.ForeignKey(
+        Phmmer_proteins, on_delete=models.CASCADE)
     position_in_alignment = models.IntegerField()
-    residue_query = models.ForeignKey(Residue, on_delete=models.CASCADE, related_name='residue_query')
-    residue_database = models.ForeignKey(Residue, on_delete=models.CASCADE, related_name='residue_database')
+    residue_query = models.ForeignKey(
+        Residue, on_delete=models.CASCADE, related_name='residue_query')
+    residue_database = models.ForeignKey(
+        Residue, on_delete=models.CASCADE, related_name='residue_database')
+
     class Meta:
-        unique_together = ["phmmer_alignment", "residue_query", "residue_database"]
+        unique_together = ["phmmer_alignment",
+                           "residue_query", "residue_database"]
+
+
+class Tail_anchor(models.Model):
+    protein = models.OneToOneField(Protein, on_delete=models.CASCADE)
+    evidence = models.TextField(default="Unknown", null=True)
