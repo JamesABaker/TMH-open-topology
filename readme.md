@@ -12,20 +12,20 @@ This is a tool to help to evaluate coding SNP disease variants in the context of
 It curates TMHs boundaries and topology from several sources and cross references those against several variant databases.
 
 1.  TMHs in TMPs are enriched for disease at a proteomic scale.
-    - - [ ] Bar plot showing TMP disease variants per residue versus gnomAD variants per residue. _TMHs are enriched for disease variants_.
-    - - [ ] Statistics showing a difference between these two sets. _Disease variant enrichment in TMHs is significant_.
+    -  Bar plot showing TMP disease variants per residue versus gnomAD variants per residue. _TMHs are enriched for disease variants_.
+    -  Statistics showing a difference between these two sets. _Disease variant enrichment in TMHs is significant_.
 
 2.  The types of residue SNPs that cause disease are different in TMHs than other regions of TMPs at a proteome scale.
-    - - [ ] Show mutability of each residue in different conditions (bar plots for all residues, then TMH, non-TMH, inside flank, outside flank). _Mutability varies between TMHs and non-TMHs_.
-    - - [ ] Disease propensity in proteomic TMH/non-TMH. _Disease effect for a given variant type is generally different between TMHs and non TMHs_.
+    -  Show mutability of each residue in different conditions (bar plots for all residues, then TMH, non-TMH, inside flank, outside flank). _Mutability varies between TMHs and non-TMHs_.
+    -  Disease propensity in proteomic TMH/non-TMH. _Disease effect for a given variant type is generally different between TMHs and non TMHs_.
 
 3. Different types of amino acid variants in TMHs cause disease depending on context.
-    - - [ ] Split TMPs into Single pass multi pass and use disease propensity heatmaps. _Within populations of TMHs, functional context matters for variant effect_.
-    - - [ ] GPCRs and ion channels disease propensity heatmaps. _Evolutionarily distinct groups of proteins are effected differently by variance in terms of disease_.
-    - - [ ] Structural analysis can enrich our understanding of the variant effect. _The physicochemical context of a residue in a TMH alters the variant effect_.
-        - disease propensity heatmap for head contact group residues (including homologous residues and their variants)
-        - disease propensity heatmap for tail contact group residues (including homologous residues and their variants)
-        - disease propensity heatmap for pore facing residues (including homologous residues and their variants)
+    -  Split TMPs into Single pass multi pass and use disease propensity heatmaps. _Within populations of TMHs, functional context matters for variant effect_.
+    -  GPCRs and ion channels disease propensity heatmaps. _Evolutionarily distinct groups of proteins are effected differently by variance in terms of disease_.
+4. Structural analysis can enrich our understanding of the variant effect. _The physicochemical context of a residue in a TMH alters the variant effect_.
+      - disease propensity heatmap for head contact group residues (including homologous residues and their variants)
+      - disease propensity heatmap for tail contact group residues (including homologous residues and their variants)
+      - disease propensity heatmap for pore facing residues (including homologous residues and their variants)
 
 
 ## Abstract
