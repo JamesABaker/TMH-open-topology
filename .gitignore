@@ -30,7 +30,7 @@ tmh_database/tmh_database/password.txt
 *.pdf
 *.pdb
 
-tmh_database/*.xml
+scripts/external_datasets/*.xml
 
 !version_key.txt
 
