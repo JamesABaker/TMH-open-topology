@@ -19,25 +19,14 @@ import scipy.stats as stats
 import collections
 from matplotlib.colors import LogNorm
 from scripts.graphs import *
-import collections
+
 from scripts.populate_general_functions import *
 
-def heatmap_array(var_freq_dict, aa_order):
-    var_freq = collections.Counter(var_freq_dict)
-    large_array=[]
-    for aa_mut in aa_order:
-        aa_array=[]
-        for aa_wt in aa_order:
-            #This query is counter intuitive. The aa_wt is first in the tuple, the aa_mut is second. The aa_mut is first in the loop to make sure it is on the y axis.
-            aa_array.append(var_freq[(aa_wt, aa_mut)])
-        large_array.append(aa_array)
-    #print(np.array(large_array))
-    return(np.array(large_array))
 
-def porewalker_batch_list:
-    pdb_porewalker_ids = Structure.objects.filter(uniprot_protein__keywords__keyword="Ion channel").values_list("pdb_id")
-    for i in pdb_porewalker_ids:
-        pdb_id=clean_query(i)
+#def porewalker_batch_list:
+#    pdb_porewalker_ids = Structure.objects.filter(uniprot_protein__keywords__keyword="Ion channel").values_list("pdb_id")
+#    for i in pdb_porewalker_ids:
+#        pdb_id=clean_query(i)
 
 def normalise_tmh_resid_array(var_freqs_list, aa_list):
     large_array = []

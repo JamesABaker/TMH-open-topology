@@ -1,6 +1,8 @@
 from requests import get
 from requests.exceptions import ConnectionError
 from datetime import date
+import collections
+import numpy as np
 
 """
 These functions are used repeatedly throughout the population process.
@@ -62,7 +64,7 @@ def download(url, file_name):
                 print("Donwloading", url, "to", file_name, "...")
                 # connect
                 response = get(url)
-            except (ConnectionError, urllib.error.HTTPError) as e:
+            except (ConnectionError) as e:
                 print("Connection dropped during download.")
 
         # write to file
@@ -75,7 +77,7 @@ def clean_query(query):
      dirty input like a user input.
     '''
 
-    illegal_characters = ["!", "\n", " ", "@"]
+    illegal_characters = ["!", "\n", " ", "@", "'", ")", ",", "("]
     for char in illegal_characters:
         query = query.replace(char, "")
     a_clean_query = query
@@ -99,3 +101,15 @@ def input_query_process(input_query):
     input_query_set = set(input_queries)
 
     return([input_queries, input_query_set])
+
+def heatmap_array(var_freq_dict, aa_order):
+    var_freq = collections.Counter(var_freq_dict)
+    large_array=[]
+    for aa_mut in aa_order:
+        aa_array=[]
+        for aa_wt in aa_order:
+            #This query is counter intuitive. The aa_wt is first in the tuple, the aa_mut is second. The aa_mut is first in the loop to make sure it is on the y axis.
+            aa_array.append(var_freq[(aa_wt, aa_mut)])
+        large_array.append(aa_array)
+    #print(np.array(large_array))
+    return(np.array(large_array))

@@ -20,8 +20,9 @@ It curates TMHs boundaries and topology from several sources and cross reference
     -  Disease propensity in proteomic TMH/non-TMH. _Disease effect for a given variant type is generally different between TMHs and non TMHs_.
 
 3. Different types of amino acid variants in TMHs cause disease depending on context.
-    -  Split TMPs into Single pass multi pass and use disease propensity heatmaps. _Within populations of TMHs, functional context matters for variant effect_.
+    -  Split TMPs into Single pass, multi pass, and tail anchored proteins and use disease propensity heatmaps. _Within populations of TMHs, functional context matters for variant effect_.
     -  GPCRs and ion channels disease propensity heatmaps. _Evolutionarily distinct groups of proteins are effected differently by variance in terms of disease_.
+    - Split TMHs into the most hydrophobic/TMSOC z-score/von Heijne delta G. Compare the top and bottom quartile. _The anchoring potential of a TMH alters the variant effect_.
 4. Structural analysis can enrich our understanding of the variant effect. _The physicochemical context of a residue in a TMH alters the variant effect_.
       - disease propensity heatmap for head contact group residues (including homologous residues and their variants)
       - disease propensity heatmap for tail contact group residues (including homologous residues and their variants)
@@ -43,6 +44,13 @@ This allowed us to examine the nuances of how different variants impact transmem
 As well as gaining an understanding of the concepts of disease variants in transmembrane proteins, the tools we have developed will increase the ability to predict the variant effect in the biochemically distinct membrane regions.
 
 ## Statistics
+
+|                          |  Total  |   TMH  |
+|:------------------------:|:-------:|:------:|
+|         Residues         | 2903858 | 516366 |
+|     Disease Variants     |  22289  |  6523  |
+| ClinVar Disease Variants |  11596  |  3002  |
+|      gnomAD Variants     | 2081946 | 361515 |
 
 ![Barplot showing the number of disease variants per residue in transmembrane and non transmembrane regions.](images/TMP_disease_variants.png)
 

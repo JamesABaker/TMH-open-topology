@@ -6,6 +6,8 @@ import numpy as np
 import scipy.stats as stats
 import collections
 from matplotlib.colors import LogNorm
+from datetime import datetime
+date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 def barchart(objects, performance, source, state, x_label, y_label):
     color_dic = {
@@ -22,7 +24,7 @@ def barchart(objects, performance, source, state, x_label, y_label):
     #plt.ylabel('Variants per residue')
     plt.ylabel(y_label)
     plt.title(source)
-    filename = f"images/{source}.png"
+    filename = f"images/{source}_{date}.png"
     plt.savefig(filename, bbox_inches='tight')
     plt.clf()
 
@@ -36,7 +38,7 @@ def histogram(performance, source, state,x_label, y_label):
     plt.hist(performance, bins=len(performance))
     plt.gca().set(title=source, ylabel=y_label, xlabel=x_label);
     plt.title(source)
-    filename = f"images/{source}.png"
+    filename = f"images/{source}_{date}.png"
     plt.savefig(filename, bbox_inches='tight')
     plt.clf()
 
@@ -64,7 +66,7 @@ def heatmap(var_freqs_list, title, aa_list_baezo_order, state, is_it_log):
     ax.set_ylabel("Variant (to)")
     ax.set_title(title)
     fig.tight_layout()
-    filename = f"images/{title}.png"
+    filename = f"images/{title}_{date}.png"
     # And now the colorbar
     # --------------------------------------------------------
     fig.colorbar(im)

@@ -240,13 +240,16 @@ def varmap_process(varmap_list, source, varmap_index, *clinvar_summary):
         # This only applies to clinvar
         for list in clinvar_summary:
             for summary_line in list: #No idea why this [0] is needed. A list in a list should be what it is, not a list in a list in a list.
-                # print(i)
+                # print(summary_line)
                     #print("Is", int(i[-1]), "equal to", int(USER_ID), "?" )
-                if int(summary_line[-1]) == int(user_id):  #  (variant id is last column in summary)
+                try:
+                    if int(summary_line[-1]) == int(user_id):  #  (variant id is last column in summary)
                         # print("clinvar summary and snipclip finally found a hit for variant ",int(var_record_id))
 
-                    disease_status = disease_class(summary_line[6])
-                    disease_comments = summary_line[24]
+                        disease_status = disease_class(summary_line[6])
+                        disease_comments = summary_line[24]
+                except(ValueError):
+                    print(user_id, "should be a number. Summary line:", summary_line)
 
         var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut,
                         disease_status, disease_comments, variant_source, user_id)
@@ -297,7 +300,7 @@ def run():
 
     clinvar_summary_lines = []
     print("Loading the variant summaries from ClinVar. This holds information on disease states in clinvar.")
-    with open("scripts/external_datasets/variant_summary_25_06_2019.txt") as inputfile: 
+    with open("scripts/external_datasets/variant_summary_25_06_2019.txt") as inputfile:
         for line_number, summary_variant in enumerate(inputfile):
             if line_number > 0:
                 summary_variant = summary_variant.strip().split('\t')
