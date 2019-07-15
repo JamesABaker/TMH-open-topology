@@ -61,6 +61,9 @@ def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_
     elif len(aa_wt) > 1 or len(aa_mut) > 1:
         print("More than a single residue changed. Assuming this is not an SNP: ", uniprot_record,
               var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source, variant_source_id)
+    elif "*" in str(aa_mut):
+        print("Stop codon introduced. This will change more than one residue:", uniprot_record,
+              var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source, variant_source_id)
     else:
 
         protein = Protein.objects.get(uniprot_id=uniprot_record)
