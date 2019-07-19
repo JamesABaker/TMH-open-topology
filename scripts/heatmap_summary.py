@@ -5,9 +5,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.sessions.models import Session
 from tmh_db.models import Binding_residue, Database_Metadata, Funfam, Funfam_residue, Funfamstatus, Go, Keyword, Pfam, Pfam_residue, Protein, Residue, Structural_residue, Structure, Subcellular_location, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Uniref, Variant
 # Shell Plus Django Imports
-from django.core.cache import cache
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Avg, Case, Count, F, Max, Min, Prefetch, Q, Sum, When, Exists, OuterRef, Subquery
 from django.utils import timezone
@@ -17,7 +15,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats as stats
 import collections
-from matplotlib.colors import LogNorm
+from matplotlib.patches import Circle
 from scripts.graphs import *
 import collections
 from scripts.populate_general_functions import *

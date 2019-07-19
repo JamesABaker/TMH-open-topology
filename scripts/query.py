@@ -14,7 +14,6 @@ from django.utils import timezone
 from django.urls import reverse
 from scripts.populate_general_functions import *
 from scripts.graphs import *
-import numpy as np
 
 
 #This will eventually act as a test file

@@ -12,7 +12,6 @@ import subprocess
 import json
 from subprocess import check_output
 import re
-import sys
 import defusedxml.ElementTree as ET
 import Bio
 from Bio import SeqIO

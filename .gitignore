@@ -38,3 +38,4 @@ scripts/external_datasets/*.xml
 !requirements.txt
 
 tm_virtualenv/
+images/

@@ -1,13 +1,34 @@
 from requests import get
-from requests.exceptions import ConnectionError
 from datetime import date
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats as stats
 import collections
-from matplotlib.colors import LogNorm
 from datetime import datetime
 date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+
+impossible_snps={"K": ["M", "T", "E","Q","R","N"],
+                "P":["T","Q","R","H"],
+                "H":["L","Y","D","Q","N","P"],
+                "N":["I","Y","T","D","H","K"],
+                "G":["W","V","Y","T","E","D"],
+                "S":[],
+                "R":[],
+                "Q":[],
+                "E":[],
+                "T":[],
+                "A":[],
+                "Y":[],
+                "C":[],
+                "V":[],
+                "M":[],
+                "I":[],
+                "L":[],
+                "W":[],
+                "F":[],
+                }
+
 
 def barchart(objects, performance, source, state, x_label, y_label):
     color_dic = {
@@ -65,11 +86,18 @@ def heatmap(var_freqs_list, title, aa_list_baezo_order, state, is_it_log):
     ax.set_xlabel("Wildtype (from)")
     ax.set_ylabel("Variant (to)")
     ax.set_title(title)
+
+
+
     fig.tight_layout()
     filename = f"images/{title}_{date}.png"
     # And now the colorbar
     # --------------------------------------------------------
     fig.colorbar(im)
+
+    for x_coordinate, x_amino_acid in enumerate(aa_list_baezo_order):
+        for y_coordinate, y_amino_acid in enumerate(aa_list_baezo_order):
+            plt.Circle((x_coordinate, y_coordinate), 0.5, color='black', fill=False)
 
     plt.savefig(filename)
     plt.clf()

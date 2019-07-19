@@ -1,16 +1,13 @@
 from __future__ import division
 import requests
 import urllib
-from requests import get
 import shutil
 import numpy as np
 import os
 import collections
 import time
 import gzip
-import subprocess
 import json
-from subprocess import check_output
 import re
 import sys
 import defusedxml.ElementTree as ET
@@ -24,7 +21,6 @@ from Bio.SeqUtils.ProtParam import ProteinAnalysis
 from django.conf import settings
 from django.db import models
 from tmh_db.models import Database_Metadata, Uniref, Go, Structure, Structural_residue, Funfam_residue, Funfamstatus, Protein, Residue, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Variant, Keyword, Binding_residue
-from datetime import datetime, timedelta
 from django.utils import timezone
 from datetime import date
 import pytz
@@ -99,7 +95,9 @@ def sifts_mapping(a_query):
                                     pdb_chain=pdb_chain,
                                     author_position=author_position,
                                     structure_aa=structure_aa,
-                                    uniprot_position=residue["sequence_position"]
+                                    uniprot_position=residue["sequence_position"],
+                                    memprotmd_headgroups=None,
+                                    memprotmd_tail=None
                                 )
 
                         except KeyError:

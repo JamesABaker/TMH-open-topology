@@ -5,10 +5,8 @@ from requests import get
 import shutil
 import numpy as np
 import os
-import collections
 import time
 import gzip
-import subprocess
 import json
 from subprocess import check_output
 import re
@@ -19,7 +17,6 @@ from Bio import SeqIO
 from Bio import SwissProt
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 # env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
-from django.conf import settings
 from django.db import models
 from tmh_db.models import Database_Metadata, Subcellular_location, Uniref, Go, Structure, Structural_residue, Funfam_residue, Funfamstatus, Protein, Residue, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Variant, Keyword, Binding_residue
 from datetime import datetime, timedelta
@@ -208,7 +205,6 @@ def uniprot_tm_check(query_id):
                     tmd_count = tmd_count + 1
                     tmh_number = tmd_count
                     n_terminal_start = "none"
-                    record_present = True
                     full_sequence = str(record.seq)
                     # This is the human readable value. It should not be used for slices
                     tmh_start = int(f.location.start) + 1
@@ -598,7 +594,7 @@ def tmsoc(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_stop):
     for line in tmsoc_result:
         if str(tmh_sequence + ";") in line:
             result = line.split(";")
-            sequence = result[0]
+            #sequence = result[0]
             start_stop = result[1]
             score_one = result[2]
             score_two = result[3]
@@ -741,7 +737,7 @@ def tmh_input(input_query):
     topdb_file = 'scripts/external_datasets/topdb_all.xml'
     try:
         topdb = ET.parse(topdb_file)
-    except:
+    except FileNotFoundError:
         download(topdb_url, topdb_file)
         topdb = ET.parse(topdb_file)
     # mptopo = ET.parse('mptopoTblXml.xml')

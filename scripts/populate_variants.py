@@ -224,7 +224,6 @@ def humsavar_variant_check(humsavar_variant):
 def varmap_process(varmap_list, source, varmap_index, *clinvar_summary):
     for varmap_item in varmap_list:
         variant_source = source
-        variants_in_tmh = []
         var_record_location = varmap_item[varmap_index["SEQ_NO"]]
         var_record_id = varmap_item[varmap_index["USER_ID"]]
         uniprot_record = varmap_item[varmap_index["UNIPROT_ACCESSION"]]
