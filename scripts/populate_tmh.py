@@ -116,12 +116,14 @@ def binding_residues_to_table(filename):
                         residue=specific_residue,
                         comment=f.qualifiers,)
 
+
 def subcellular_location(filename):
     for record in SeqIO.parse(filename, "swiss"):
         protein = Protein.objects.get(uniprot_id=record.id)
         for i, f in enumerate(record.features):
             if f.type == "TOPO_DOM":
-                subcellular_location_for_database, created = Subcellular_location.objects.get_or_create(location=f.qualifiers["description"])
+                subcellular_location_for_database, created = Subcellular_location.objects.get_or_create(
+                    location=f.qualifiers["description"])
                 subcellular_location_for_database.proteins.add(protein)
 
 
@@ -130,6 +132,7 @@ def go_to_database(go_id, uniprot_id):
     go_for_database, created = Go.objects.get_or_create(go_id=go_id)
     target_protein = Protein.objects.get(uniprot_id=uniprot_id)
     go_for_database.proteins.add(target_protein)
+
 
 def residue_table(query_id, sequence):
     protein = Protein.objects.get(uniprot_id=query_id)
@@ -200,11 +203,19 @@ def uniprot_tm_check(query_id):
                     membrane_location = None
                     n_ter_seq = None
                     tmh_sequence = None
-                    c_ter_seq=None
-                    #tmh_number=None
+                    c_ter_seq = None
+                    # tmh_number=None
                     tmd_count = tmd_count + 1
                     tmh_number = tmd_count
                     n_terminal_start = "none"
+
+                    if "Helical" in str(f.qualifiers["description"]):
+                        tm_type="Helix"
+                    elif "Strand" in str(f.qualifiers["description"]):
+                        tm_type="Beta"
+                    else:
+                        tm_type="Unknown"
+
                     full_sequence = str(record.seq)
                     # This is the human readable value. It should not be used for slices
                     tmh_start = int(f.location.start) + 1
@@ -281,11 +292,11 @@ def uniprot_tm_check(query_id):
                                             tmh_topology = "Outside"
                                             membrane_location = location
 
-                    #TMH, TMB, and SP should be sorted out here.
-                    #flank residues needs overhaul
+                    # TMH, TMB, and SP should be sorted out here.
+                    # flank residues needs overhaul
 
                     tmh_list.append([query_id, tmh_number, total_tmh_number, tmh_start, tmh_stop, tmh_topology,
-                                     evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence_type, full_sequence])
+                                     evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence_type, full_sequence, tm_type])
 
         corrected_tmh_list = topology_tidy(tmh_list)
         tmh_to_database(corrected_tmh_list)
@@ -372,17 +383,15 @@ def topdb_check(query_id, topdb):
 
                                                             # preparing any non established variables for standard tmh recording.
                                                             full_sequence = sequence
-
+                                                            tm_type = "helix"
                                                             tmh_list.append([query_id, tmh_number, total_tmh_number, tmh_start + 1, tmh_stop, tmh_topology,
-                                                                             evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence_type, full_sequence])
+                                                                             evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence_type, full_sequence, tm_type])
                                                         # Although it is about as elegant as a sledgehammer,
                                                         # this catches the previous non tmh environment.
                                                         tmh_topology = tmh_details["Loc"]
 
                                     tmh_to_database(tmh_list)
                                     return(tmh_list)
-
-
 
 
 def keyword_to_database(keyword, uniprot_id):
@@ -436,7 +445,7 @@ def tmh_to_database(tmh_list):
     # Now we have a complete list of the TMHs.
 
     for tmh_number_iteration, a_tmh in enumerate(tmh_list):
-        print("TMH info:",a_tmh)
+        print("TMH info:", a_tmh)
         query_id = a_tmh[0]
         tmh_number = a_tmh[1]
         tmh_total_number = a_tmh[2]
@@ -449,8 +458,9 @@ def tmh_to_database(tmh_list):
         n_ter_seq = a_tmh[8].replace("\n", "")
         tmh_sequence = a_tmh[9].replace("\n", "")
         c_ter_seq = a_tmh[10].replace("\n", "")
-        evidence = a_tmh[11]
+        evidence = a_tmh[11].replace("\n", "")
         full_sequence = a_tmh[12].replace("\n", "")
+        tm_type = a_tmh[13].replace("\n", "")
 
         if tmh_topology is None:
             tmh_topology = "Unknown"
@@ -462,7 +472,8 @@ def tmh_to_database(tmh_list):
         else:
             n_terminal_inside = "Unknown"
         tmh_protein = Protein.objects.get(uniprot_id=query_id)
-        print("Generating tmh id key from\nQuery id:",query_id,"\nTMH number:",tmh_number,"\nEvidence:",evidence)
+        print("Generating tmh id key from\nQuery id:", query_id,
+              "\nTMH number:", tmh_number, "\nEvidence:", evidence)
         tmh_unique_id = str(query_id + "." + str(tmh_number) + "." + evidence)
 
         print(tmh_unique_id)
@@ -480,7 +491,8 @@ def tmh_to_database(tmh_list):
                 "membrane_type": membrane_location,
                 "tmh_number": tmh_number,
                 "tmh_total_number": tmh_total_number,
-                "n_terminal_inside": n_terminal_inside
+                "n_terminal_inside": n_terminal_inside,
+                "tm_type": tm_type
             }
         )
 
@@ -502,7 +514,8 @@ def tmh_to_database(tmh_list):
         for tmh_residue_number, a_residue in enumerate(sequences_to_add):
 
             # Where is the residue in reference to the TMH
-            sequence_position = int(tmh_start - len(n_ter_seq)) + tmh_residue_number
+            sequence_position = int(
+                tmh_start - len(n_ter_seq)) + tmh_residue_number
 
             if sequence_position < tmh_start:  # This doesn't make sense
                 #"N flank"
@@ -733,7 +746,7 @@ def tmh_input(input_query):
     print("Extracting TMH bounadries from...")
     # Parse the xml static files since this is the slowest part.
     # Ignore this for now -  we need to sort out uniprot before anything else!
-    topdb_url="http://topdb.enzim.hu/?m=download&file=topdb_all.xml"
+    topdb_url = "http://topdb.enzim.hu/?m=download&file=topdb_all.xml"
     topdb_file = 'scripts/external_datasets/topdb_all.xml'
     try:
         topdb = ET.parse(topdb_file)
@@ -791,4 +804,4 @@ def run():
         uniprot_table(a_query)
 
     ### TMH Tables ###
-    #tmh_input(input_query)
+    # tmh_input(input_query)
