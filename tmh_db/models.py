@@ -152,8 +152,11 @@ class Binding_residue(models.Model):
 
 class Flank(models.Model):
     tmh = models.ForeignKey(Tmh, on_delete=models.CASCADE)
+    flank_sequence = models.TextField()
     n_or_c = models.CharField(max_length=1, default='', null=True)
     inside_or_outside = models.CharField(max_length=1, default='', null=True)
+    class Meta:
+        unique_together = ["tmh", "n_or_c"]
 
 
 class Flank_residue(models.Model):
