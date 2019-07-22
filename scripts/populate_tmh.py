@@ -210,11 +210,11 @@ def uniprot_tm_check(query_id):
                     n_terminal_start = "none"
 
                     if "Helical" in str(f.qualifiers["description"]):
-                        tm_type="Helix"
+                        tm_type = "Helix"
                     elif "Strand" in str(f.qualifiers["description"]):
-                        tm_type="Beta"
+                        tm_type = "Beta"
                     else:
-                        tm_type="Unknown"
+                        tm_type = "Unknown"
 
                     full_sequence = str(record.seq)
                     # This is the human readable value. It should not be used for slices
@@ -496,6 +496,32 @@ def tmh_to_database(tmh_list):
             }
         )
 
+        # Add the N terminal to the database
+        current_tmh = Tmh.objects.get(tmh_id=tmh_unique_id)
+        record_for_database, created = Flank.objects.update_or_create(
+            tmh=current_tmh,
+            defaults={
+                "flank_sequence":n_ter_seq,
+                "n_or_c":"N",
+                "inside_or_outside":n_terminal_inside
+            }
+        )
+
+        # Add the C terminal to the database
+        if n_terminal_inside == "Inside":
+            c_terminal_inside = "Outside"
+        elif n_terminal_inside == "Outside":
+            c_terminal_inside = "Inside"
+
+        record_for_database, created = Flank.objects.update_or_create(
+            tmh=current_tmh,
+            defaults={
+                "flank_sequence":c_ter_seq,
+                "n_or_c":"C",
+                "inside_or_outside":c_terminal_inside
+            }
+        )
+
         # Now we run the calculations on anything that works at the TM level.
         tmsoc(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_stop)
         deltag(tmh_unique_id, tmh_sequence)
@@ -563,18 +589,60 @@ def tmh_to_database(tmh_list):
             specific_residue = Residue.objects.get(
                 protein=tmh_protein, sequence_position=int(sequence_position))
 
-            record_for_database, created = Tmh_residue.objects.update_or_create(
-                residue=specific_residue,
-                tmh_id=transmembrane_helix,
-                defaults={
-                    "amino_acid_type": a_residue,
-                    "evidence": evidence,
-                    "amino_acid_location_n_to_c": amino_acid_location_n_to_c,
-                    "amino_acid_location_in_to_out": amino_acid_location_in_to_out,
-                    # This is either TMH or flank. TMH, inside flank, outside flank.
-                    "feature_location":  feature_location
-                }
-            )
+            if feature_location == "TMH":
+
+                record_for_database, created = Tmh_residue.objects.update_or_create(
+                    residue=specific_residue,
+                    tmh_id=transmembrane_helix,
+                    defaults={
+                        "amino_acid_type": a_residue,
+                        "evidence": evidence,
+                        "amino_acid_location_n_to_c": amino_acid_location_n_to_c,
+                        "amino_acid_location_in_to_out": amino_acid_location_in_to_out,
+                        # This is either TMH or flank. TMH, inside flank, outside flank.
+                        "feature_location":  feature_location
+                    }
+                )
+
+            elif feature_location == "Inside flank":
+                flank_n_or_c = None
+                if n_terminal_inside == "Inside":
+                    flank_n_or_c = "N"
+                elif n_terminal_inside == "Outside":
+                    flank_n_or_c = "C"
+                this_flank = Flank.objects.get(
+                    tmh=transmembrane_helix, n_or_c=flank_n_or_c)
+                record_for_database, created = Flank_residue.objects.update_or_create(
+                    residue=specific_residue,
+                    flank=this_flank,
+                    defaults={
+                        "amino_acid_type": a_residue,
+                        "evidence": evidence,
+                        "amino_acid_location_n_to_c": amino_acid_location_n_to_c,
+                        "amino_acid_location_in_to_out": amino_acid_location_in_to_out,
+                        # inside flank, outside flank. inside flank, outside flank are ONLY flanking TMHs.
+                        "feature_location":feature_location
+                    })
+
+            elif feature_location == "Outside flank":
+                flank_n_or_c = None
+                if n_terminal_inside == "Inside":
+                    flank_n_or_c = "C"
+                elif n_terminal_inside == "Outside":
+                    flank_n_or_c = "N"
+                this_flank = Flank.objects.get(
+                    tmh=transmembrane_helix, n_or_c=flank_n_or_c)
+                record_for_database, created = Flank_residue.objects.update_or_create(
+                    residue=specific_residue,
+                    flank=this_flank,
+                    defaults={
+                        "amino_acid_type": a_residue,
+                        "evidence": evidence,
+                        "amino_acid_location_n_to_c": amino_acid_location_n_to_c,
+                        "amino_acid_location_in_to_out": amino_acid_location_in_to_out,
+                        # inside flank, outside flank. inside flank, outside flank are ONLY flanking TMHs.
+                        "feature_location":feature_location
+                    })
 
 
 def tmsoc(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_stop):

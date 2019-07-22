@@ -13,6 +13,7 @@ time_threshold = 7
 today = date.today()
 todaysdate = today.strftime("%d_%m_%Y")
 
+
 def get_uniprot():
     '''
     Downloads UniProt IDs from Human transmembrane proteins from UniProt.org.
@@ -38,6 +39,7 @@ def get_uniprot():
         input_query = input_query[1:]
 
     return(input_query)
+
 
 def input_query_get():
     '''
@@ -101,6 +103,7 @@ def input_query_process(input_query):
     input_query_set = set(input_queries)
 
     return([input_queries, input_query_set])
+
 
 def heatmap_array(var_freq_dict, aa_order):
     var_freq = collections.Counter(var_freq_dict)

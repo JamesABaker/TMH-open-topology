@@ -22,10 +22,13 @@ It curates TMHs boundaries and topology from several sources and cross reference
     -   Disease propensity in proteomic TMH/non-TMH. _Disease effect for a given variant type is generally different between TMHs and non TMHs_.
 
 3.  Different types of amino acid variants in TMHs cause disease depending on context.
+
     -   Split TMPs into Single pass, multi pass, and tail anchored proteins and use disease propensity heatmaps. _Within populations of TMHs, functional context matters for variant effect_.
     -   GPCRs and ion channels disease propensity heatmaps. _Evolutionarily distinct groups of proteins are effected differently by variance in terms of disease_.
     -   Split TMHs into the most hydrophobic/TMSOC z-score/von Heijne delta G. Compare the top and bottom quartile. _The anchoring potential of a TMH alters the variant effect_.
+
 4.  Structural analysis can enrich our understanding of the variant effect. _The physicochemical context of a residue in a TMH alters the variant effect_.
+
     -   disease propensity heatmap for head contact group residues (including homologous residues and their variants)
     -   disease propensity heatmap for tail contact group residues (including homologous residues and their variants)
     -   disease propensity heatmap for pore facing residues (including homologous residues and their variants)
