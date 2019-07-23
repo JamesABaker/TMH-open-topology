@@ -14,6 +14,17 @@ today = date.today()
 todaysdate = today.strftime("%d_%m_%Y")
 
 
+def open_uniprot(uniprot_list_file):
+    with open(uniprot_list_file) as f:
+        # Somehow this has already made a list.
+        lines = f
+
+        input_query = list(lines)
+        # Entry is the first line, which will break later code as it is not a valid uniprot id!
+        input_query = input_query[1:]
+        return(input_query)
+
+
 def get_uniprot():
     '''
     Downloads UniProt IDs from Human transmembrane proteins from UniProt.org.
@@ -25,18 +36,13 @@ def get_uniprot():
     # uniprot_list = 'https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+organism%3A"Homo+sapiens+(Human)+[9606]"+AND+annotation%3A(type%3Atransmem)&sort=score&columns=id,&format=tab'
     uniprot_list_file = "scripts/external_datasets/uniprot_bin/uniprot_list" + \
         todaysdate + ".txt"
-
-    download(uniprot_list_url, uniprot_list_file)
-
-    # This saves the request to a file for reasons beyond me.
-    # So we now need to open the file to recover the items as a list.
-    with open(uniprot_list_file) as f:
-        # Somehow this has already made a list.
-        lines = f
-
-        input_query = list(lines)
-        # Entry is the first line, which will break later code as it is not a valid uniprot id!
-        input_query = input_query[1:]
+    try:
+        input_query = open_uniprot(uniprot_list_file)
+    except:
+        download(uniprot_list_url, uniprot_list_file)
+        input_query = open_uniprot(uniprot_list_file)
+        # This saves the request to a file for reasons beyond me.
+        # So we now need to open the file to recover the items as a list.
 
     return(input_query)
 
@@ -48,7 +54,7 @@ def input_query_get():
     # In full scale mode it will take a long time which may not be suitable for development.
     input_query_list = get_uniprot()
     # Here we will just use a watered down list of tricky proteins. Uncomment this line for testing the whole list.
-    #input_query_list = ["P01850", "P22760", "Q5K4L6","Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q9NS61"]
+    #input_query_list = ["P01850", "P22760", "Q5K4L6","Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q9NS61", "P02748"]
 
     return(input_query_list)
 
@@ -107,12 +113,12 @@ def input_query_process(input_query):
 
 def heatmap_array(var_freq_dict, aa_order):
     var_freq = collections.Counter(var_freq_dict)
-    large_array=[]
+    large_array = []
     for aa_mut in aa_order:
-        aa_array=[]
+        aa_array = []
         for aa_wt in aa_order:
-            #This query is counter intuitive. The aa_wt is first in the tuple, the aa_mut is second. The aa_mut is first in the loop to make sure it is on the y axis.
+            # This query is counter intuitive. The aa_wt is first in the tuple, the aa_mut is second. The aa_mut is first in the loop to make sure it is on the y axis.
             aa_array.append(var_freq[(aa_wt, aa_mut)])
         large_array.append(aa_array)
-    #print(np.array(large_array))
+    # print(np.array(large_array))
     return(np.array(large_array))

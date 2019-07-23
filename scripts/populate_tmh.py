@@ -181,8 +181,8 @@ def uniprot_tm_check(query_id):
     # First we need a list of all the TMH stop start positions
     # Now we can go through the record and write each TMH to the database (separate function)
     for record in SeqIO.parse(filename, input_format):
+        total_tmh_number = total_tmh_uniprot(record)
         list_of_tmhs = []
-        total_tmh_number = 0
         full_sequence = str(record.seq)
         new_record = True
         tmd_count = 0
@@ -260,48 +260,134 @@ def uniprot_tm_check(query_id):
                             record.seq[(f.location.end):(len(record.seq))])
 
                     # A list of common locations. These need sorting into inside/outside locations
-                    locations = ["Chloroplast intermembrane", "Cytoplasmic", "Extracellular", "Intravacuolar", "Intravirion", "Lumenal", "Lumenal, thylakoid", "Lumenal, vesicle", "Mitochondrial intermembrane",
-                                 "Mitochondrial matrix", "Periplasmic", "Peroxisomal", "Peroxisomal matrix", "Nuclear", "Perinuclear space", "Stromal", "Vacuolar", "Vesicular", "Virion surface"]
-                    tmh_topology = "Unknown"
-                    membrane_location = "Unknown"
-                    if n_terminal_start == "none" and tmh_start > 1:
-                        previous_feautre_location = tmh_start - 1
+                    io_dictionary_odd_even = uniprot_topo_check(record)
 
-                        for index, a_features in enumerate(record.features):
-                            tmh_topology = None
-                            membrane_location = ''
-                            if 'UnknownPosition' in str(a_features.location.start) or 'UnknownPosition' in str(a_features.location.end):
-                                pass
-                            else:
+                    tmh_topology = io_dictionary_odd_even[odd_or_even(
+                        tmh_number)]
 
-                                # Using topo_dom will only work if there are no short loops. Short loops could be assumed, or labelled as no topology.
-                                if a_features.type == subcellular_location and a_features.location.start < previous_feautre_location and a_features.location.end > previous_feautre_location:
-                                    inside_locations = [
-                                        "Cytoplasmic", "Mitochondrial matrix"]
-                                    outside_locations = [
-                                        "Extracellular", "Lumenal", "Periplasmic", "Mitochondrial intermembrane"]
-                                    print("echo", n_terminal_start, tmh_start)
-                                    # Here we should set inside and outside, and then use that for even/odd with checks.
-
-                                    for location in inside_locations:
-                                        if location in str(a_features.qualifiers):
-                                            tmh_topology = "Inside"
-                                            membrane_location = location
-                                    for location in outside_locations:
-                                        if location in str(a_features.qualifiers):
-                                            tmh_topology = "Outside"
-                                            membrane_location = location
-
-                    # TMH, TMB, and SP should be sorted out here.
-                    # flank residues needs overhaul
+                    membrane_location = uniprot_membrane_location(record)
 
                     tmh_list.append([query_id, tmh_number, total_tmh_number, tmh_start, tmh_stop, tmh_topology,
                                      evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence_type, full_sequence, tm_type])
 
-        corrected_tmh_list = topology_tidy(tmh_list)
-        tmh_to_database(corrected_tmh_list)
+        tmh_to_database(tmh_list)
 
         return(tmh_list)
+
+
+def total_tmh_uniprot(record):
+    '''
+    How many TRANSMEM regions in the TMH
+    '''
+    total_tmh = 0
+    for i, f in enumerate(record.features):
+        if f.type == "TRANSMEM":
+            total_tmh = total_tmh + 1
+    return(total_tmh)
+
+
+def odd_or_even(number):
+    '''
+    Is a number odd or even?
+    '''
+    if number % 2 == 0:
+        return("even")
+    elif number % 2 != 0:
+        return("odd")
+
+
+def uni_subcellular_location(feature_description):
+    '''
+    Returns inside or outside from a record feature description in UniProt
+    '''
+
+    locations = ["Chloroplast intermembrane", "Cytoplasmic", "Extracellular", "Intravacuolar", "Intravirion", "Lumenal", "Lumenal, thylakoid", "Lumenal, vesicle", "Mitochondrial intermembrane",
+                 "Mitochondrial matrix", "Periplasmic", "Peroxisomal", "Peroxisomal matrix", "Nuclear", "Perinuclear space", "Stromal", "Vacuolar", "Vesicular", "Virion surface"]
+
+    inside_locations = set(["Cytoplasmic", "Mitochondrial matrix"])
+    outside_locations = set(
+        ["Extracellular", "Lumenal", "Periplasmic", "Mitochondrial intermembrane"])
+    for i in inside_locations:
+        if i in feature_description:
+            return("Inside")
+    for i in outside_locations:
+        if i in feature_description:
+            return("Outside")
+
+
+def io_flip(io_value):
+    '''
+    Inverts inside to outside and vice versa
+    '''
+
+    if io_value == "Inside":
+        return("Outside")
+    elif io_value == "Outside":
+        return("Inside")
+    elif io_value == "Unknown":
+        return("Unknown")
+
+
+def odd_even_io(ordered_topo_list):
+    '''
+    Returns if odd or even has n-terminal-inside from an ordered topology list in the format:
+    [['Outside', 0], ['TM', 51], ['Inside', 76], ['TM', 88], ['Outside', 114], ['TM', 124]]
+    '''
+    topo_only_list = []
+    for n, i in enumerate(ordered_topo_list):
+        if 'TM' in i:
+            pass
+        elif 'TM' in i and n == 0:
+            topo_only_list.append(io_flip(ordered_topo_list[n + 1][0]))
+        else:
+            topo_only_list.append(i[0])
+    print(topo_only_list)
+    if len(topo_only_list) > 1:
+        if 'Outside' in topo_only_list[0]:
+            io_dict = {"even": "Inside",
+                       "odd": "Outside"}
+        elif 'Inside' in topo_only_list[0]:
+            io_dict = {"even": "Outside",
+                       "odd": "Inside"}
+    else:
+        io_dict = {"even": "Unknown",
+                   "odd": "Unknown"}
+    return(io_dict)
+
+
+def uniprot_membrane_location(record):
+    topology_list = []
+    for i, f in enumerate(record.features):
+        if f.type == "TOPO_DOM":
+            topology_list.append(f.qualifiers["description"])
+    locations = list(dict.fromkeys(topology_list))
+    return(clean_query(str(locations)))
+
+
+def uniprot_topo_check(record):
+
+    topology_list = []
+    # This function currently only deals with alpha helix
+    for i, f in enumerate(record.features):
+        if f.type == "TRANSMEM" and "Helix" in f.qualifiers["description"]:
+            topology_list.append(["TM", int(f.location.start)])
+        elif f.type == "TOPO_DOM":
+            topology_list.append([uni_subcellular_location(
+                f.qualifiers["description"]), int(f.location.start)])
+        else:
+            pass
+
+    ordered_list = sorted(topology_list, key=lambda x: x[1])
+
+    for n, i in enumerate(ordered_list):
+        if i[0] != "TM":
+            io = i[0]
+        elif i[0] == "TM":
+            # If the next value is a TM, we insert a pseudo topo_dom. This is the result of short loops.
+            if ordered_list[n + 1][0] == "TM":
+                topology_list.insert([io_flip(io)])
+    print(ordered_list)
+    return(odd_even_io(ordered_list))
 
 
 def topdb_check(query_id, topdb):
@@ -384,7 +470,7 @@ def topdb_check(query_id, topdb):
                                                             # preparing any non established variables for standard tmh recording.
                                                             full_sequence = sequence
                                                             tm_type = "helix"
-                                                            tmh_list.append([query_id, tmh_number, total_tmh_number, tmh_start + 1, tmh_stop, tmh_topology,
+                                                            tmh_list.append([query_id, tmh_number, total_tmh_number + 1, tmh_start + 1, tmh_stop, tmh_topology,
                                                                              evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence_type, full_sequence, tm_type])
                                                         # Although it is about as elegant as a sledgehammer,
                                                         # this catches the previous non tmh environment.
@@ -402,39 +488,193 @@ def keyword_to_database(keyword, uniprot_id):
     keyword_for_database.proteins.add(target_protein)
 
 
-def topology_tidy(tmh_list):
+def add_n_flank(tmh_unique_id, n_ter_seq, tmh_topology, current_tmh):
+    # Add the N terminal to the database
+    current_tmh = Tmh.objects.get(tmh_id=tmh_unique_id)
 
-    # Is there any information on what odd/even tmh numbers should topologically be in terms of subcellular location and inside/outside?
-    topo_odd = "Unknown"
-    topo_even = "Unknown"
-    location_odd = "Unknown"
-    location_even = "Unknown"
+    record_for_database, created = Flank.objects.update_or_create(
+        tmh=current_tmh,
+        n_or_c="N",
+        defaults={
+            "flank_sequence": n_ter_seq,
+            "inside_or_outside": tmh_topology[0]
+        }
+    )
 
-    for tmh_number, tmh_properties in enumerate(tmh_list):
-        topology = tmh_properties[5]
-        location = tmh_properties[7]
-        if tmh_number % 2 == 0:
-            # Even
-            if topology is not None:
-                topo_even = topology
-                location_even = location
 
+def add_c_flank(tmh_unique_id, c_ter_seq, tmh_topology, current_tmh):
+    # Add the C terminal to the database
+    if tmh_topology == "Inside":
+        c_terminal_inside = "Outside"
+    elif tmh_topology == "Outside":
+        c_terminal_inside = "Inside"
+    else:
+        c_terminal_inside = tmh_topology
+        print("N terminal was not inside or outside in", tmh_unique_id,
+              "... setting C inside to whatever N inside is:", c_terminal_inside)
+
+    record_for_database, created = Flank.objects.update_or_create(
+        tmh=current_tmh,
+        n_or_c="C",
+        defaults={
+            "flank_sequence": c_ter_seq,
+            "inside_or_outside": c_terminal_inside[0]
+        }
+    )
+
+
+def add_a_tmh_to_database(query_id, tmh_number, tmh_total_number, tmh_start, tmh_stop, tmh_topology, evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence, full_sequence, tm_type):
+
+    tmh_protein = Protein.objects.get(uniprot_id=query_id)
+    print("Generating tmh id key from\nQuery id:", query_id,
+          "\nTMH number:", tmh_number, "\nEvidence:", evidence)
+    tmh_unique_id = str(query_id + "." + str(tmh_number) + "." + evidence)
+
+    print(tmh_unique_id)
+
+    # The TMH for the database
+    record_for_database, created = Tmh.objects.update_or_create(
+        protein=tmh_protein,
+        tmh_id=tmh_unique_id,
+        defaults={
+            "tmh_sequence": tmh_sequence,
+            "tmh_start": tmh_start,
+            "tmh_stop": tmh_stop,
+            "tmh_evidence": evidence,
+            "membrane_type": membrane_location,
+            "tmh_number": tmh_number,
+            "tmh_total_number": tmh_total_number,
+            "n_terminal_inside": tmh_topology,
+            "tm_type": tm_type
+        }
+    )
+
+    # Now we run the calculations on anything that works at the TM level.
+    tmsoc(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_stop)
+    deltag(tmh_unique_id, tmh_sequence)
+    hydrophobicity(tmh_unique_id, full_sequence,
+                   tmh_sequence, tmh_start, tmh_stop)
+
+    transmembrane_helix = Tmh.objects.get(tmh_id=tmh_unique_id)
+    add_n_flank(tmh_unique_id, n_ter_seq, tmh_topology, transmembrane_helix)
+    add_c_flank(tmh_unique_id, c_ter_seq, tmh_topology, transmembrane_helix)
+
+    # Now we will add residues to the TM residues table
+
+    # Now we build the residue table.
+    # Are there ever skips of unknow length? This could affect TMH number.
+
+    # This method will not update. A separate out of date script should be used to check if this needs to be removed and updated.
+
+    sequences_to_add = str(n_ter_seq + tmh_sequence + c_ter_seq)
+
+    for tmh_residue_number, a_residue in enumerate(sequences_to_add):
+
+        # Where is the residue in reference to the TMH
+        sequence_position = int(
+            tmh_start - len(n_ter_seq)) + tmh_residue_number
+
+        if sequence_position < tmh_start:  # This doesn't make sense
+            #"N flank"
+            if tmh_topology == "Inside":
+                feature_location = "Inside flank"
+            elif tmh_topology == "Outside":
+                feature_location = "Outside flank"
+            else:
+                feature_location = "Unknown"
+        elif sequence_position > tmh_stop:
+            #"C flank"
+            if tmh_topology == "Inside":
+                feature_location = "Outside flank"
+            elif tmh_topology == "Outside":
+                feature_location = "Inside flank"
+            else:
+                feature_location = "Unknown"
+        elif sequence_position >= tmh_start and sequence_position <= tmh_stop:
+            feature_location = "TMH"
+
+        # What is the exact residue position.
+
+        # This avoids odd numbers rounding to 0 twice at -1 and +1.
+
+        if len(sequences_to_add) % 2 == 0:
+            amino_acid_location_n_to_c = tmh_residue_number - \
+                len(sequences_to_add) / 2 + \
+                len(n_ter_seq)  # These correction numbers are wrong!
         else:
-            # Odd
-            if topology is not None:
-                topo_odd = topology
-                location_odd = location
+            amino_acid_location_n_to_c = tmh_residue_number - \
+                (len(sequences_to_add) - 1 / 2) + len(n_ter_seq)
 
-    for tmh_number, tmh_properties in enumerate(tmh_list):
-        if tmh_number % 2 == 0:
-            # Even
-            tmh_list[tmh_number][5] = topo_even
-            tmh_list[tmh_number][7] = location_even
-        else:
-            # Odd
-            tmh_list[tmh_number][5] = topo_odd
-            tmh_list[tmh_number][7] = location_odd
-    return(tmh_list)
+        if "Inside" in tmh_topology:
+            amino_acid_location_in_to_out = amino_acid_location_n_to_c
+        elif "Outside" in tmh_topology:
+            amino_acid_location_in_to_out = 0 - amino_acid_location_n_to_c
+        elif "Unknown" in tmh_topology:
+            amino_acid_location_in_to_out = None
+        print(tmh_topology)
+
+        # specific_residue = Residue.objects.get(
+        #    unique_together=[tmh_protein, sequence_position])
+        print("Adding TM residue at position", sequence_position,
+              "in ",  query_id, "from", tmh_unique_id)
+
+        specific_residue = Residue.objects.get(
+            protein=tmh_protein, sequence_position=int(sequence_position))
+
+        if feature_location == "TMH":
+            record_for_database, created = Tmh_residue.objects.update_or_create(
+                residue=specific_residue,
+                tmh_id=transmembrane_helix,
+                defaults={
+                    "amino_acid_type": a_residue,
+                    "evidence": evidence,
+                    "amino_acid_location_n_to_c": amino_acid_location_n_to_c,
+                    "amino_acid_location_in_to_out": amino_acid_location_in_to_out,
+                    # This is either TMH or flank. TMH, inside flank, outside flank.
+                    "feature_location":  feature_location
+                }
+            )
+
+        elif feature_location == "Inside flank":
+            flank_n_or_c = None
+            if tmh_topology in "Inside":
+                flank_n_or_c = "N"
+            elif tmh_topology in "Outside":
+                flank_n_or_c = "C"
+            this_flank = Flank.objects.get(
+                tmh=transmembrane_helix, n_or_c=flank_n_or_c)
+            record_for_database, created = Flank_residue.objects.update_or_create(
+                residue=specific_residue,
+                flank=this_flank,
+                defaults={
+                    "amino_acid_type": a_residue,
+                    "evidence": evidence,
+                    "amino_acid_location_n_to_c": amino_acid_location_n_to_c,
+                    "amino_acid_location_in_to_out": amino_acid_location_in_to_out,
+                    # inside flank, outside flank. inside flank, outside flank are ONLY flanking TMHs.
+                    "feature_location": feature_location
+                })
+
+        elif feature_location == "Outside flank":
+            flank_n_or_c = None
+            if tmh_topology == "Inside":
+                flank_n_or_c = "C"
+            elif tmh_topology == "Outside":
+                flank_n_or_c = "N"
+            print(transmembrane_helix, flank_n_or_c)
+            this_flank = Flank.objects.get(
+                tmh=transmembrane_helix, n_or_c=flank_n_or_c)
+            record_for_database, created = Flank_residue.objects.update_or_create(
+                residue=specific_residue,
+                flank=this_flank,
+                defaults={
+                    "amino_acid_type": a_residue,
+                    "evidence": evidence,
+                    "amino_acid_location_n_to_c": amino_acid_location_n_to_c,
+                    "amino_acid_location_in_to_out": amino_acid_location_in_to_out,
+                    # inside flank, outside flank. inside flank, outside flank are ONLY flanking TMHs.
+                    "feature_location": feature_location
+                })
 
 
 def tmh_to_database(tmh_list):
@@ -462,187 +702,8 @@ def tmh_to_database(tmh_list):
         full_sequence = a_tmh[12].replace("\n", "")
         tm_type = a_tmh[13].replace("\n", "")
 
-        if tmh_topology is None:
-            tmh_topology = "Unknown"
-
-        if tmh_topology in "Inside":
-            n_terminal_inside = "Inside"
-        elif tmh_topology in "Outside":
-            n_terminal_inside = "Outside"
-        else:
-            n_terminal_inside = "Unknown"
-        tmh_protein = Protein.objects.get(uniprot_id=query_id)
-        print("Generating tmh id key from\nQuery id:", query_id,
-              "\nTMH number:", tmh_number, "\nEvidence:", evidence)
-        tmh_unique_id = str(query_id + "." + str(tmh_number) + "." + evidence)
-
-        print(tmh_unique_id)
-        print(a_tmh)
-
-        # The TMH for the database
-        record_for_database, created = Tmh.objects.update_or_create(
-            protein=tmh_protein,
-            tmh_id=tmh_unique_id,
-            defaults={
-                "tmh_sequence": tmh_sequence,
-                "tmh_start": tmh_start,
-                "tmh_stop": tmh_stop,
-                "tmh_evidence": evidence,
-                "membrane_type": membrane_location,
-                "tmh_number": tmh_number,
-                "tmh_total_number": tmh_total_number,
-                "n_terminal_inside": n_terminal_inside,
-                "tm_type": tm_type
-            }
-        )
-
-        # Add the N terminal to the database
-        current_tmh = Tmh.objects.get(tmh_id=tmh_unique_id)
-        record_for_database, created = Flank.objects.update_or_create(
-            tmh=current_tmh,
-            defaults={
-                "flank_sequence":n_ter_seq,
-                "n_or_c":"N",
-                "inside_or_outside":n_terminal_inside
-            }
-        )
-
-        # Add the C terminal to the database
-        if n_terminal_inside == "Inside":
-            c_terminal_inside = "Outside"
-        elif n_terminal_inside == "Outside":
-            c_terminal_inside = "Inside"
-
-        record_for_database, created = Flank.objects.update_or_create(
-            tmh=current_tmh,
-            defaults={
-                "flank_sequence":c_ter_seq,
-                "n_or_c":"C",
-                "inside_or_outside":c_terminal_inside
-            }
-        )
-
-        # Now we run the calculations on anything that works at the TM level.
-        tmsoc(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_stop)
-        deltag(tmh_unique_id, tmh_sequence)
-        hydrophobicity(tmh_unique_id, full_sequence,
-                       tmh_sequence, tmh_start, tmh_stop)
-
-        # Now we will add residues to the TM residues table
-        transmembrane_helix = Tmh.objects.get(tmh_id=tmh_unique_id)
-        # Now we build the residue table.
-        # Are there ever skips of unknow length? This could affect TMH number.
-
-        # This method will not update. A separate out of date script should be used to check if this needs to be removed and updated.
-
-        sequences_to_add = str(n_ter_seq + tmh_sequence + c_ter_seq)
-
-        for tmh_residue_number, a_residue in enumerate(sequences_to_add):
-
-            # Where is the residue in reference to the TMH
-            sequence_position = int(
-                tmh_start - len(n_ter_seq)) + tmh_residue_number
-
-            if sequence_position < tmh_start:  # This doesn't make sense
-                #"N flank"
-                if n_terminal_inside == "Inside":
-                    feature_location = "Inside flank"
-                elif n_terminal_inside == "Outside":
-                    feature_location = "Outside flank"
-                else:
-                    feature_location = "Unknown"
-            elif sequence_position > tmh_stop:
-                #"C flank"
-                if n_terminal_inside == "Inside":
-                    feature_location = "Outside flank"
-                elif n_terminal_inside == "Outside":
-                    feature_location = "Inside flank"
-                else:
-                    feature_location = "Unknown"
-            elif sequence_position >= tmh_start and sequence_position <= tmh_stop:
-                feature_location = "TMH"
-
-            # What is the exact residue position.
-
-            # This avoids odd numbers rounding to 0 twice at -1 and +1.
-
-            if len(sequences_to_add) % 2 == 0:
-                amino_acid_location_n_to_c = tmh_residue_number - \
-                    len(sequences_to_add) / 2 + \
-                    len(n_ter_seq)  # These correction numbers are wrong!
-            else:
-                amino_acid_location_n_to_c = tmh_residue_number - \
-                    (len(sequences_to_add) - 1 / 2) + len(n_ter_seq)
-
-            if "Inside" in n_terminal_inside:
-                amino_acid_location_in_to_out = amino_acid_location_n_to_c
-            elif "Outside" in n_terminal_inside:
-                amino_acid_location_in_to_out = 0 - amino_acid_location_n_to_c
-            elif "Unknown" in n_terminal_inside:
-                amino_acid_location_in_to_out = None
-
-            # specific_residue = Residue.objects.get(
-            #    unique_together=[tmh_protein, sequence_position])
-            print("Adding TM residue at position", sequence_position,
-                  "in ",  query_id, "from", tmh_unique_id)
-
-            specific_residue = Residue.objects.get(
-                protein=tmh_protein, sequence_position=int(sequence_position))
-
-            if feature_location == "TMH":
-
-                record_for_database, created = Tmh_residue.objects.update_or_create(
-                    residue=specific_residue,
-                    tmh_id=transmembrane_helix,
-                    defaults={
-                        "amino_acid_type": a_residue,
-                        "evidence": evidence,
-                        "amino_acid_location_n_to_c": amino_acid_location_n_to_c,
-                        "amino_acid_location_in_to_out": amino_acid_location_in_to_out,
-                        # This is either TMH or flank. TMH, inside flank, outside flank.
-                        "feature_location":  feature_location
-                    }
-                )
-
-            elif feature_location == "Inside flank":
-                flank_n_or_c = None
-                if n_terminal_inside == "Inside":
-                    flank_n_or_c = "N"
-                elif n_terminal_inside == "Outside":
-                    flank_n_or_c = "C"
-                this_flank = Flank.objects.get(
-                    tmh=transmembrane_helix, n_or_c=flank_n_or_c)
-                record_for_database, created = Flank_residue.objects.update_or_create(
-                    residue=specific_residue,
-                    flank=this_flank,
-                    defaults={
-                        "amino_acid_type": a_residue,
-                        "evidence": evidence,
-                        "amino_acid_location_n_to_c": amino_acid_location_n_to_c,
-                        "amino_acid_location_in_to_out": amino_acid_location_in_to_out,
-                        # inside flank, outside flank. inside flank, outside flank are ONLY flanking TMHs.
-                        "feature_location":feature_location
-                    })
-
-            elif feature_location == "Outside flank":
-                flank_n_or_c = None
-                if n_terminal_inside == "Inside":
-                    flank_n_or_c = "C"
-                elif n_terminal_inside == "Outside":
-                    flank_n_or_c = "N"
-                this_flank = Flank.objects.get(
-                    tmh=transmembrane_helix, n_or_c=flank_n_or_c)
-                record_for_database, created = Flank_residue.objects.update_or_create(
-                    residue=specific_residue,
-                    flank=this_flank,
-                    defaults={
-                        "amino_acid_type": a_residue,
-                        "evidence": evidence,
-                        "amino_acid_location_n_to_c": amino_acid_location_n_to_c,
-                        "amino_acid_location_in_to_out": amino_acid_location_in_to_out,
-                        # inside flank, outside flank. inside flank, outside flank are ONLY flanking TMHs.
-                        "feature_location":feature_location
-                    })
+        add_a_tmh_to_database(query_id, tmh_number, tmh_total_number, tmh_start, tmh_stop, tmh_topology,
+                              evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence, full_sequence, tm_type)
 
 
 def tmsoc(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_stop):
