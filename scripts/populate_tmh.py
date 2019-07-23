@@ -122,8 +122,7 @@ def subcellular_location(filename):
         protein = Protein.objects.get(uniprot_id=record.id)
         for i, f in enumerate(record.features):
             if f.type == "TOPO_DOM":
-                subcellular_location_for_database, created = Subcellular_location.objects.get_or_create(
-                    location=f.qualifiers["description"])
+                subcellular_location_for_database, created = Subcellular_location.objects.get_or_create(location=f.qualifiers["description"].split(".")[0])
                 subcellular_location_for_database.proteins.add(protein)
 
 
@@ -154,7 +153,6 @@ def residue_table(query_id, sequence):
                 )
             )
     Residue.objects.bulk_create(residues_to_create)
-
 
 def uniprot_tm_check(query_id):
     '''
@@ -359,7 +357,7 @@ def uniprot_membrane_location(record):
     topology_list = []
     for i, f in enumerate(record.features):
         if f.type == "TOPO_DOM":
-            topology_list.append(f.qualifiers["description"])
+            topology_list.append(f.qualifiers["description"].split(".")[0])
     locations = list(dict.fromkeys(topology_list))
     return(clean_query(str(locations)))
 
@@ -372,8 +370,7 @@ def uniprot_topo_check(record):
         if f.type == "TRANSMEM" and "Helix" in f.qualifiers["description"]:
             topology_list.append(["TM", int(f.location.start)])
         elif f.type == "TOPO_DOM":
-            topology_list.append([uni_subcellular_location(
-                f.qualifiers["description"]), int(f.location.start)])
+            topology_list.append([uni_subcellular_location(f.qualifiers["description"].split(".")[0]), int(f.location.start)])
         else:
             pass
 
