@@ -122,7 +122,8 @@ def subcellular_location(filename):
         protein = Protein.objects.get(uniprot_id=record.id)
         for i, f in enumerate(record.features):
             if f.type == "TOPO_DOM":
-                subcellular_location_for_database, created = Subcellular_location.objects.get_or_create(location=f.qualifiers["description"].split(".")[0])
+                subcellular_location_for_database, created = Subcellular_location.objects.get_or_create(
+                    location=f.qualifiers["description"].split(".")[0])
                 subcellular_location_for_database.proteins.add(protein)
 
 
@@ -153,6 +154,7 @@ def residue_table(query_id, sequence):
                 )
             )
     Residue.objects.bulk_create(residues_to_create)
+
 
 def uniprot_tm_check(query_id):
     '''
@@ -275,7 +277,7 @@ def uniprot_tm_check(query_id):
 
 def total_tmh_uniprot(record):
     '''
-    How many TRANSMEM regions in the TMH
+    How many TRANSMEM regions in the TMP. This can include Beta.
     '''
     total_tmh = 0
     for i, f in enumerate(record.features):
@@ -286,7 +288,7 @@ def total_tmh_uniprot(record):
 
 def odd_or_even(number):
     '''
-    Is a number odd or even?
+    Is a number odd or even? Takes a number and returns "even" or "odd".
     '''
     if number % 2 == 0:
         return("even")
@@ -296,15 +298,15 @@ def odd_or_even(number):
 
 def uni_subcellular_location(feature_description):
     '''
-    Returns inside or outside from a record feature description in UniProt
+    Returns inside or outside from a record feature description in UniProt. This will need to be tweaked depending on what subcelullar organelles are present in Uniprot.
     '''
 
     locations = ["Chloroplast intermembrane", "Cytoplasmic", "Extracellular", "Intravacuolar", "Intravirion", "Lumenal", "Lumenal, thylakoid", "Lumenal, vesicle", "Mitochondrial intermembrane",
                  "Mitochondrial matrix", "Periplasmic", "Peroxisomal", "Peroxisomal matrix", "Nuclear", "Perinuclear space", "Stromal", "Vacuolar", "Vesicular", "Virion surface"]
 
-    inside_locations = set(["Cytoplasmic", "Mitochondrial matrix"])
+    inside_locations = set(["Cytoplasmic", "Mitochondrial matrix", "Nuclear"])
     outside_locations = set(
-        ["Extracellular", "Lumenal", "Periplasmic", "Mitochondrial intermembrane"])
+        ["Extracellular", "Lumenal", "Periplasmic", "Mitochondrial intermembrane", "Perinuclear space", "Vesicular"])
     for i in inside_locations:
         if i in feature_description:
             return("Inside")
@@ -315,7 +317,7 @@ def uni_subcellular_location(feature_description):
 
 def io_flip(io_value):
     '''
-    Inverts inside to outside and vice versa
+    Inverts inside to outside and vice versa. Also takes "Unknown" as a variable and returns unknown.
     '''
 
     if io_value == "Inside":
@@ -340,13 +342,22 @@ def odd_even_io(ordered_topo_list):
         else:
             topo_only_list.append(i[0])
     print(topo_only_list)
-    if len(topo_only_list) > 1:
-        if 'Outside' in topo_only_list[0]:
+
+    if len(list(topo_only_list)) > 1:
+        if 'Outside' in str(topo_only_list[0]):
             io_dict = {"even": "Inside",
                        "odd": "Outside"}
-        elif 'Inside' in topo_only_list[0]:
+        elif 'Inside' in str(topo_only_list[0]):
             io_dict = {"even": "Outside",
                        "odd": "Inside"}
+        elif topo_only_list[0] is None:
+            if 'Inside' in str(topo_only_list[1]):
+                io_dict = {"even": "Inside",
+                           "odd": "Outside"}
+            elif 'Outside' in str(topo_only_list[1]):
+                io_dict = {"even": "Outside",
+                           "odd": "Inside"}
+
     else:
         io_dict = {"even": "Unknown",
                    "odd": "Unknown"}
@@ -362,15 +373,23 @@ def uniprot_membrane_location(record):
     return(clean_query(str(locations)))
 
 
+def location_to_number(exact_position):
+    if "UnknownPosition" in str(exact_position):
+        return(0)
+    else:
+        return(int(exact_position))
+
+
 def uniprot_topo_check(record):
 
     topology_list = []
     # This function currently only deals with alpha helix
     for i, f in enumerate(record.features):
         if f.type == "TRANSMEM" and "Helix" in f.qualifiers["description"]:
-            topology_list.append(["TM", int(f.location.start)])
+            topology_list.append(["TM", location_to_number(f.location.start)])
         elif f.type == "TOPO_DOM":
-            topology_list.append([uni_subcellular_location(f.qualifiers["description"].split(".")[0]), int(f.location.start)])
+            topology_list.append([uni_subcellular_location(
+                f.qualifiers["description"].split(".")[0]), location_to_number(f.location.start)])
         else:
             pass
 

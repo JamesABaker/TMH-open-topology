@@ -8,28 +8,6 @@ from datetime import datetime
 date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 
-impossible_snps={"K": ["M", "T", "E","Q","R","N"],
-                "P":["T","Q","R","H"],
-                "H":["L","Y","D","Q","N","P"],
-                "N":["I","Y","T","D","H","K"],
-                "G":["W","V","Y","T","E","D"],
-                "S":[],
-                "R":[],
-                "Q":[],
-                "E":[],
-                "T":[],
-                "A":[],
-                "Y":[],
-                "C":[],
-                "V":[],
-                "M":[],
-                "I":[],
-                "L":[],
-                "W":[],
-                "F":[],
-                }
-
-
 def barchart(objects, performance, source, state, x_label, y_label):
     color_dic = {
         "d": "red",
@@ -50,11 +28,7 @@ def barchart(objects, performance, source, state, x_label, y_label):
     plt.clf()
 
 def histogram(performance, source, state,x_label, y_label):
-    color_dic = {
-        "d": "red",
-        "n": "green",
-        "a": "grey"
-    }
+
     plt.yscale('log', nonposy='clip')
     plt.hist(performance, bins=len(performance))
     plt.gca().set(title=source, ylabel=y_label, xlabel=x_label);
@@ -63,40 +37,43 @@ def histogram(performance, source, state,x_label, y_label):
     plt.savefig(filename, bbox_inches='tight')
     plt.clf()
 
-def heatmap(var_freqs_list, title, aa_list_baezo_order, state, is_it_log):
-
-    color_dic = {
-        "d": "Reds",
-        "n": "Greens",
-        "a": "Greys",
-        "s": "afmhot"
-    }
+def heatmap(var_freqs_list, title, aa_order, color, is_it_log):
+    '''
+    var_freqs_list
+        heatmap array in list of lists
+    title
+        title of data for the graph
+    aa_list_baezo_order
+        ordered list of amino acids for the list of lists
+    is_it_log
+        is the scale logarithmic? Accepts None.
+    '''
 
     fig, ax = plt.subplots()
-    im = ax.imshow(var_freqs_list, cmap=color_dic[state], interpolation='nearest', norm=is_it_log)
+    im = ax.imshow(var_freqs_list, cmap=color, interpolation='nearest', norm=is_it_log)
 
     # We want to show all ticks...
-    ax.set_xticks(np.arange(len(aa_list_baezo_order)))
-    ax.set_yticks(np.arange(len(aa_list_baezo_order)))
+    ax.set_xticks(np.arange(len(aa_order)))
+    ax.set_yticks(np.arange(len(aa_order)))
     # ... and label them with the respective list entries
-    ax.set_xticklabels(aa_list_baezo_order)
-    ax.set_yticklabels(aa_list_baezo_order)
+    ax.set_xticklabels(aa_order)
+    ax.set_yticklabels(aa_order)
     # Add boxes
     ax.grid(which='minor', color='b', linestyle='-', linewidth=2)
     ax.set_xlabel("Wildtype (from)")
     ax.set_ylabel("Variant (to)")
+    ax.set_ylim(len(aa_order)-0.5, -0.5) # temp bug workaround: https://github.com/matplotlib/matplotlib/issues/14751
+    ax.set_xlim(len(aa_order)-0, -0.5) # temp bug workaround: https://github.com/matplotlib/matplotlib/issues/14751
     ax.set_title(title)
 
-
-
-    fig.tight_layout()
+    #fig.tight_layout()
     filename = f"images/{title}_{date}.png"
     # And now the colorbar
     # --------------------------------------------------------
     fig.colorbar(im)
 
-    for x_coordinate, x_amino_acid in enumerate(aa_list_baezo_order):
-        for y_coordinate, y_amino_acid in enumerate(aa_list_baezo_order):
+    for x_coordinate, x_amino_acid in enumerate(aa_order):
+        for y_coordinate, y_amino_acid in enumerate(aa_order):
             plt.Circle((x_coordinate, y_coordinate), 0.5, color='black', fill=False)
 
     plt.savefig(filename)
