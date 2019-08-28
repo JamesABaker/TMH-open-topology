@@ -210,6 +210,7 @@ class Structural_residue(models.Model):
     uniprot_position = models.IntegerField()
     memprotmd_headgroups = models.FloatField(null=True)
     memprotmd_tail = models.FloatField(null=True)
+    porewalker_score = models.FloatField(null=True, default=0)
 
 
 class Uniref(models.Model):
