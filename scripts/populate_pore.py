@@ -50,33 +50,38 @@ def porewalker_to_database(pdb_id, residues):
     Goes through each line and adds it to the django databases
     '''
     target_structure = Structure.objects.get(pdb_id=pdb_id)
+    completed_residues=[]
     for residue in residues:
-        if "<" not in residue:
-            pdb = pdb_residue_parse(residue)
-            Structural_residue.objects.filter(pdb_position=pdb["pdb_position"], pdb_chain=pdb["chain"]).update(
-                porewalker_score=pdb['b_factor'])
-            print(pdb_id, "residues containing pore information added to the database.")
-        else:
-            pass
+        pdb = pdb_residue_parse(residue)
+        if pdb is not False:
+            if pdb["pdb_position"] not in completed_residues:
+                Structural_residue.objects.filter(pdb_position=pdb["pdb_position"], pdb_chain=pdb["chain"]).update(porewalker_score=pdb['b_factor'])
+                print(pdb_id, "residues containing pore information added to the database.")
+            else:
+                pass
 
 
 def pdb_residue_parse(pdb_line):
     pdb_line_list = pdb_line.split()
     print(pdb_line_list)
-    pdb_line_dictionary = {
-        "atom_type": pdb_line_list[0],
-        "atom_number": pdb_line_list[1],
-        "atom_type": pdb_line_list[2],
-        "residue_type": pdb_line_list[3],
-        "chain": pdb_line_list[4],
-        "pdb_position": pdb_line_list[5],
-        "x": pdb_line_list[6],
-        "y": pdb_line_list[7],
-        "z": pdb_line_list[8],
-        "occupancy": pdb_line_list[9],
-        "b_factor": pdb_line_list[10]
-    }
-    return(pdb_line_dictionary)
+    if len(pdb_line_list) == 11:
+        pdb_line_dictionary = {
+            "atom_type": pdb_line_list[0],
+            "atom_number": pdb_line_list[1],
+            "atom_type": pdb_line_list[2],
+            "residue_type": pdb_line_list[3],
+            "chain": pdb_line_list[4],
+            "pdb_position": pdb_line_list[5],
+            "x": pdb_line_list[6],
+            "y": pdb_line_list[7],
+            "z": pdb_line_list[8],
+            "occupancy": pdb_line_list[9],
+            "b_factor": pdb_line_list[10]
+        }
+        return(pdb_line_dictionary)
+    else:
+        return(False)
+
 
 
 def open_porewalker_pdb(file_location):

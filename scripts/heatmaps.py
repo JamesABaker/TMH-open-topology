@@ -443,12 +443,15 @@ thornton_matrix = {
     ("V", "V"): 98485,
 }
 
-aa_list_baezo_order = ['K', 'R', 'E', 'D', 'Q', 'H', 'N', 'P','Y', 'W', 'C', 'M', 'T', 'S', 'G', 'V', 'F', 'A', 'I', 'L']
+aa_list_baezo_order = ['K', 'R', 'E', 'D', 'Q', 'H', 'N', 'P',
+                       'Y', 'W', 'C', 'M', 'T', 'S', 'G', 'V', 'F', 'A', 'I', 'L']
 
-aa_list_alpha = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y']
+aa_list_alpha = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K',
+                 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y']
 
 # prefetch the residues with variants
 Residue.objects.all().prefetch_related("variant")
+
 
 def advanced_heatmaps():
     '''
@@ -460,71 +463,250 @@ def advanced_heatmaps():
     Step 4 heatmap(sub_dict_to_heatmap)
     '''
 
-    #Thornton sub matrix
-    title= "1994 Thornton Substitution Matrix"
-    print(title)
-    heatmap(sub_dict_to_heatmap(thornton_matrix), title, aa_list_baezo_order, "Greens", LogNorm())
+    # Thornton sub matrix
+    title = "1994 Thornton Substitution Matrix"
+    heatmap(sub_dict_to_heatmap(thornton_matrix), title,
+            aa_list_baezo_order, "Greens", LogNorm())
 
-    #Disease TMHs
-    title="TMH disease variants"
-
-    disease_tmh_variants = list(Variant.objects.filter(residue__tmh_residue__feature_location="TMH").filter(disease_status='d').values_list("aa_wt", "aa_mut"))
+    # Disease TMHs
+    title = "TMH disease variants"
+    disease_tmh_variants = list(Variant.objects.filter(residue__tmh_residue__feature_location="TMH").filter(
+        disease_status='d').values_list("aa_wt", "aa_mut"))
     print(title, len(disease_tmh_variants))
-    disease_subsitutions_in_tmhs = substitution_dictionary(disease_tmh_variants)
-    heatmap(sub_dict_to_heatmap(disease_subsitutions_in_tmhs), title, aa_list_baezo_order, "Reds", None)
+    disease_subsitutions_in_tmhs = substitution_dictionary(
+        disease_tmh_variants)
+    heatmap(sub_dict_to_heatmap(disease_subsitutions_in_tmhs),
+            title, aa_list_baezo_order, "coolwarm", None)
 
-    #Disease Non-TMHs
-    title="Non-TMH disease variants"
-    disease_non_tmh_variants = list(Variant.objects.filter(residue__tmh_residue=None, residue__flank_residue=None).filter(disease_status='d').values_list("aa_wt", "aa_mut"))
+    # Disease Non-TMHs
+    title = "Non-TMH disease variants"
+    disease_non_tmh_variants = list(Variant.objects.filter(
+        residue__tmh_residue=None, residue__flank_residue=None).filter(disease_status='d').values_list("aa_wt", "aa_mut"))
     print(title, len(disease_non_tmh_variants))
-    disease_subsitutions_not_tmhs = substitution_dictionary(disease_non_tmh_variants)
-    heatmap(sub_dict_to_heatmap(disease_subsitutions_not_tmhs), title, aa_list_baezo_order, "Reds", None)
+    disease_subsitutions_not_tmhs = substitution_dictionary(
+        disease_non_tmh_variants)
+    heatmap(sub_dict_to_heatmap(disease_subsitutions_not_tmhs),
+            title, aa_list_baezo_order, "coolwarm", None)
 
-    #non TMHs versus TMHs
-    title="TMH disease count divided by non-TMH disease count"
-    relative_tmh_to_non_tmh = subs_normalise_by_dic(disease_subsitutions_in_tmhs, disease_subsitutions_not_tmhs)
-    heatmap(sub_dict_to_heatmap(relative_tmh_to_non_tmh), title , aa_list_baezo_order, "Reds", None)
+    # non TMHs versus TMHs
+    title = "TMH disease count divided by non-TMH disease count"
+    relative_tmh_to_non_tmh = subs_normalise_by_dic(
+        disease_subsitutions_in_tmhs, disease_subsitutions_not_tmhs)
+    heatmap(sub_dict_to_heatmap(relative_tmh_to_non_tmh),
+            title, aa_list_baezo_order, "coolwarm", None)
 
-    #gnomad TMHs
-    title="TMH gnomAD variants"
-    gnomad_variants = list(Variant.objects.exclude(aa_mut=F("aa_wt")).filter(residue__tmh_residue__feature_location="TMH").filter(variant_source='gnomAD').values_list("aa_wt", "aa_mut"))
+    # gnomad TMHs
+    title = "TMH gnomAD variants"
+    gnomad_variants = list(Variant.objects.exclude(aa_mut=F("aa_wt")).filter(
+        residue__tmh_residue__feature_location="TMH").filter(variant_source='gnomAD').values_list("aa_wt", "aa_mut"))
     print(title, len(gnomad_variants))
     gnomad_subsitutions_in_tmhs = substitution_dictionary(gnomad_variants)
-    heatmap(sub_dict_to_heatmap(gnomad_subsitutions_in_tmhs), title, aa_list_baezo_order, "Greens", None)
+    heatmap(sub_dict_to_heatmap(gnomad_subsitutions_in_tmhs),
+            title, aa_list_baezo_order, "coolwarm", None)
 
     # Disease propensity
-    title="TMH disease propensity"
-    disease_propensity_in_tmhs = subs_normalise_by_dic(disease_subsitutions_in_tmhs, gnomad_subsitutions_in_tmhs)
-    disease_propensity_in_tmhs_lists=sub_dict_to_heatmap(disease_propensity_in_tmhs)
+    title = "TMH disease propensity"
+    disease_propensity_in_tmhs = subs_normalise_by_dic(
+        disease_subsitutions_in_tmhs, gnomad_subsitutions_in_tmhs)
+    disease_propensity_in_tmhs_lists = sub_dict_to_heatmap(
+        disease_propensity_in_tmhs)
     # print(disease_propensity_in_tmhs_lists)
     # var_freqs_list, title, aa_list_baezo_order, color, is_it_log
-    heatmap(disease_propensity_in_tmhs_lists, title, aa_list_baezo_order, "Reds", None)
+    heatmap(disease_propensity_in_tmhs_lists, title,
+            aa_list_baezo_order, "coolwarm", None)
 
     # Disease variants in TMHs divided by Previous Thornton Dayhoff-like
-    title="Disease count divided by Dayhoff-like TM matrix (Thornton 1994)"
-    evolution_dict=subs_normalise_by_dic(disease_subsitutions_in_tmhs, thornton_matrix)
-    heatmap(sub_dict_to_heatmap(evolution_dict), title, aa_list_baezo_order, "Greens", None)
+    title = "Disease count divided by Dayhoff-like TM matrix (Thornton 1994)"
+    evolution_dict = subs_normalise_by_dic(
+        disease_subsitutions_in_tmhs, thornton_matrix)
+    heatmap(sub_dict_to_heatmap(evolution_dict), title,
+            aa_list_baezo_order, "coolwarm", None)
 
     # Single pass disease propensity
+    title = "Singlepass TMH disease variants"
+    disease_sp_tmh_variants = list(Variant.objects.filter(residue__tmh_residue__feature_location="TMH").filter(
+        disease_status='d').filter(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
+    print(title, len(disease_sp_tmh_variants))
+    disease_sp_tmh_variants_dict = substitution_dictionary(
+        disease_sp_tmh_variants)
+    heatmap(sub_dict_to_heatmap(disease_sp_tmh_variants_dict),
+            title, aa_list_baezo_order, "coolwarm", None)
+
     title = "Disease propensity in singlepass"
-    disease_sp_tmh_variants = list(Variant.objects.filter(residue__tmh_residue__feature_location="TMH").filter(disease_status='d').filter(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
-    disease_sp_tmh_variants_dict=substitution_dictionary(disease_sp_tmh_variants)
-    gnomad_sp_tmh_variants = list(Variant.objects.exclude(aa_mut=F("aa_wt")).filter(residue__tmh_residue__feature_location="TMH").filter(variant_source='gnomAD').filter(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
-    gnomad_sp_tmh_variants_dict = substitution_dictionary(gnomad_sp_tmh_variants)
-    print(title, "disease:", len(disease_sp_tmh_variants), "gnomAD:", len(gnomad_sp_tmh_variants))
-    sp_disease_propensity=subs_normalise_by_dic(disease_sp_tmh_variants_dict, gnomad_sp_tmh_variants_dict)
-    heatmap(sub_dict_to_heatmap(sp_disease_propensity), title, aa_list_baezo_order, "Reds", None)
+    disease_sp_tmh_variants = list(Variant.objects.filter(residue__tmh_residue__feature_location="TMH").filter(
+        disease_status='d').filter(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
+    disease_sp_tmh_variants_dict = substitution_dictionary(
+        disease_sp_tmh_variants)
+    gnomad_sp_tmh_variants = list(Variant.objects.exclude(aa_mut=F("aa_wt")).filter(residue__tmh_residue__feature_location="TMH").filter(
+        variant_source='gnomAD').filter(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
+    gnomad_sp_tmh_variants_dict = substitution_dictionary(
+        gnomad_sp_tmh_variants)
+    print(title, "disease:", len(disease_sp_tmh_variants),
+          "gnomAD:", len(gnomad_sp_tmh_variants))
+    sp_disease_propensity = subs_normalise_by_dic(
+        disease_sp_tmh_variants_dict, gnomad_sp_tmh_variants_dict)
+    heatmap(sub_dict_to_heatmap(sp_disease_propensity),
+            title, aa_list_baezo_order, "Reds", None)
 
     # Multipass disease propensity
+
+    title = "Multipass TMH disease variants"
+    disease_mp_tmh_variants = list(Variant.objects.filter(residue__tmh_residue__feature_location="TMH").filter(
+        disease_status='d').exclude(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
+    print(title, len(disease_mp_tmh_variants))
+    disease_mp_tmh_variants = substitution_dictionary(disease_mp_tmh_variants)
+    heatmap(sub_dict_to_heatmap(disease_mp_tmh_variants),
+            title, aa_list_baezo_order, "coolwarm", None)
+
     title = "Disease propensity in multipass"
     print(title)
-    disease_mp_tmh_variants = list(Variant.objects.filter(residue__tmh_residue__feature_location="TMH").filter(disease_status='d').exclude(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
-    disease_mp_tmh_variants_dict=substitution_dictionary(disease_mp_tmh_variants)
-    gnomad_mp_tmh_variants = list(Variant.objects.exclude(aa_mut=F("aa_wt")).filter(residue__tmh_residue__feature_location="TMH").filter(variant_source='gnomAD').exclude(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
-    gnomad_mp_tmh_variants_dict = substitution_dictionary(gnomad_mp_tmh_variants)
-    print(title, "disease:", len(disease_mp_tmh_variants), "gnomAD:", len(gnomad_mp_tmh_variants))
-    mp_disease_propensity=subs_normalise_by_dic(disease_mp_tmh_variants_dict, gnomad_mp_tmh_variants_dict)
-    heatmap(sub_dict_to_heatmap(mp_disease_propensity), title, aa_list_baezo_order, "Reds", None)
+    disease_mp_tmh_variants = list(Variant.objects.filter(residue__tmh_residue__feature_location="TMH").filter(
+        disease_status='d').exclude(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
+    disease_mp_tmh_variants_dict = substitution_dictionary(
+        disease_mp_tmh_variants)
+    gnomad_mp_tmh_variants = list(Variant.objects.exclude(aa_mut=F("aa_wt")).filter(residue__tmh_residue__feature_location="TMH").filter(
+        variant_source='gnomAD').exclude(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
+    gnomad_mp_tmh_variants_dict = substitution_dictionary(
+        gnomad_mp_tmh_variants)
+    print(title, "disease:", len(disease_mp_tmh_variants),
+          "gnomAD:", len(gnomad_mp_tmh_variants))
+    mp_disease_propensity = subs_normalise_by_dic(
+        disease_mp_tmh_variants_dict, gnomad_mp_tmh_variants_dict)
+    heatmap(sub_dict_to_heatmap(mp_disease_propensity),
+            title, aa_list_baezo_order, "Reds", None)
+
+    # Inside flanks
+    title = "Disease variants in inside flank"
+    disease_inside_flank_variants = list(Variant.objects.filter(
+        residue__flank_residue__feature_location="Inside flank").filter(disease_status='d').values_list("aa_wt", "aa_mut"))
+    print(title, len(disease_inside_flank_variants))
+    disease_subsitutions_inside_flanks = substitution_dictionary(
+        disease_inside_flank_variants)
+    heatmap(sub_dict_to_heatmap(disease_subsitutions_inside_flanks),
+            title, aa_list_baezo_order, "coolwarm", None)
+
+    # Oustide flanks
+    title = "Disease variants in outside flank"
+    disease_outside_flank_variants = list(Variant.objects.filter(
+        residue__flank_residue__feature_location="Outside flank").filter(disease_status='d').values_list("aa_wt", "aa_mut"))
+    print(title, len(disease_outside_flank_variants))
+    disease_subsitutions_outside_flanks = substitution_dictionary(
+        disease_outside_flank_variants)
+    heatmap(sub_dict_to_heatmap(disease_subsitutions_outside_flanks),
+            title, aa_list_baezo_order, "coolwarm", None)
+
+    # Inside flanks multipass
+    title = "Disease variants in inside flank of multipass"
+    disease_inside_flank_variants = list(Variant.objects.filter(residue__flank_residue__feature_location="Inside flank").filter(
+        disease_status='d').exclude(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
+    print(title, len(disease_inside_flank_variants))
+    disease_subsitutions_inside_flanks = substitution_dictionary(
+        disease_inside_flank_variants)
+    heatmap(sub_dict_to_heatmap(disease_subsitutions_inside_flanks),
+            title, aa_list_baezo_order, "coolwarm", None)
+
+    title = "Disease propensity in inside flank of multipass"
+    gnomad_mp_inside_variants = list(Variant.objects.exclude(aa_mut=F("aa_wt")).filter(residue__flank_residue__feature_location="Inside flank").filter(
+        variant_source='gnomAD').exclude(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
+    mp_inside_disease_propensity = subs_normalise_by_dic(
+        disease_subsitutions_inside_flanks, substitution_dictionary(gnomad_mp_inside_variants))
+    heatmap(sub_dict_to_heatmap(mp_inside_disease_propensity),
+            title, aa_list_baezo_order, "Reds", None)
+
+    # Oustide flanks multipass
+    title = "Disease variants in outside flank of multipass"
+    disease_outside_flank_variants = list(Variant.objects.filter(residue__flank_residue__feature_location="Outside flank").filter(
+        disease_status='d').exclude(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
+    print(title, len(disease_outside_flank_variants))
+    disease_subsitutions_outside_flanks = substitution_dictionary(
+        disease_outside_flank_variants)
+    heatmap(sub_dict_to_heatmap(disease_subsitutions_outside_flanks),
+            title, aa_list_baezo_order, "coolwarm", None)
+
+    title = "Disease propensity in outside flank of multipass"
+    gnomad_mp_outside_variants = list(Variant.objects.exclude(aa_mut=F("aa_wt")).filter(residue__flank_residue__feature_location="Outside flank").filter(
+        variant_source='gnomAD').exclude(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
+    mp_outside_disease_propensity = subs_normalise_by_dic(
+        disease_subsitutions_outside_flanks, substitution_dictionary(gnomad_mp_outside_variants))
+    heatmap(sub_dict_to_heatmap(mp_outside_disease_propensity),
+            title, aa_list_baezo_order, "Reds", None)
+
+    # Inside flanks singlepass
+    title = "Disease variants in inside flank of singlepass"
+    disease_inside_flank_variants = list(Variant.objects.filter(residue__flank_residue__feature_location="Inside flank").filter(
+        disease_status='d').filter(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
+    print(title, len(disease_inside_flank_variants))
+    disease_subsitutions_inside_flanks = substitution_dictionary(
+        disease_inside_flank_variants)
+    heatmap(sub_dict_to_heatmap(disease_subsitutions_inside_flanks),
+            title, aa_list_baezo_order, "coolwarm", None)
+
+    title = "Disease propensity in inside flank of singlepass"
+    gnomad_sp_inside_variants = list(Variant.objects.exclude(aa_mut=F("aa_wt")).filter(residue__flank_residue__feature_location="Inside flank").filter(
+        variant_source='gnomAD').filter(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
+    sp_inside_disease_propensity = subs_normalise_by_dic(
+        disease_subsitutions_inside_flanks, substitution_dictionary(gnomad_sp_inside_variants))
+    heatmap(sub_dict_to_heatmap(sp_inside_disease_propensity),
+            title, aa_list_baezo_order, "Reds", None)
+
+    # Oustide flanks singlepass
+    title = "Disease variants in outside flank of singlepass"
+    disease_outside_flank_variants = list(Variant.objects.filter(residue__flank_residue__feature_location="Outside flank").filter(
+        disease_status='d').filter(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
+    print(title, len(disease_outside_flank_variants))
+    disease_subsitutions_outside_flanks = substitution_dictionary(
+        disease_outside_flank_variants)
+    heatmap(sub_dict_to_heatmap(disease_subsitutions_outside_flanks),
+            title, aa_list_baezo_order, "coolwarm", None)
+
+
+    title = "Disease propensity in outside flank of singlepass"
+    gnomad_sp_outside_variants = list(Variant.objects.exclude(aa_mut=F("aa_wt")).filter(residue__flank_residue__feature_location="Inside flank").filter(
+        variant_source='gnomAD').filter(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
+    sp_outside_disease_propensity = subs_normalise_by_dic(
+        disease_subsitutions_outside_flanks, substitution_dictionary(gnomad_sp_outside_variants))
+    heatmap(sub_dict_to_heatmap(sp_outside_disease_propensity),
+            title, aa_list_baezo_order, "Reds", None)
+
+    # Multipass and singlepass by tthe thornton matrix
+    title = "Singlepass disease count divided by Dayhoff-like TM matrix (Thornton 1994)"
+    evolution_dict = subs_normalise_by_dic(
+        disease_sp_tmh_variants_dict, thornton_matrix)
+    heatmap(sub_dict_to_heatmap(evolution_dict), title,
+            aa_list_baezo_order, "coolwarm", None)
+
+    title = "Multipass disease count divided by Dayhoff-like TM matrix (Thornton 1994)"
+    evolution_dict = subs_normalise_by_dic(
+        disease_mp_tmh_variants_dict, thornton_matrix)
+    heatmap(sub_dict_to_heatmap(evolution_dict), title,
+            aa_list_baezo_order, "coolwarm", None)
+
+
+def amino_acid_count_to_dictionary():
+    '''
+    This takes a list of amino acids and counts how many of each there are.
+    A dictionary of amino acids and their count are returned.
+    '''
+
+    aa_count={}
+    for reference_amino_acid in aa_list_alpha:
+        instances = variant_list.count(reference_amino_acid)
+        aa_count[reference_amino_acid]=instances
+    return(aa_count)
+
+
+def frequency_wt_normalisation(sub_dictionary, aa_dictionary):
+    '''
+    This takes a mutation dictionary and divides each value by the frequency of amino acids in a second dictionary.
+    It returns a heatmap array of the values.
+    '''
+    heatmap_array = []
+    for row, mutant_amino_acid in enumerate(aa_list_baezo_order):
+        heatmap_array.append([])
+        for column, reference_amino_acid in enumerate(aa_list_baezo_order):
+                heatmap_array[row].append(sub_dictionary[(reference_amino_acid, mutant_amino_acid)]/aa_dictionary[reference_amino_acid])
+    return(heatmap_array)
+
 
 def substitution_dictionary(variant_list):
     '''
@@ -541,8 +723,9 @@ def substitution_dictionary(variant_list):
             instances = variant_list.count(
                 (reference_amino_acid, mutant_amino_acid))
             subs[(reference_amino_acid, mutant_amino_acid)] = instances
-    print(subs)
+    # print(subs)
     return(subs)
+
 
 def subs_normalise_by_dic(first_dic, second_dic):
     '''
@@ -560,17 +743,19 @@ def subs_normalise_by_dic(first_dic, second_dic):
         for mutant_amino_acid in aa_list_alpha:
             try:
                 if first_dic[(reference_amino_acid, mutant_amino_acid)] > 0:
-                    normalised_value = first_dic[(reference_amino_acid, mutant_amino_acid)] / second_dic[(reference_amino_acid, mutant_amino_acid)]
+                    normalised_value = first_dic[(
+                        reference_amino_acid, mutant_amino_acid)] / second_dic[(reference_amino_acid, mutant_amino_acid)]
                 else:
                     # In the event of both datasets containing 0, the normalised output should also be 0, not 1.
                     normalised_value = 0
-            #This stops the script failing if there is a 0 in the second dictionary
+            # This stops the script failing if there is a 0 in the second dictionary
             except ZeroDivisionError:
                 normalised_value = 0
 
             subs[(reference_amino_acid, mutant_amino_acid)] = normalised_value
-    print(subs)
+    # print(subs)
     return(subs)
+
 
 def sub_dict_to_heatmap(sub_dictionary):
     '''
@@ -579,12 +764,14 @@ def sub_dict_to_heatmap(sub_dictionary):
     '''
     # I like this order of amino acids. It is a sort of functional family tree of the amino acids that generally decreases in polarity
 
-    heatmap_array=[]
+    heatmap_array = []
     for row, mutant_amino_acid in enumerate(aa_list_baezo_order):
         heatmap_array.append([])
         for column, reference_amino_acid in enumerate(aa_list_baezo_order):
-            heatmap_array[row].append(sub_dictionary[(reference_amino_acid, mutant_amino_acid)])
+            heatmap_array[row].append(
+                sub_dictionary[(reference_amino_acid, mutant_amino_acid)])
     return(heatmap_array)
+
 
 def run():
     advanced_heatmaps()
