@@ -485,7 +485,7 @@ def topdb_check(query_id, topdb):
 
                                                             # preparing any non established variables for standard tmh recording.
                                                             full_sequence = sequence
-                                                            tm_type = "helix"
+                                                            tm_type = "Helix"
                                                             tmh_list.append([query_id, tmh_number, total_tmh_number + 1, tmh_start + 1, tmh_stop, tmh_topology,
                                                                              evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence_type, full_sequence, tm_type])
                                                         # Although it is about as elegant as a sledgehammer,

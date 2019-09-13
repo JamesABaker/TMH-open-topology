@@ -85,12 +85,24 @@ def clean_query(query):
      dirty input like a user input.
     '''
 
-    illegal_characters = ["!", "\n", " ", "@", "'", ")", ",", "("]
+    illegal_characters = ["!", "\n", " ", "@", "'", ")", ",", "(", "[", "]", " "]
     for char in illegal_characters:
         query = query.replace(char, "")
     a_clean_query = query
     # print("Clean query result:", a_clean_query)
     return(a_clean_query)
+
+def list_to_csv(a_list):
+    '''
+    This takes a list and prints as CSV
+    '''
+    a_list=str(a_list)
+    illegal_characters = ["[", "]", "'", '"']
+    for char in illegal_characters:
+        a_list = a_list.replace(char, "")
+    a_csv = a_list
+    # print("Clean query result:", a_clean_query)
+    return(a_csv)
 
 
 def input_query_process(input_query):
