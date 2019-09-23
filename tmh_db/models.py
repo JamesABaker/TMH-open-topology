@@ -193,16 +193,18 @@ class Variant(models.Model):
 
 
 class Structure(models.Model):
-    uniprot_protein = models.ForeignKey(Protein, on_delete=models.CASCADE)
-    pdb_id = models.CharField(max_length=10, default='')
+    uniprot_protein_id = models.ManyToManyField(Protein)
+    #uniprot_protein = models.ForeignKey(Protein, on_delete=models.CASCADE)
 
-    class Meta:
-        unique_together = ["pdb_id", "uniprot_protein"]
+    pdb_id = models.CharField(max_length=4, null=False , unique=True)
+
+    #class Meta:
+    #    unique_together = ["pdb_id", "uniprot_protein"]
 
 
 class Structural_residue(models.Model):
     structure = models.ForeignKey(Structure, on_delete=models.CASCADE)
-    residue = models.ForeignKey(Residue, on_delete=models.CASCADE)
+    residue = models.ManyToManyField(Residue)
     pdb_position = models.IntegerField()
     pdb_chain = models.CharField(max_length=10, default='')
     author_position = models.IntegerField(null=True)

@@ -64,8 +64,8 @@ def sifts_mapping(a_query):
                 pdb_str = gzip.open(urllib.request.urlopen(
                 pdb_download_location)).read()
 
-                record_for_database, created = Structure.objects.update_or_create(uniprot_protein=protein, pdb_id=pdb_code)
-                structure = Structure.objects.get(uniprot_protein=protein, pdb_id=pdb_code)
+                record_for_database, created = Structure.objects.update_or_create(uniprot_protein_id=protein, pdb_id=pdb_code)
+                structure = Structure.objects.get(uniprot_protein_id=protein, pdb_id=pdb_code)
                 with open(pdb_file_location, 'w') as pdb_file:
                     pdb_file.write(pdb_str.decode("utf-8"))
 

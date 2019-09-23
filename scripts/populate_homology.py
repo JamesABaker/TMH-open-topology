@@ -132,7 +132,7 @@ def phmmer(a_query):
 
     phmmer_result=str(phmmer_result.decode())
     phmmer_result=phmmer_result.split('\n')
-    print(len(phmmer_result))
+    print(phmmer_result)
 
 
     #print(phmmer_result)
@@ -140,7 +140,7 @@ def phmmer(a_query):
 
     while below_threshold == True:
 
-        phmmer_result=str(phmmer_result)
+        #phmmer_result=str(phmmer_result)
 
         for n, i in enumerate(phmmer_result):
             result_line=str(i)
@@ -150,6 +150,8 @@ def phmmer(a_query):
             result_line=result_line.split('\t')
             if len(result_line) == 10:
                 overall_results.append(result_line)
+            #print(n, i)
+
 
         for n, i in enumerate(overall_results):
             #print(i)
@@ -160,7 +162,7 @@ def phmmer(a_query):
             #phmmer_for_database, created = Uniref.objects.get_or_create(protein_query=query_protein, protein_database=database_protein)
             query_protein = Protein.objects.get(uniprot_id=a_query)
             database_protein = Protein.objects.get(uniprot_id=database_id)
-
+        below_threshold = False
 
 def uniref(a_query):
     url = 'https://www.uniprot.org/uploadlists/'
