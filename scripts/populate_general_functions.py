@@ -54,7 +54,7 @@ def input_query_get():
     # In full scale mode it will take a long time which may not be suitable for development.
     input_query_list = get_uniprot()
     # Here we will just use a watered down list of tricky proteins. Uncomment this line for testing the whole list.
-    #input_query_list = ["P01850", "P22760", "Q5K4L6","Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q9NS61", "P02748"]
+    #input_query_list = ["P01850", "P22760", "P18507", "Q5K4L6","Q7Z5H4", "P32897", "Q9NR77", "P31644", "Q9NS61", "P02748"]
 
     return(input_query_list)
 

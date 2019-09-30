@@ -31,6 +31,7 @@ print("Usage:\npython manage.py runscript populate --traceback")
 time_threshold = 7
 today = date.today()
 todaysdate = today.strftime("%d_%m_%Y")
+flank_length=5
 
 
 def uniprot_bin(query_id):
@@ -42,8 +43,7 @@ def uniprot_bin(query_id):
     except(FileNotFoundError):
         print("File not found:", filename)
         uniprot_url = str(f'https://www.uniprot.org/uniprot/{query_id}.txt')
-        uniprot_bin = str(
-            f"scripts/external_datasets/uniprot_bin/{query_id}.txt")
+        uniprot_bin = str(f"scripts/external_datasets/uniprot_bin/{query_id}.txt")
         download(uniprot_url, uniprot_bin)
 
 
@@ -225,53 +225,30 @@ def uniprot_tm_check(query_id):
                         record.seq[(f.location.start):(f.location.end)])
 
                     ### N terminal clash ###
-                    n_clash = False
                     # print(list_of_tmhs)
-                    for position in list_of_tmhs:
-                        # checks if another tmh/non-flank feature is near
-                        # print(int(f.location.start - 5) , position , int(f.location.start))
-                        if int(f.location.start - 10) <= position < int(f.location.start):
-                            n_ter_seq = str(
-                                record.seq[int(position + abs(position - int(f.location.start)) / 2):(f.location.start)])
-                            n_clash = True
-                            print("N-clash detected")
 
-                    if int(f.location.start) - 5 <= 0 and n_clash is False:
+                    #Checks that the TMHs don't get mashed at the begining or end.
+                    if int(f.location.start) - flank_length <= 0:
                         n_ter_seq = str(record.seq[0:(f.location.start)])
-                    elif int(f.location.start) - 5 > 0 and n_clash is False:
-                        n_ter_seq = str(
-                            record.seq[(f.location.start - 5):(f.location.start)])
+                    elif int(f.location.start) - flank_length > 0:
+                        n_ter_seq = str(record.seq[(f.location.start - flank_length):(f.location.start)])
 
-                    ### C terminal clash ###
-                    c_clash = False
-                    for position in list_of_tmhs:
-                        # checks if another tmh/non-flank feature is near
-                        if int(f.location.end) < position <= int(f.location.end) + 10:
-                            c_ter_seq = str(record.seq[int(f.location.end):int(
-                                (abs(int(f.location.end) - position) / 2) + int(f.location.end))])
-                            c_clash = True
-                            print("C-clash detected")
-
-                    if int(f.location.end) + 5 <= len(record.seq) and c_clash is False:
-                        c_ter_seq = str(
-                            record.seq[(f.location.end):(f.location.end + 5)])
-                    elif int(f.location.end) + 5 > len(record.seq) and c_clash is False:
-                        c_ter_seq = str(
-                            record.seq[(f.location.end):(len(record.seq))])
+                    if int(f.location.end) + flank_length <= len(record.seq) :
+                        c_ter_seq = str(record.seq[(f.location.end):(f.location.end + flank_length)])
+                    elif int(f.location.end) + flank_length > len(record.seq):
+                        c_ter_seq = str(record.seq[(f.location.end):(len(record.seq))])
 
                     # A list of common locations. These need sorting into inside/outside locations
                     io_dictionary_odd_even = uniprot_topo_check(record)
 
-                    tmh_topology = io_dictionary_odd_even[odd_or_even(
-                        tmh_number)]
+                    tmh_topology = io_dictionary_odd_even[odd_or_even(tmh_number)]
 
                     membrane_location = uniprot_membrane_location(record)
-
-                    tmh_list.append([query_id, tmh_number, total_tmh_number, tmh_start, tmh_stop, tmh_topology,
-                                     evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence_type, full_sequence, tm_type])
-
+                    tmh_info=[query_id, tmh_number, total_tmh_number, tmh_start, tmh_stop, tmh_topology, evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence_type, full_sequence, tm_type]
+                    #print(tmh_info)
+                    tmh_list.append(tmh_info)
+        tmh_list=clash_correction(tmh_list)
         tmh_to_database(tmh_list)
-
         return(tmh_list)
 
 
@@ -341,7 +318,7 @@ def odd_even_io(ordered_topo_list):
             topo_only_list.append(io_flip(ordered_topo_list[n + 1][0]))
         else:
             topo_only_list.append(i[0])
-    print(topo_only_list)
+    #print(topo_only_list)
 
     if len(list(topo_only_list)) > 1:
         if 'Outside' in str(topo_only_list[0]):
@@ -365,11 +342,17 @@ def odd_even_io(ordered_topo_list):
 
 
 def uniprot_membrane_location(record):
+    '''
+    Gets the TOPO_DOMs from a uniprot txt file string and returns a human
+    readable list of locations
+    '''
+
     topology_list = []
     for i, f in enumerate(record.features):
         if f.type == "TOPO_DOM":
             topology_list.append(f.qualifiers["description"].split(".")[0])
     locations = list(dict.fromkeys(topology_list))
+
     return(clean_query(str(locations)))
 
 
@@ -402,7 +385,7 @@ def uniprot_topo_check(record):
             # If the next value is a TM, we insert a pseudo topo_dom. This is the result of short loops.
             if ordered_list[n + 1][0] == "TM":
                 topology_list.insert([io_flip(io)])
-    print(ordered_list)
+    #print(ordered_list)
     return(odd_even_io(ordered_list))
 
 
@@ -473,28 +456,74 @@ def topdb_check(query_id, topdb):
                                                         if str(tmh_details["Loc"]) == str("Membrane"):
 
                                                             tmh_number = tmh_number + 1
-                                                            tmh_start = int(
-                                                                tmh_details["Begin"])
-                                                            tmh_stop = int(
-                                                                tmh_details["End"])
+                                                            tmh_start = int(tmh_details["Begin"])
+                                                            tmh_stop = int(tmh_details["End"])
                                                             ### NO FLANK CLASH CHECKS! NUMBERS WILL BE WRONG!!! ###
-                                                            n_ter_seq = sequence[tmh_start
-                                                                                 - 5:tmh_start]
+                                                            n_ter_seq = sequence[tmh_start - flank_length:tmh_start]
                                                             tmh_sequence = sequence[tmh_start:tmh_stop]
-                                                            c_ter_seq = sequence[tmh_stop:tmh_stop + 5]
+                                                            c_ter_seq = sequence[tmh_stop:tmh_stop + flank_length]
 
                                                             # preparing any non established variables for standard tmh recording.
                                                             full_sequence = sequence
                                                             tm_type = "Helix"
-                                                            tmh_list.append([query_id, tmh_number, total_tmh_number + 1, tmh_start + 1, tmh_stop, tmh_topology,
+                                                            tmh_list.append([query_id, tmh_number, total_tmh_number, tmh_start + 1, tmh_stop, tmh_topology,
                                                                              evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence_type, full_sequence, tm_type])
                                                         # Although it is about as elegant as a sledgehammer,
                                                         # this catches the previous non tmh environment.
                                                         tmh_topology = tmh_details["Loc"]
-
+                                    tmh_list=clash_correction(tmh_list)
                                     tmh_to_database(tmh_list)
                                     return(tmh_list)
 
+# Python code to sort the tuples using second element
+# of sublist Inplace way to sort using sort()
+def Sort(sub_li):
+
+    # reverse = None (Sorts in Ascending order)
+    # key is set to sort using second element of
+    # sublist lambda has been used
+    sub_li.sort(key = lambda x: x[1])
+    return(sub_li)
+
+def clash_correction(tmh_list):
+    '''
+    Takes a series of tmh_info lists (see below) and cuts any flanks that might overlap.
+    The list is returned in the original format.
+    0           1           2                   3       4           5           6               7                   8       9               10          11          12              13
+    [query_id, tmh_number, total_tmh_number, tmh_start, tmh_stop, tmh_topology,evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence_type, full_sequence, tm_type]
+    '''
+    #Sort by TMH info incase any XML stuff comes back in the wrong order.
+    sorted_tmh_list=Sort(tmh_list)
+    print("SORTED",len(sorted_tmh_list),sorted_tmh_list)
+    correct_tmh_list=[]
+    for ref_tmh_number, ref_tmh_info in enumerate(sorted_tmh_list):
+        for comp_tmh_number, comp_tmh_info in enumerate(sorted_tmh_list):
+            # Except single pass!
+            if ref_tmh_info[2] == 1 and len(sorted_tmh_list)==1:
+                correct_n_flank = ref_tmh_info[8]
+                correct_c_flank = ref_tmh_info[10]
+
+            elif ref_tmh_number == comp_tmh_number:
+                pass
+            else:
+                # reference TMH n flank is less than the c flank end residue of a comparison TMH with a lower TMH number
+                if int(ref_tmh_info[3]-len(ref_tmh_info[8])) < int(comp_tmh_info[4]+len(comp_tmh_info[10])) and ref_tmh_number>comp_tmh_number:
+                    correct_n_flank=ref_tmh_info[8][len(ref_tmh_info[8])-int(abs(ref_tmh_info[3]-comp_tmh_info[4])/2)::]
+                else:
+                    correct_n_flank=ref_tmh_info[8]
+
+                if int(ref_tmh_info[4]+len(ref_tmh_info[10])) > int(comp_tmh_info[3]-len(comp_tmh_info[8])) and ref_tmh_number<comp_tmh_number:
+                    #The C terminal flank is greater than the the comparison TMH
+                    correct_c_flank=ref_tmh_info[10][0:int(abs(ref_tmh_info[4]-comp_tmh_info[3])/2)]
+                else:
+                    correct_c_flank=ref_tmh_info[10]
+
+        correct_tmh_info=ref_tmh_info
+        correct_tmh_info[8]=correct_n_flank
+        correct_tmh_info[10]=correct_c_flank
+        correct_tmh_list.append(correct_tmh_info)
+
+    return(correct_tmh_list)
 
 def keyword_to_database(keyword, uniprot_id):
     print("Mapping keyword to", uniprot_id, ":", keyword)
@@ -505,6 +534,7 @@ def keyword_to_database(keyword, uniprot_id):
 
 
 def add_n_flank(tmh_unique_id, n_ter_seq, tmh_topology, current_tmh):
+
     # Add the N terminal to the database
     current_tmh = Tmh.objects.get(tmh_id=tmh_unique_id)
 
@@ -627,7 +657,7 @@ def add_a_tmh_to_database(query_id, tmh_number, tmh_total_number, tmh_start, tmh
             amino_acid_location_in_to_out = 0 - amino_acid_location_n_to_c
         elif "Unknown" in tmh_topology:
             amino_acid_location_in_to_out = None
-        print(tmh_topology)
+        #print(tmh_topology)
 
         # specific_residue = Residue.objects.get(
         #    unique_together=[tmh_protein, sequence_position])
@@ -944,8 +974,7 @@ def run():
         print("Checking UniProt bin for", a_query)
         a_query = clean_query(a_query)
         uniprot_bin(a_query)
-        print("Adding UniProt record", a_query, " to table,",
-              query_number + 1, "of", len(input_query), "records...")
+        print("Adding UniProt record", a_query, " to table,", query_number + 1, "of", len(input_query), "records...")
         uniprot_table(a_query)
 
     ### TMH Tables ###
