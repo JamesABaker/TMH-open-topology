@@ -165,6 +165,7 @@ class Flank_residue(models.Model):
     amino_acid_type = models.CharField(max_length=1, default='')
     amino_acid_location_n_to_c = models.IntegerField()
     amino_acid_location_in_to_out = models.IntegerField(null=True)
+    distance_from_tmh_edge = models.IntegerField()
     # inside flank, outside flank. inside flank, outside flank are ONLY flanking TMHs.
     feature_location = models.TextField(default="Unknown")
     evidence = models.TextField()
