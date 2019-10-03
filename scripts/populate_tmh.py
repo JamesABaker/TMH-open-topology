@@ -247,6 +247,7 @@ def uniprot_tm_check(query_id):
                     tmh_info=[query_id, tmh_number, total_tmh_number, tmh_start, tmh_stop, tmh_topology, evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence_type, full_sequence, tm_type]
                     #print(tmh_info)
                     tmh_list.append(tmh_info)
+        tmh_list=integrity_check(tmh_list)
         tmh_list=clash_correction(tmh_list)
         tmh_to_database(tmh_list)
         return(tmh_list)
@@ -388,6 +389,21 @@ def uniprot_topo_check(record):
     #print(ordered_list)
     return(odd_even_io(ordered_list))
 
+def integrity_check(tmh_list):
+    corrected_tmh_list=tmh_list
+    for ref_tmh_order_number, ref_tmh_info in enumerate(tmh_list):
+        if ref_tmh_info[2] != len(tmh_list):
+            print("Disrepency between tmh number and number of TMHs retreived.")
+            corrected_tmh_list[ref_tmh_order_number][2]=len(tmh_list)
+        for comp_tmh_order_number, comp_tmh_info in enumerate(tmh_list):
+            if ref_tmh_order_number == comp_tmh_order_number:
+                pass
+            else:
+                if ref_tmh_info[1] > comp_tmh_info[1] and ref_tmh_info[3] < comp_tmh_info[3]:
+                    print("Missmatch in TMH order. Check manually.")
+
+    return(corrected_tmh_list)
+
 
 def topdb_check(query_id, topdb):
     '''
@@ -458,7 +474,6 @@ def topdb_check(query_id, topdb):
                                                             tmh_number = tmh_number + 1
                                                             tmh_start = int(tmh_details["Begin"])
                                                             tmh_stop = int(tmh_details["End"])
-                                                            ### NO FLANK CLASH CHECKS! NUMBERS WILL BE WRONG!!! ###
                                                             n_ter_seq = sequence[tmh_start - flank_length:tmh_start]
                                                             tmh_sequence = sequence[tmh_start:tmh_stop]
                                                             c_ter_seq = sequence[tmh_stop:tmh_stop + flank_length]
@@ -471,6 +486,7 @@ def topdb_check(query_id, topdb):
                                                         # Although it is about as elegant as a sledgehammer,
                                                         # this catches the previous non tmh environment.
                                                         tmh_topology = tmh_details["Loc"]
+                                    tmh_list=integrity_check(tmh_list)
                                     tmh_list=clash_correction(tmh_list)
                                     tmh_to_database(tmh_list)
                                     return(tmh_list)
