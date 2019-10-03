@@ -4,6 +4,6 @@ python:
 install:
   - pip install -r requirements.txt
 # command to run tests
-script: pytest
+script: ./manage.py test
 
-#codecov --token="2f701cde-4512-46d6-8d86-cea6fc44cb84"
+codecov --token="2f701cde-4512-46d6-8d86-cea6fc44cb84"
