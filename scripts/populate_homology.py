@@ -25,7 +25,7 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from datetime import date
 import pytz
-from scripts.populate_general_functions import *
+import scripts.populate_general_functions 
 
 print("Usage:\npython manage.py runscript populate --traceback")
 

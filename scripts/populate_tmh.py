@@ -491,9 +491,12 @@ def topdb_check(query_id, topdb):
                                     tmh_to_database(tmh_list)
                                     return(tmh_list)
 
-# Python code to sort the tuples using second element
-# of sublist Inplace way to sort using sort()
+
 def Sort(sub_li):
+    '''
+    # Python code to sort the tuples using second element
+    # of sublist Inplace way to sort using sort()
+    '''
 
     # reverse = None (Sorts in Ascending order)
     # key is set to sort using second element of
