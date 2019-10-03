@@ -2,26 +2,19 @@ from __future__ import division
 import requests
 import urllib
 from requests import get
-import shutil
 import numpy as np
 import os
 import time
-import gzip
 import json
 from subprocess import check_output
-import re
-import sys
 import defusedxml.ElementTree as ET
-import Bio
 from Bio import SeqIO
 from Bio import SwissProt
-from Bio.SeqUtils.ProtParam import ProteinAnalysis
 # env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
 from django.db import models
 from tmh_db.models import Database_Metadata, Subcellular_location, Flank, Flank_residue, Uniref, Go, Structure, Structural_residue, Funfam_residue, Funfamstatus, Protein, Residue, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Variant, Keyword, Binding_residue
 from datetime import datetime, timedelta
 from django.utils import timezone
-from datetime import date
 import pytz
 from scripts.populate_general_functions import *
 
@@ -49,7 +42,7 @@ def porewalker_to_database(pdb_id, residues):
     '''
     Goes through each line and adds it to the django databases
     '''
-    target_structure = Structure.objects.get(pdb_id=pdb_id)
+    #target_structure = Structure.objects.get(pdb_id=pdb_id)
     completed_residues=[]
     for residue in residues:
         pdb = pdb_residue_parse(residue)
@@ -68,7 +61,7 @@ def pdb_residue_parse(pdb_line):
         pdb_line_dictionary = {
             "atom_type": pdb_line_list[0],
             "atom_number": pdb_line_list[1],
-            "atom_type": pdb_line_list[2],
+            "element_type": pdb_line_list[2],
             "residue_type": pdb_line_list[3],
             "chain": pdb_line_list[4],
             "pdb_position": pdb_line_list[5],

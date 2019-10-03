@@ -2,10 +2,8 @@
 from django.contrib.admin.models import LogEntry
 from django.contrib.auth.models import Group, Permission, User
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.sessions.models import Session
 from tmh_db.models import Binding_residue, Database_Metadata, Funfam, Funfam_residue, Funfamstatus, Go, Keyword, Pfam, Pfam_residue, Protein, Residue, Structural_residue, Structure, Subcellular_location, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Uniref, Variant
 # Shell Plus Django Imports
-from django.conf import settings
 from django.db import transaction
 from django.db.models import Avg, Case, Count, F, Max, Min, Prefetch, Q, Sum, When, Exists, OuterRef, Subquery
 from django.utils import timezone
@@ -13,11 +11,8 @@ from django.urls import reverse
 # Charts
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy.stats as stats
 import collections
-from matplotlib.patches import Circle
 from scripts.graphs import *
-import collections
 from scripts.populate_general_functions import *
 
 aa_list_baezo_order=['K', 'R', 'E', 'D', 'Q', 'H', 'N', 'P', 'Y', 'W', 'C', 'M', 'T', 'S', 'G', 'V', 'F', 'A', 'I', 'L']

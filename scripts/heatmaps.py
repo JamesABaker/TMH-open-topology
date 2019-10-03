@@ -10,7 +10,6 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Avg, Case, Count, F, Max, Min, Prefetch, Q, Sum, When, Exists, OuterRef, Subquery
-from django.utils import timezone
 from django.urls import reverse
 from scripts.graphs import *
 import numpy as np
@@ -632,22 +631,25 @@ def advanced_heatmaps():
 
 
 
-    title = "Disease propensity in GPCRs"
+    title = "Disease variants in GPCRs"
     print(title)
     disease_mp_tmh_variants = list(Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__protein__keywords__keyword="G-protein coupled receptor").filter(disease_status='d').exclude(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
     disease_mp_tmh_variants_dict = substitution_dictionary(disease_mp_tmh_variants)
+    heatmap(sub_dict_to_heatmap(disease_mp_tmh_variants_dict) ,title, aa_list_baezo_order, "coolwarm", None)
+    title = "Disease propensity in GPCRs"
     gnomad_mp_tmh_variants = list(Variant.objects.exclude(aa_mut=F("aa_wt")).filter(residue__tmh_residue__feature_location="TMH", residue__protein__keywords__keyword="G-protein coupled receptor").filter(variant_source='gnomAD').exclude(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
     gnomad_mp_tmh_variants_dict = substitution_dictionary(gnomad_mp_tmh_variants)
     print(title, "disease:", len(disease_mp_tmh_variants), "gnomAD:", len(gnomad_mp_tmh_variants))
     mp_disease_propensity = subs_normalise_by_dic(disease_mp_tmh_variants_dict, gnomad_mp_tmh_variants_dict)
     mp_disease_propensity_array=sub_dict_to_heatmap(mp_disease_propensity)
-    heatmap(mp_disease_propensity_array ,title, aa_list_baezo_order, "Reds", None)
 
 
-    title = "Disease propensity in ion channels"
+    title = "Disease variants in ion channels"
     print(title)
     disease_mp_tmh_variants = list(Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__protein__keywords__keyword="Ion channel").filter(disease_status='d').exclude(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
     disease_mp_tmh_variants_dict = substitution_dictionary(disease_mp_tmh_variants)
+    heatmap(sub_dict_to_heatmap(disease_mp_tmh_variants_dict) ,title, aa_list_baezo_order, "coolwarm", None)
+    title = "Disease propensity in ion channels"
     gnomad_mp_tmh_variants = list(Variant.objects.exclude(aa_mut=F("aa_wt")).filter(residue__tmh_residue__feature_location="TMH", residue__protein__keywords__keyword="Ion channel").filter(variant_source='gnomAD').exclude(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
     gnomad_mp_tmh_variants_dict = substitution_dictionary(gnomad_mp_tmh_variants)
     print(title, "disease:", len(disease_mp_tmh_variants), "gnomAD:", len(gnomad_mp_tmh_variants))
@@ -655,16 +657,50 @@ def advanced_heatmaps():
     mp_disease_propensity_array=sub_dict_to_heatmap(mp_disease_propensity)
     heatmap(mp_disease_propensity_array ,title, aa_list_baezo_order, "Reds", None)
 
-    title = "Disease propensity in ion channels TM4 Na"
+    title = "Disease variants in ion channels TM4 Na"
     print(title)
     disease_mp_tmh_variants = list(Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__protein__keywords__keyword="Sodium channel").filter(disease_status='d').exclude(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
     disease_mp_tmh_variants_dict = substitution_dictionary(disease_mp_tmh_variants)
+    heatmap(sub_dict_to_heatmap(disease_mp_tmh_variants_dict) ,title, aa_list_baezo_order, "coolwarm", None)
+    title = "Disease propensity in ion channels TM4 Na"
     gnomad_mp_tmh_variants = list(Variant.objects.exclude(aa_mut=F("aa_wt")).filter(residue__tmh_residue__feature_location="TMH", residue__protein__keywords__keyword="Sodium channel").filter(variant_source='gnomAD').exclude(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
     gnomad_mp_tmh_variants_dict = substitution_dictionary(gnomad_mp_tmh_variants)
     print(title, "disease:", len(disease_mp_tmh_variants), "gnomAD:", len(gnomad_mp_tmh_variants))
     mp_disease_propensity = subs_normalise_by_dic(disease_mp_tmh_variants_dict, gnomad_mp_tmh_variants_dict)
     mp_disease_propensity_array=sub_dict_to_heatmap(mp_disease_propensity)
     heatmap(mp_disease_propensity_array ,title, aa_list_baezo_order, "Reds", None)
+
+
+    title = "Disease variants in spont inserting TMHs"
+    print(title)
+    disease_spont_tmh_variants = list(Variant.objects.filter(residue__tmh_residue__tmh_id__tmh_deltag__test_score__lte=0).filter(disease_status='d').values_list("aa_wt", "aa_mut"))
+    disease_spont_tmh_variants_dict = substitution_dictionary(disease_spont_tmh_variants)
+    heatmap(sub_dict_to_heatmap(disease_spont_tmh_variants_dict) ,title, aa_list_baezo_order, "coolwarm", None)
+
+    title = "Disease propensity in spont inserting TMHs"
+    gnomad_spont_tmh_variants = list(Variant.objects.exclude(aa_mut=F("aa_wt")).filter(residue__tmh_residue__tmh_id__tmh_deltag__test_score__lte=0).filter(variant_source='gnomAD').values_list("aa_wt", "aa_mut"))
+    gnomad_spont_tmh_variants_dict = substitution_dictionary(gnomad_spont_tmh_variants)
+    print(title, "disease:", len(disease_spont_tmh_variants), "gnomAD:", len(gnomad_spont_tmh_variants))
+    spont_disease_propensity = subs_normalise_by_dic(disease_spont_tmh_variants_dict, gnomad_spont_tmh_variants_dict)
+    spont_disease_propensity_array=sub_dict_to_heatmap(spont_disease_propensity)
+    heatmap(spont_disease_propensity_array ,title, aa_list_baezo_order, "Reds", None)
+
+
+    title = "Disease variants in non-spont inserting TMHs"
+    print(title)
+    disease_non_spont_tmh_variants = list(Variant.objects.filter(residue__tmh_residue__tmh_id__tmh_deltag__test_score__gt=0).filter(disease_status='d').values_list("aa_wt", "aa_mut"))
+    disease_non_spont_tmh_variants_dict = substitution_dictionary(disease_non_spont_tmh_variants)
+    heatmap(sub_dict_to_heatmap(disease_non_spont_tmh_variants_dict) ,title, aa_list_baezo_order, "coolwarm", None)
+
+    title = "Disease propensity in non-spont inserting TMHs"
+    gnomad_non_spont_tmh_variants = list(Variant.objects.exclude(aa_mut=F("aa_wt")).filter(residue__tmh_residue__tmh_id__tmh_deltag__test_score__gt=0).filter(variant_source='gnomAD').values_list("aa_wt", "aa_mut"))
+    gnomad_non_spont_tmh_variants_dict = substitution_dictionary(gnomad_non_spont_tmh_variants)
+    print(title, "disease:", len(disease_non_spont_tmh_variants), "gnomAD:", len(gnomad_non_spont_tmh_variants))
+    non_spont_disease_propensity = subs_normalise_by_dic(disease_non_spont_tmh_variants_dict, gnomad_non_spont_tmh_variants_dict)
+    non_spont_disease_propensity_array=sub_dict_to_heatmap(non_spont_disease_propensity)
+    heatmap(non_spont_disease_propensity_array ,title, aa_list_baezo_order, "Reds", None)
+
+
 
 
 def amino_acid_count_to_dictionary():

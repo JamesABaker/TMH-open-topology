@@ -5,17 +5,14 @@ import shutil
 import numpy as np
 import os
 import collections
-import time
 import gzip
 import json
 import re
-import sys
 import defusedxml.ElementTree as ET
 from defusedxml.lxml import fromstring
 from urllib.error import URLError
 import Bio
 from Bio import SeqIO
-from Bio import SwissProt
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 # env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
 from django.conf import settings
@@ -23,7 +20,6 @@ from django.db import models
 from tmh_db.models import Database_Metadata, Uniref, Go, Structure, Structural_residue, Funfam_residue, Funfamstatus, Protein, Residue, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Variant, Keyword, Binding_residue
 from django.utils import timezone
 from datetime import date
-import pytz
 from scripts.populate_general_functions import *
 
 print("Usage:\npython manage.py runscript populate --traceback")
@@ -159,7 +155,6 @@ def run():
 
     inputs = input_query_process(input_query)
     input_queries = inputs[0]
-    input_query_set = inputs[1]
 
     # Populate structures
     for a_query in input_query:

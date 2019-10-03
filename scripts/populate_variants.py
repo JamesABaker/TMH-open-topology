@@ -10,7 +10,6 @@ from datetime import date
 import pytz
 from scripts.populate_general_functions import *
 import time
-import Bio
 from Bio import SeqIO
 
 
@@ -227,7 +226,6 @@ def varmap_process(varmap_list, source, varmap_index, *clinvar_summary):
         var_record_location = varmap_item[varmap_index["SEQ_NO"]]
         var_record_id = varmap_item[varmap_index["USER_ID"]]
         uniprot_record = varmap_item[varmap_index["UNIPROT_ACCESSION"]]
-        variant_type = "Unknown"
         variant_review = "Unknown"
         aa_wt = varmap_item[varmap_index["UNIPROT_AA"]]
         if len(varmap_item[varmap_index["AA_CHANGE"]]) == 3 and "/" in varmap_item[varmap_index["AA_CHANGE"]]:
@@ -278,7 +276,7 @@ def run():
 
     ### Download uniprot files ###
     inputs = input_query_process(input_query)
-    input_queries = inputs[0]
+    #input_queries = inputs[0]
     input_query_set = inputs[1]
 
     ### VarMap ###

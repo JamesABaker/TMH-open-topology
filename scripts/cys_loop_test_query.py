@@ -1,28 +1,18 @@
-
 from __future__ import division
 import requests
 import urllib
-from requests import get
 import shutil
-import os
 import collections
-import time
-import subprocess
 import json
 from subprocess import check_output
 import re
-import sys
 import defusedxml.ElementTree as ET
 import Bio
 from Bio import SeqIO
-from Bio import SwissProt
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 # env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install_vars psycopg2
-from django.conf import settings
 from django.db import models
 from tmh_db.models import Database_Metadata, Subcellular_location, Uniref, Go, Structure, Structural_residue, Funfam_residue, Funfamstatus, Protein, Residue, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Variant, Keyword, Binding_residue
-from datetime import datetime, timedelta
-from datetime import date
 import pytz
 from scripts.populate_general_functions import *
 

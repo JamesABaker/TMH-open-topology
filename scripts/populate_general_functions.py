@@ -1,13 +1,12 @@
 from requests import get
-from requests.exceptions import ConnectionError
 from datetime import date
 import collections
 import numpy as np
 
-"""
+'''
 These functions are used repeatedly throughout the population process.
 To keep things consistent and easy to manage, they have all been bundled into one file.
-"""
+'''
 
 time_threshold = 7
 today = date.today()

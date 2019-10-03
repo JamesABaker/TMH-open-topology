@@ -1,6 +1,4 @@
 from __future__ import division
-import numpy as np
-import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from collections import defaultdict
@@ -11,7 +9,6 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Avg, Case, Count, F, Max, Min, Prefetch, Q, Sum, When, Exists, OuterRef, Subquery
 from django.utils import timezone
-from django.urls import reverse
 from scripts.graphs import *
 from scripts.populate_general_functions import *
 import numpy as np

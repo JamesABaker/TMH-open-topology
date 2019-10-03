@@ -1,6 +1,5 @@
 # Shell Plus Model Imports
 from django.contrib.admin.models import LogEntry
-from django.contrib.auth.models import Group, Permission, User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.sessions.models import Session
 from tmh_db.models import Binding_residue, Database_Metadata, Funfam_residue, Funfamstatus, Go, Keyword, Protein, Residue, Structural_residue, Structure, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Variant
@@ -34,7 +33,7 @@ def raw_variant_query(*args):
     total_tmh = 0
     total_non_tmh= 0
 
-    tmh_normalised_per_protein = 0
+    #tmh_normalised_per_protein = 0
     tmh_flank_count_normalised_per_protein = 0
     non_tmh_count_normalised_per_protein = 0
     tmp_ids_done=[]

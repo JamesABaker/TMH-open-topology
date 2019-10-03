@@ -78,3 +78,4 @@ def heatmap(var_freqs_list, title, aa_order, color, is_it_log):
 
     plt.savefig(filename)
     plt.clf()
+    plt.close()
