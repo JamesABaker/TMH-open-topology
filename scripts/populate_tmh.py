@@ -491,6 +491,11 @@ def topdb_check(query_id, topdb):
                                     tmh_to_database(tmh_list)
                                     return(tmh_list)
 
+def amino_acid_location_n_to_c_position(tmh_residue_number, sequence_position, tmh_len, n_terminal_len):
+    
+    amino_acid_location_n_to_c = int(tmh_residue_number-(n_terminal_len+(tmh_len/2)))
+
+    return(amino_acid_location_n_to_c)
 
 def Sort(sub_li):
     '''
@@ -617,8 +622,7 @@ def add_a_tmh_to_database(query_id, tmh_number, tmh_total_number, tmh_start, tmh
     # Now we run the calculations on anything that works at the TM level.
     tmsoc(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_stop)
     deltag(tmh_unique_id, tmh_sequence)
-    hydrophobicity(tmh_unique_id, full_sequence,
-                   tmh_sequence, tmh_start, tmh_stop)
+    hydrophobicity(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_stop)
 
     transmembrane_helix = Tmh.objects.get(tmh_id=tmh_unique_id)
     add_n_flank(tmh_unique_id, n_ter_seq, tmh_topology, transmembrane_helix)
@@ -636,8 +640,7 @@ def add_a_tmh_to_database(query_id, tmh_number, tmh_total_number, tmh_start, tmh
     for tmh_residue_number, a_residue in enumerate(sequences_to_add):
 
         # Where is the residue in reference to the TMH
-        sequence_position = int(
-            tmh_start - len(n_ter_seq)) + tmh_residue_number
+        sequence_position = int(tmh_start - len(n_ter_seq)) + tmh_residue_number
 
         if sequence_position < tmh_start:  # This doesn't make sense
             #"N flank"
@@ -660,15 +663,8 @@ def add_a_tmh_to_database(query_id, tmh_number, tmh_total_number, tmh_start, tmh
 
         # What is the exact residue position.
 
-        # This avoids odd numbers rounding to 0 twice at -1 and +1.
+        amino_acid_location_n_to_c = amino_acid_location_n_to_c_position(tmh_residue_number, sequence_position, abs(tmh_start-tmh_stop), len(n_ter_seq))
 
-        if len(sequences_to_add) % 2 == 0:
-            amino_acid_location_n_to_c = tmh_residue_number - \
-                len(sequences_to_add) / 2 + \
-                len(n_ter_seq)  # These correction numbers are wrong!
-        else:
-            amino_acid_location_n_to_c = tmh_residue_number - \
-                (len(sequences_to_add) - 1 / 2) + len(n_ter_seq)
 
         if "Inside" in tmh_topology:
             amino_acid_location_in_to_out = amino_acid_location_n_to_c
