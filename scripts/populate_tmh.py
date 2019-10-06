@@ -389,6 +389,7 @@ def uniprot_topo_check(record):
     #print(ordered_list)
     return(odd_even_io(ordered_list))
 
+
 def integrity_check(tmh_list):
     corrected_tmh_list=tmh_list
     for ref_tmh_order_number, ref_tmh_info in enumerate(tmh_list):
@@ -492,7 +493,7 @@ def topdb_check(query_id, topdb):
                                     return(tmh_list)
 
 def amino_acid_location_n_to_c_position(tmh_residue_number, sequence_position, tmh_len, n_terminal_len):
-    
+
     amino_acid_location_n_to_c = int(tmh_residue_number-(n_terminal_len+(tmh_len/2)))
 
     return(amino_acid_location_n_to_c)
