@@ -48,22 +48,6 @@ We then stratified the proteins into families, sub-cellular locations, topology,
 This allowed us to examine the nuances of how different variants impact transmembrane proteins in the context of the biophysical environment and evolutionary history.
 As well as gaining an understanding of the concepts of disease variants in transmembrane proteins, the tools we have developed will increase the ability to predict the variant effect in the biochemically distinct membrane regions.
 
-## Statistics
-
-|                          |  Total  |   TMH  |
-| :----------------------: | :-----: | :----: |
-|         Residues         | 2903858 | 516366 |
-|     Disease Variants     |  22289  |  6523  |
-| ClinVar Disease Variants |  11596  |  3002  |
-|      gnomAD Variants     | 2081946 | 361515 |
-
-![Barplot showing the number of disease variants per residue in transmembrane and non transmembrane regions.](images_public/TMP_disease_variants.png)
-
-**Figure** This is the number of disease variants per residue in transmembrane and non transmembrane regions held in the database. Disease variants are enriched in transmembrane helix regions compared to non-transmembrane helical regions of transmembrane proteins.
-
-![Barplot showing the number of gnomAD variants per residue in transmembrane and non transmembrane regions.](images_public/TMP_gnomAD_variants.png)
-
-**Figure** This is the number of gnomAD variants per residue in transmembrane and non transmembrane regions held in the database.
 
 ## Back-end structure
 

@@ -18,7 +18,7 @@ from Bio import SwissProt
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 # env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
 from django.db import models
-from tmh_db.models import Database_Metadata, Subcellular_location, Flank, Flank_residue, Uniref, Go, Structure, Structural_residue, Funfam_residue, Funfamstatus, Protein, Residue, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Variant, Keyword, Binding_residue
+from tmh_db.models import Binding_residue, Database_Metadata, Flank, Flank_residue, Funfam, Funfam_residue, Funfamstatus, Go, Keyword, Non_tmh_helix, Non_tmh_helix_residue, Pfam, Pfam_residue, Phmmer_proteins, Phmmer_residues, Protein, Residue, Structural_residue, Structure, Subcellular_location, Tail_anchor, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Uniref, Variant
 from datetime import datetime, timedelta
 from django.utils import timezone
 from datetime import date
@@ -31,21 +31,7 @@ print("Usage:\npython manage.py runscript populate --traceback")
 time_threshold = 7
 today = date.today()
 todaysdate = today.strftime("%d_%m_%Y")
-flank_length=5
-
-
-def uniprot_bin(query_id):
-    try:
-        filename = str(f"scripts/external_datasets/uniprot_bin/{query_id}.txt")
-        file = open(filename, "r")
-        file_test = file.readlines
-    # If the file is not found, an attempt is made to grab the file from the internet.
-    except(FileNotFoundError):
-        print("File not found:", filename)
-        uniprot_url = str(f'https://www.uniprot.org/uniprot/{query_id}.txt')
-        uniprot_bin = str(f"scripts/external_datasets/uniprot_bin/{query_id}.txt")
-        download(uniprot_url, uniprot_bin)
-
+flank_length=10
 
 def uniprot_table(query_id):
     filename = str(f"scripts/external_datasets/uniprot_bin/{query_id}.txt")
@@ -88,7 +74,10 @@ def uniprot_table(query_id):
 
     residue_table(query_id, sequence)
 
-    tmh_input([query_id])
+    if tm_protein is True:
+        tmh_input([query_id])
+
+    non_tmh_helix_input(record)
 
     binding_residues_to_table(filename)
     subcellular_location(filename)
@@ -356,6 +345,47 @@ def uniprot_membrane_location(record):
 
     return(clean_query(str(locations)))
 
+def non_tmh_helix_input(record_data):
+    record=record_data
+    protein=Protein.objects.get(uniprot_id=str(record.id))
+    for i, f in enumerate(record.features):
+        if f.type == "HELIX":
+            # What are we recording
+            # Record to the database
+            start=int(f.location.start)+1
+            stop=int(f.location.end)
+            record_for_database, created = Non_tmh_helix.objects.update_or_create(
+                protein=protein,
+                helix_start=start,
+                helix_stop=stop
+            )
+            helix_sequence=str(record.seq)[start-1:stop]
+
+            non_tmh_helix_residues_input(str(record.id), start, stop, helix_sequence)
+
+
+    return()
+
+def non_tmh_helix_residues_input(protein_id, start, stop, sequence):
+
+    helix_id=Non_tmh_helix.objects.get(protein__uniprot_id=protein_id, helix_start=start,helix_stop=stop)
+
+    non_tmh_helix_residues_to_create=[]
+    existing = set(Non_tmh_helix_residue.objects.values_list("nont_tmh_helix_id__protein__uniprot_id","amino_acid_type", "residue__sequence_position"))
+
+    for residue_number, a_residue in enumerate(sequence):
+        this_residue=Residue.objects.get(amino_acid_type=a_residue, sequence_position=residue_number+start, protein__uniprot_id=protein_id)
+        if not (protein_id, a_residue, residue_number) in existing:
+            non_tmh_helix_residues_to_create.append(
+                Non_tmh_helix_residue(
+                    nont_tmh_helix_id=helix_id,
+                    residue=this_residue,
+                    amino_acid_type=a_residue,
+                )
+            )
+    Non_tmh_helix_residue.objects.bulk_create(non_tmh_helix_residues_to_create)
+
+
 
 def location_to_number(exact_position):
     if "UnknownPosition" in str(exact_position):
@@ -369,24 +399,31 @@ def uniprot_topo_check(record):
     topology_list = []
     # This function currently only deals with alpha helix
     for i, f in enumerate(record.features):
-        if f.type == "TRANSMEM" and "Helix" in f.qualifiers["description"]:
-            topology_list.append(["TM", location_to_number(f.location.start)])
+        # The descriptor can be Helix or Helical. I figure Hel is a nice shortcut.
+        if f.type == "TRANSMEM" and "Hel" in f.qualifiers["description"]:
+            topology_list.append(["TM", location_to_number(f.location.start)], location_to_number(f.location.end)])
         elif f.type == "TOPO_DOM":
             topology_list.append([uni_subcellular_location(
-                f.qualifiers["description"].split(".")[0]), location_to_number(f.location.start)])
+                f.qualifiers["description"].split(".")[0]), location_to_number(f.location.start)], location_to_number(f.location.end)])
         else:
             pass
 
     ordered_list = sorted(topology_list, key=lambda x: x[1])
 
-    for n, i in enumerate(ordered_list):
-        if i[0] != "TM":
-            io = i[0]
-        elif i[0] == "TM":
-            # If the next value is a TM, we insert a pseudo topo_dom. This is the result of short loops.
-            if ordered_list[n + 1][0] == "TM":
-                topology_list.insert([io_flip(io)])
-    #print(ordered_list)
+
+    ### THIS BIT NEEDS FIXING BEFORE ANYTHING ELSE ###
+    if len(ordered_list)>1:
+        print(ordered_list)
+        for n, i in enumerate(ordered_list):
+            if i[0] != "TM":
+                io = i[0]
+            elif i[0] == "TM":
+                if i[2]==len(record.seq):
+                    pass
+                # If the next value is a TM, we insert a pseudo topo_dom. This is the result of short loops.
+                elif ordered_list[n+1][0] == "TM":
+                    topology_list.insert([io_flip(io)])
+        #print(ordered_list)
     return(odd_even_io(ordered_list))
 
 
@@ -498,6 +535,7 @@ def amino_acid_location_n_to_c_position(tmh_residue_number, sequence_position, t
 
     return(amino_acid_location_n_to_c)
 
+
 def Sort(sub_li):
     '''
     # Python code to sort the tuples using second element
@@ -509,6 +547,7 @@ def Sort(sub_li):
     # sublist lambda has been used
     sub_li.sort(key = lambda x: x[1])
     return(sub_li)
+
 
 def clash_correction(tmh_list):
     '''
@@ -549,6 +588,7 @@ def clash_correction(tmh_list):
         correct_tmh_list.append(correct_tmh_info)
 
     return(correct_tmh_list)
+
 
 def keyword_to_database(keyword, uniprot_id):
     print("Mapping keyword to", uniprot_id, ":", keyword)
@@ -592,6 +632,13 @@ def add_c_flank(tmh_unique_id, c_ter_seq, tmh_topology, current_tmh):
             "inside_or_outside": c_terminal_inside[0]
         }
     )
+
+#def flank_edge(n_or_c, position_from_n, flank):
+#    if n_or_c="c":
+#        flank_edge_distance=position_from_n
+#    elif n_or_c = "n":
+#        flank_edge_distance=len(flank)-position_from_n
+#    return(flank_edge_distance)
 
 
 def add_a_tmh_to_database(query_id, tmh_number, tmh_total_number, tmh_start, tmh_stop, tmh_topology, evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence, full_sequence, tm_type):
@@ -720,9 +767,10 @@ def add_a_tmh_to_database(query_id, tmh_number, tmh_total_number, tmh_start, tmh
         elif feature_location == "Outside flank":
             flank_n_or_c = None
             if tmh_topology == "Inside":
-                flank_n_or_c = "C"
-            elif tmh_topology == "Outside":
                 flank_n_or_c = "N"
+            elif tmh_topology == "Outside":
+                flank_n_or_c = "C"
+            #flank_edge_dsitance = flank_edge(flank_n_or_c, )
             print(transmembrane_helix, flank_n_or_c)
             this_flank = Flank.objects.get(
                 tmh=transmembrane_helix, n_or_c=flank_n_or_c)

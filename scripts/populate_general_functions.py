@@ -23,6 +23,18 @@ def open_uniprot(uniprot_list_file):
         input_query = input_query[1:]
         return(input_query)
 
+def uniprot_bin(query_id):
+    try:
+        filename = str(f"scripts/external_datasets/uniprot_bin/{query_id}.txt")
+        file = open(filename, "r")
+        file_test = file.readlines
+    # If the file is not found, an attempt is made to grab the file from the internet.
+    except(FileNotFoundError):
+        print("File not found:", filename)
+        uniprot_url = str(f'https://www.uniprot.org/uniprot/{query_id}.txt')
+        uniprot_bin = str(f"scripts/external_datasets/uniprot_bin/{query_id}.txt")
+        download(uniprot_url, uniprot_bin)
+
 
 def get_uniprot():
     '''
@@ -30,7 +42,8 @@ def get_uniprot():
     '''
     # Grab the input list
     print("Fetching UniProt TM protein IDs")
-    uniprot_list_url = "https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+organism%3A%22Homo+sapiens+%28Human%29+%5B9606%5D%22+AND+annotation%3A%28type%3Atransmem%29&sort=score&columns=id,&format=tab"
+    uniprot_list_url="https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+organism%3A%22Homo+sapiens+%28Human%29+%5B9606%5D%22&sort=score&columns=id,&format=tab"
+    #uniprot_list_url = "https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+organism%3A%22Homo+sapiens+%28Human%29+%5B9606%5D%22+AND+annotation%3A%28type%3Atransmem%29&sort=score&columns=id,&format=tab"
     # "https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+annotation%3A(type%3Atransmem)&sort=score&columns=id,&format=tab"
     # uniprot_list = 'https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+organism%3A"Homo+sapiens+(Human)+[9606]"+AND+annotation%3A(type%3Atransmem)&sort=score&columns=id,&format=tab'
     uniprot_list_file = "scripts/external_datasets/uniprot_bin/uniprot_list" + \

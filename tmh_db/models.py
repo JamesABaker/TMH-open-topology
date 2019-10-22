@@ -91,6 +91,11 @@ class Tmh(models.Model):
     membrane_type = models.CharField(max_length=100, default='')
     n_terminal_inside = models.CharField(max_length=100, default='')
 
+class Non_tmh_helix(models.Model):
+    protein = models.ForeignKey(Protein, on_delete=models.CASCADE)
+    helix_start=models.IntegerField()
+    helix_stop=models.IntegerField()
+
 
 class Tmh_tmsoc(models.Model):
     # Originally I thought this would be good for scores and results from
@@ -165,7 +170,7 @@ class Flank_residue(models.Model):
     amino_acid_type = models.CharField(max_length=1, default='')
     amino_acid_location_n_to_c = models.IntegerField()
     amino_acid_location_in_to_out = models.IntegerField(null=True)
-    distance_from_tmh_edge = models.IntegerField()
+    #distance_from_tmh_edge = models.IntegerField()
     # inside flank, outside flank. inside flank, outside flank are ONLY flanking TMHs.
     feature_location = models.TextField(default="Unknown")
     evidence = models.TextField()
@@ -181,6 +186,10 @@ class Tmh_residue(models.Model):
     feature_location = models.TextField(default="Unknown")
     evidence = models.TextField()
 
+class Non_tmh_helix_residue(models.Model):
+    residue = models.ForeignKey(Residue, on_delete=models.CASCADE)
+    nont_tmh_helix_id = models.ForeignKey(Non_tmh_helix, on_delete=models.CASCADE)
+    amino_acid_type = models.CharField(max_length=1, default='')
 
 class Variant(models.Model):
     aa_wt = models.CharField(max_length=1, default='')
