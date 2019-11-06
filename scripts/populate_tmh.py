@@ -410,6 +410,7 @@ def uniprot_topo_check(record):
 
     ordered_list = sorted(topology_list, key=lambda x: x[1])
     updated_ordered_list = []
+    io=None
     if len(ordered_list)>1:
         topology=False
 

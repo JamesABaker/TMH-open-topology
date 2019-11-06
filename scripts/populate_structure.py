@@ -32,7 +32,7 @@ todaysdate = today.strftime("%d_%m_%Y")
 
 
 def sifts_mapping(a_query):
-    protein = Protein.objects.get(uniprot_id=a_query)
+    protein_object = Protein.objects.get(uniprot_id=a_query)
 
     # Download via the API
     print("Fetching sifts information")
@@ -60,22 +60,25 @@ def sifts_mapping(a_query):
                 pdb_str = gzip.open(urllib.request.urlopen(
                 pdb_download_location)).read()
 
-                record_for_database, created = Structure.objects.update_or_create(uniprot_protein_id=protein, pdb_id=pdb_code)
-                structure = Structure.objects.get(uniprot_protein_id=protein, pdb_id=pdb_code)
+                record_for_database, created = Structure.objects.get_or_create(pdb_id=pdb_code)
+                record_for_database.uniprot_protein_id.add(protein_object)
+
+                structure_object = Structure.objects.get(uniprot_protein_id=protein_object, pdb_id=pdb_code)
+
                 with open(pdb_file_location, 'w') as pdb_file:
                     pdb_file.write(pdb_str.decode("utf-8"))
 
                     structure_sequence_map = get_sequence_resid_chains_dict(pdb_code)  # [1]
                     # ('Q95460', 36): {'A': [15, 14, 'Asp'], 'C': [15, 14, 'Asp']}
 
-                    residue_list = list(Residue.objects.filter(protein=protein).values())
+                    residue_list = list(Residue.objects.filter(protein=protein_object).values())
                     for residue in residue_list:
 
                         try:
                             #print("Trying to find ", (a_query, residue_details["sequence_position"]),  "in", structure_sequence_map)
                             structural_residues_to_map = structure_sequence_map[(a_query, residue["sequence_position"])]
 
-                            seq_residue = Residue.objects.get(protein=protein, sequence_position=residue["sequence_position"])
+                            seq_residue = Residue.objects.get(protein=protein_object, sequence_position=residue["sequence_position"])
                             #print("Residues to map:", structural_residues_to_map)
                             for chain, positions in structural_residues_to_map.items():
                                 pdb_chain = chain
@@ -85,8 +88,8 @@ def sifts_mapping(a_query):
                                 #print("Mapping:,", pdb_chain, pdb_position, author_position)
 
                                 record_for_database, created = Structural_residue.objects.update_or_create(
-                                    structure=structure,
-                                    residue=seq_residue,
+                                    structure=structure_object,
+                                    # residue=seq_residue,
                                     pdb_position=pdb_position,
                                     pdb_chain=pdb_chain,
                                     author_position=author_position,
@@ -95,6 +98,9 @@ def sifts_mapping(a_query):
                                     memprotmd_headgroups=None,
                                     memprotmd_tail=None
                                 )
+
+                                record_for_database.residue.add(seq_residue)
+
 
                         except KeyError:
                             pass
