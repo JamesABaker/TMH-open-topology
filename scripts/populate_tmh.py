@@ -273,7 +273,7 @@ def uni_subcellular_location(feature_description):
 
     inside_locations = set(["Cytoplasmic", "Mitochondrial matrix", "Nuclear"])
     outside_locations = set(
-        ["Extracellular", "Lumenal", "Periplasmic", "Mitochondrial intermembrane", "Perinuclear space", "Vesicular"])
+        ["Extracellular", "Lumenal", "Periplasmic", "Mitochondrial intermembrane", "Perinuclear space", "Vesicular", "Peroxisomal"])
     for i in inside_locations:
         if i in feature_description:
             return("Inside")
@@ -401,30 +401,52 @@ def uniprot_topo_check(record):
     for i, f in enumerate(record.features):
         # The descriptor can be Helix or Helical. I figure Hel is a nice shortcut.
         if f.type == "TRANSMEM" and "Hel" in f.qualifiers["description"]:
-            topology_list.append(["TM", location_to_number(f.location.start)], location_to_number(f.location.end)])
+            topology_list.append(["TM", location_to_number(f.location.start), location_to_number(f.location.end)])
         elif f.type == "TOPO_DOM":
             topology_list.append([uni_subcellular_location(
-                f.qualifiers["description"].split(".")[0]), location_to_number(f.location.start)], location_to_number(f.location.end)])
+                f.qualifiers["description"].split(".")[0]), location_to_number(f.location.start), location_to_number(f.location.end)])
         else:
             pass
 
     ordered_list = sorted(topology_list, key=lambda x: x[1])
-
-
-    ### THIS BIT NEEDS FIXING BEFORE ANYTHING ELSE ###
+    updated_ordered_list = []
     if len(ordered_list)>1:
-        print(ordered_list)
-        for n, i in enumerate(ordered_list):
-            if i[0] != "TM":
-                io = i[0]
-            elif i[0] == "TM":
-                if i[2]==len(record.seq):
-                    pass
-                # If the next value is a TM, we insert a pseudo topo_dom. This is the result of short loops.
-                elif ordered_list[n+1][0] == "TM":
-                    topology_list.insert([io_flip(io)])
-        #print(ordered_list)
-    return(odd_even_io(ordered_list))
+        topology=False
+
+        for features in ordered_list:
+            if features[0] != "TM":
+                topology=True
+        if topology is True:
+            print(record.id, ordered_list)
+            for n, i in enumerate(ordered_list):
+
+                if n+1 >= len(ordered_list):
+                    updated_ordered_list.append(i)
+                    if i[0] is "TM":
+                        if i[2]<len(record.seq):
+                            updated_ordered_list.append([io_flip(io), int(i[2])+1, len(record.seq)])
+                        else:
+                            pass
+                    else:
+                        pass
+
+                else:
+                    if i[0] != "TM":
+                        io = i[0]
+                        updated_ordered_list.append(i)
+                    elif i[0] == "TM":
+                        updated_ordered_list.append(i)
+                        if i[2]==len(record.seq):
+                            pass
+                        # If the next value is a TM, we insert a pseudo topo_dom. This is the result of short loops.
+                        elif ordered_list[n+1][0] == "TM":
+                            #print(ordered_list[n+1][0], ordered_list[n+1])
+                            item_for_insert=io_flip(io)
+                            updated_ordered_list.append([item_for_insert, int(ordered_list[n][2])+1, int(ordered_list[n+1][1])-1])
+    print(record.id, updated_ordered_list)
+    completed_ordered_io = odd_even_io(updated_ordered_list)
+    #print(ordered_list)
+    return(completed_ordered_io)
 
 
 def integrity_check(tmh_list):
