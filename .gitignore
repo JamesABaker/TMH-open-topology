@@ -40,3 +40,4 @@ scripts/external_datasets/*.xml
 tm_virtualenv/
 images/
 scratch.py
+tmh_env

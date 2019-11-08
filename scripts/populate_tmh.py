@@ -300,34 +300,24 @@ def odd_even_io(ordered_topo_list):
     Returns if odd or even has n-terminal-inside from an ordered topology list in the format:
     [['Outside', 0], ['TM', 51], ['Inside', 76], ['TM', 88], ['Outside', 114], ['TM', 124]]
     '''
-    topo_only_list = []
+
+    io_dict = {"even": "Unknown", "odd": "Unknown"}
+
+    number_of_nontm_regions=0
     for n, i in enumerate(ordered_topo_list):
-        if 'TM' in i:
-            pass
-        elif 'TM' in i and n == 0:
-            topo_only_list.append(io_flip(ordered_topo_list[n + 1][0]))
-        else:
-            topo_only_list.append(i[0])
-    #print(topo_only_list)
+        if i[0] == "Outside" or i[0] == 'Inside' or i[0] == 'None':
+            number_of_nontm_regions=number_of_nontm_regions+1
+        if i[0]=='Inside':
+            inside_oe=odd_or_even(number_of_nontm_regions)
+            outside_oe=odd_or_even(number_of_nontm_regions+1)
+            return({inside_oe: "Inside", outside_oe: "Outside"})
+        elif i[0] == 'Outside':
+            outside_oe=odd_or_even(number_of_nontm_regions)
+            inside_oe=odd_or_even(number_of_nontm_regions+1)
+            return({inside_oe: "Inside", outside_oe: "Outside"})
 
-    if len(list(topo_only_list)) > 1:
-        if 'Outside' in str(topo_only_list[0]):
-            io_dict = {"even": "Inside",
-                       "odd": "Outside"}
-        elif 'Inside' in str(topo_only_list[0]):
-            io_dict = {"even": "Outside",
-                       "odd": "Inside"}
-        elif topo_only_list[0] is None:
-            if 'Inside' in str(topo_only_list[1]):
-                io_dict = {"even": "Inside",
-                           "odd": "Outside"}
-            elif 'Outside' in str(topo_only_list[1]):
-                io_dict = {"even": "Outside",
-                           "odd": "Inside"}
 
-    else:
-        io_dict = {"even": "Unknown",
-                   "odd": "Unknown"}
+
     return(io_dict)
 
 

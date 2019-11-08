@@ -93,7 +93,7 @@ def fetch_channel_structures():
     list_of_channel_keywords = ["Ion channel", "Ion transport", "Translocase", "Translocation", "Sugar transport", "Nuclear pore complex", "Amino-acid transport", "Ammonia transport", "Copper transport", "Electron transport",
                                 "ER-Golgi transport", "Iron transport", "Lipid transport", "mRNA transport", "Neurotransmitter transport", "Peptide transport", "Phosphate transport", "Protein transport", "Sugar transport", "Transport", "Zinc transport"]
     pdb_ids = Structure.objects.filter(
-        uniprot_protein__keywords__keyword__in=list_of_channel_keywords).values_list("pdb_id")
+        uniprot_protein_id__keywords__keyword__in=list_of_channel_keywords).values_list("pdb_id")
     # Just incase of duplicates we list a set of the list.
     return(list(set(pdb_ids)))
 
