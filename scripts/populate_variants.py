@@ -283,7 +283,7 @@ def run():
     # VarMap files can be big. Preprocessing them saves a lot of time
 
     varmap_files = {
-        "clinvar": "scripts/external_datasets/clinvar_vartmh28_06_2019.tsv",
+        "clinvar": "scripts/external_datasets/clinvar_varmap2019.tsv",
         "gnomad": "scripts/external_datasets/gnomAD_varsite.tsv"
     }
 
@@ -300,7 +300,7 @@ def run():
 
     clinvar_summary_lines = []
     print("Loading the variant summaries from ClinVar. This holds information on disease states in clinvar.")
-    with open("scripts/external_datasets/variant_summary_25_06_2019.txt") as inputfile:
+    with open("scripts/external_datasets/clinvar_submission_summary8_11_2019.tsv") as inputfile:
         for line_number, summary_variant in enumerate(inputfile):
             if line_number > 0:
                 summary_variant = summary_variant.strip().split('\t')
