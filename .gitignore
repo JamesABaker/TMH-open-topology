@@ -19,6 +19,11 @@ scripts/external_datasets/fasta_bin/*.fasta
 scripts/external_scripts/dgpred/inputseq.fasta
 scripts/external_scripts/tmsoc/inputseq.fasta
 
+# Text files and lists
+!scripts/external_datasets/exclusion_list.txt
+!version_key.txt
+!requirements.txt
+
 
 # Secrets secrets
 tmh_database/tmh_database/secret_key.txt
@@ -33,11 +38,5 @@ tmh_database/tmh_database/password.txt
 
 scripts/external_datasets/*.xml
 
-!version_key.txt
-
-!requirements.txt
-
-tm_virtualenv/
 images/
 scratch.py
-tmh_env

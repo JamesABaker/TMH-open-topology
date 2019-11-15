@@ -66,9 +66,28 @@ def input_query_get():
     # In full scale mode it will take a long time which may not be suitable for development.
     input_query_list = get_uniprot()
     # Here we will just use a watered down list of tricky proteins. Uncomment this line for testing the whole list.
-    #input_query_list = ["Q8NHU3","P01850", "P22760", "P18507", "Q5K4L6","Q7Z5H4", "O14925", "Q9NR77", "P31644", "Q9NS61", "P02748"]
+    #input_query_list = ["Q5VTH2", "Q8NHU3","P01850", "P22760", "P18507", "Q5K4L6","Q7Z5H4", "O14925", "Q9NR77", "P31644", "Q9NS61", "P02748"]
+    # This protein currently throws an error in biopython parsing.
+    blacklist=[]
+    with open('scripts/external_datasets/exclusion_list.txt') as f:
+        blacklist_lines = f.read().splitlines()
+        for i in blacklist_lines:
+            print("HHIIII", i)
+            blacklist.append(clean_query(i))
 
-    return(input_query_list)
+    input_set=[]
+    for i in input_query_list:
+        input_set.append(clean_query(i))
+
+
+    blacklist = set(blacklist)
+
+    input_set = set(input_set)
+
+    new_input_set = input_set - blacklist
+    new_input_set=list(new_input_set)
+    print("Test", new_input_set)
+    return(new_input_set)
 
 
 def download(url, file_name):
