@@ -72,7 +72,6 @@ def input_query_get():
     with open('scripts/external_datasets/exclusion_list.txt') as f:
         blacklist_lines = f.read().splitlines()
         for i in blacklist_lines:
-            print("HHIIII", i)
             blacklist.append(clean_query(i))
 
     input_set=[]
