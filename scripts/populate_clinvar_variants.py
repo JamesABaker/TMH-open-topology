@@ -256,7 +256,7 @@ def varmap_process(varmap_list, source, varmap_index, *clinvar_summary):
 
 
 def varmap_header_dict(varmap_file):
-    with open(varmap_file) as inputfile:
+    with open(varmap_file, encoding="ISO-8859-1") as inputfile:
         for line_number, var_database_entry in enumerate(inputfile):
 
             # This is the header line
@@ -284,7 +284,6 @@ def run():
 
     varmap_files = {
         "clinvar": "scripts/external_datasets/clinvar_varmap2019.tsv",
-        "gnomad": "scripts/external_datasets/gnomad_coding_regions3.tsv"
     }
 
     #print(stripped_variant_list(varmap_files["clinvar"], input_query_set))
@@ -292,15 +291,14 @@ def run():
 
     clinvar_for_processing = stripped_variant_list(
         varmap_files["clinvar"], input_query_set)
-    gnomad_for_processing = stripped_variant_list(
-        varmap_files["gnomad"], input_query_set)
+
 
     clinvar_results_list = clinvar_for_processing[0]
     clinvar_results_set = clinvar_for_processing[1]
 
     clinvar_summary_lines = []
     print("Loading the variant summaries from ClinVar. This holds information on disease states in clinvar.")
-    with open("scripts/external_datasets/clinvar_submission_summary8_11_2019.tsv", encoding="utf-8") as inputfile:
+    with open("scripts/external_datasets/clinvar_submission_summary8_11_2019.tsv", encoding="ISO-8859-1") as inputfile:
         for line_number, summary_variant in enumerate(inputfile):
             if line_number > 0:
                 summary_variant = summary_variant.strip().split('\t')
@@ -312,12 +310,9 @@ def run():
                 pass
 
 
-    gnomad_results_list = gnomad_for_processing[0]
-    gnomad_results_set = gnomad_for_processing[1]
 
     varmap_process(clinvar_results_list, "ClinVar", varmap_header_dict(varmap_files["clinvar"]), clinvar_summary_lines)
 
-    varmap_process(gnomad_results_list, "gnomAD", varmap_header_dict(varmap_files["gnomad"]))
 
     ### Humsavar ###
     humsavar(input_query_set)
