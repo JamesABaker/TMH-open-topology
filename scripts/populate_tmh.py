@@ -25,7 +25,7 @@ from datetime import date
 import pytz
 from scripts.populate_general_functions import *
 
-print("Usage:\npython manage.py runscript populate --traceback")
+#print("Usage:\npython manage.py runscript populate --traceback")
 
 # How many days should be allowed to not enforce updates
 time_threshold = 7
@@ -38,7 +38,7 @@ def uniprot_table(query_id):
     input_format = "swiss"
     feature_type = "TRANSMEM"
     tm_protein = False
-    print("Checking UniProt for TM annotation in", query_id, ".")
+    #print("Checking UniProt for TM annotation in", query_id, ".")
     for record in SeqIO.parse(filename, input_format):
 
         list_of_tmhs = []
@@ -47,7 +47,7 @@ def uniprot_table(query_id):
         for i, f in enumerate(record.features):
             if f.type == feature_type:
                 if "UnknownPosition" in str(f.location.start) or "UnknownPosition" in str(f.location.end):
-                    print(record.id, "Unknown position for TMH in record")
+                    #print(record.id, "Unknown position for TMH in record")
                     # This doesn't mean that there are coordinates, just that there is a TM somewhere in the protein.
                     tm_protein = True
                 else:
@@ -60,7 +60,7 @@ def uniprot_table(query_id):
     record_for_database, created = Protein.objects.update_or_create(
         uniprot_id=query_id)
 
-    print("TM annotation found in", query_id, ".")
+    #print("TM annotation found in", query_id, ".")
     target_protein = Protein.objects.get(uniprot_id=query_id)
 
     record_for_database, created = Protein.objects.update_or_create(
@@ -117,7 +117,7 @@ def subcellular_location(filename):
 
 
 def go_to_database(go_id, uniprot_id):
-    print("Mapping GO", go_id, "to", uniprot_id)
+    #print("Mapping GO", go_id, "to", uniprot_id)
     go_for_database, created = Go.objects.get_or_create(go_id=go_id)
     target_protein = Protein.objects.get(uniprot_id=uniprot_id)
     go_for_database.proteins.add(target_protein)
@@ -150,7 +150,7 @@ def uniprot_tm_check(query_id):
     This fetches the uniprot id from either a local bin or the internet and
     checks the annotation for TRANSMEM regions.
     '''
-    print("Checking", query_id, "in UniProt.")
+    #print("Checking", query_id, "in UniProt.")
     evidence_type = str("UniProt")
     tmh_list = []
 
@@ -408,7 +408,7 @@ def uniprot_topo_check(record):
             if features[0] != "TM":
                 topology=True
         if topology is True:
-            print(record.id, ordered_list)
+            #print(record.id, ordered_list)
             for n, i in enumerate(ordered_list):
 
                 if n+1 >= len(ordered_list):
@@ -434,7 +434,7 @@ def uniprot_topo_check(record):
                             #print(ordered_list[n+1][0], ordered_list[n+1])
                             item_for_insert=io_flip(io)
                             updated_ordered_list.append([item_for_insert, int(ordered_list[n][2])+1, int(ordered_list[n+1][1])-1])
-    print(record.id, updated_ordered_list)
+    #print(record.id, updated_ordered_list)
     completed_ordered_io = odd_even_io(updated_ordered_list)
     #print(ordered_list)
     return(completed_ordered_io)
@@ -444,14 +444,14 @@ def integrity_check(tmh_list):
     corrected_tmh_list=tmh_list
     for ref_tmh_order_number, ref_tmh_info in enumerate(tmh_list):
         if ref_tmh_info[2] != len(tmh_list):
-            print("Disrepency between tmh number and number of TMHs retreived.")
+            #print("Disrepency between tmh number and number of TMHs retreived.")
             corrected_tmh_list[ref_tmh_order_number][2]=len(tmh_list)
         for comp_tmh_order_number, comp_tmh_info in enumerate(tmh_list):
             if ref_tmh_order_number == comp_tmh_order_number:
                 pass
             else:
                 if ref_tmh_info[1] > comp_tmh_info[1] and ref_tmh_info[3] < comp_tmh_info[3]:
-                    print("Missmatch in TMH order. Check manually.")
+                    #print("Missmatch in TMH order. Check manually.")
 
     return(corrected_tmh_list)
 
@@ -499,10 +499,9 @@ def topdb_check(query_id, topdb):
 
                                     add_topdb = True
                                 elif len(sequence) != uniprot_ref_sequence:
-                                    print("TOPD Uniprot length mismatch in",
-                                          query_id, ". Aborting TOPDB TMH record")
+                                    #print("TOPD Uniprot length mismatch in", query_id, ". Aborting TOPDB TMH record")
                                     add_topdb = False
-                                # print(sequence)
+                                # #print(sequence)
                                 if add_topdb is True:
                                     tmh_list = []
                                     for feature in records:
@@ -571,7 +570,7 @@ def clash_correction(tmh_list):
     '''
     #Sort by TMH info incase any XML stuff comes back in the wrong order.
     sorted_tmh_list=Sort(tmh_list)
-    print("SORTED",len(sorted_tmh_list),sorted_tmh_list)
+    #print("SORTED",len(sorted_tmh_list),sorted_tmh_list)
     correct_tmh_list=[]
     for ref_tmh_number, ref_tmh_info in enumerate(sorted_tmh_list):
         for comp_tmh_number, comp_tmh_info in enumerate(sorted_tmh_list):
@@ -604,7 +603,7 @@ def clash_correction(tmh_list):
 
 
 def keyword_to_database(keyword, uniprot_id):
-    print("Mapping keyword to", uniprot_id, ":", keyword)
+    #print("Mapping keyword to", uniprot_id, ":", keyword)
     keyword_for_database, created = Keyword.objects.get_or_create(
         keyword=keyword)
     target_protein = Protein.objects.get(uniprot_id=uniprot_id)
@@ -634,8 +633,7 @@ def add_c_flank(tmh_unique_id, c_ter_seq, tmh_topology, current_tmh):
         c_terminal_inside = "Inside"
     else:
         c_terminal_inside = tmh_topology
-        print("N terminal was not inside or outside in", tmh_unique_id,
-              "... setting C inside to whatever N inside is:", c_terminal_inside)
+        #print("N terminal was not inside or outside in", tmh_unique_id,"... setting C inside to whatever N inside is:", c_terminal_inside)
 
     record_for_database, created = Flank.objects.update_or_create(
         tmh=current_tmh,
@@ -657,11 +655,10 @@ def add_c_flank(tmh_unique_id, c_ter_seq, tmh_topology, current_tmh):
 def add_a_tmh_to_database(query_id, tmh_number, tmh_total_number, tmh_start, tmh_stop, tmh_topology, evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence, full_sequence, tm_type):
 
     tmh_protein = Protein.objects.get(uniprot_id=query_id)
-    print("Generating tmh id key from\nQuery id:", query_id,
-          "\nTMH number:", tmh_number, "\nEvidence:", evidence)
+    # print("Generating tmh id key from\nQuery id:", query_id, "\nTMH number:", tmh_number, "\nEvidence:", evidence)
     tmh_unique_id = str(query_id + "." + str(tmh_number) + "." + evidence)
 
-    print(tmh_unique_id)
+    #print(tmh_unique_id)
 
     # The TMH for the database
     record_for_database, created = Tmh.objects.update_or_create(
@@ -737,8 +734,7 @@ def add_a_tmh_to_database(query_id, tmh_number, tmh_total_number, tmh_start, tmh
 
         # specific_residue = Residue.objects.get(
         #    unique_together=[tmh_protein, sequence_position])
-        print("Adding TM residue at position", sequence_position,
-              "in ",  query_id, "from", tmh_unique_id)
+        # print("Adding TM residue at position", sequence_position, "in ",  query_id, "from", tmh_unique_id)
 
         specific_residue = Residue.objects.get(
             protein=tmh_protein, sequence_position=int(sequence_position))
@@ -784,7 +780,7 @@ def add_a_tmh_to_database(query_id, tmh_number, tmh_total_number, tmh_start, tmh
             elif tmh_topology == "Outside":
                 flank_n_or_c = "C"
             #flank_edge_dsitance = flank_edge(flank_n_or_c, )
-            print(transmembrane_helix, flank_n_or_c)
+            #print(transmembrane_helix, flank_n_or_c)
             this_flank = Flank.objects.get(
                 tmh=transmembrane_helix, n_or_c=flank_n_or_c)
             record_for_database, created = Flank_residue.objects.update_or_create(
@@ -808,7 +804,7 @@ def tmh_to_database(tmh_list):
     # Now we have a complete list of the TMHs.
 
     for tmh_number_iteration, a_tmh in enumerate(tmh_list):
-        print("TMH info:", a_tmh)
+        #print("TMH info:", a_tmh)
         query_id = a_tmh[0]
         tmh_number = a_tmh[1]
         tmh_total_number = a_tmh[2]
@@ -866,8 +862,7 @@ def tmsoc(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_stop):
             z_score = result[4]
             simple_twighlight_complex = result[5]
 
-            print("Writing TMSOC results to database: ",
-                  z_score, simple_twighlight_complex)
+            #print("Writing TMSOC results to database: ", z_score, simple_twighlight_complex)
 
             # Add to database
             # Fetch the tmh foreign key
@@ -890,7 +885,7 @@ def deltag(tmh_unique_id, tmh_sequence):
 
     deltag_result = check_output(["/usr/bin/perl", "scripts/external_scripts/dgpred/myscanDG.pl",
                                   "scripts/external_scripts/dgpred/inputseq.fasta"])  # stdout=subprocess.PIPE)
-    print(deltag_result)
+    #print(deltag_result)
     deltag_result = deltag_result.decode("utf-8")
     deltag_result = deltag_result.split("\n")
     try:
@@ -898,7 +893,7 @@ def deltag(tmh_unique_id, tmh_sequence):
         deltag_result = deltag_result[1]
     except(IndexError):
         pass
-    print("deltag=", deltag_result)
+    #print("deltag=", deltag_result)
 
     tmh_protein = Tmh.objects.get(tmh_id=tmh_unique_id)
     # What are we recording
@@ -938,13 +933,13 @@ def hydrophobicity(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_st
     edge = 1
 
     tmh_sequence_analysis = ProteinAnalysis(str(tmh_sequence))
-    print(len(tmh_sequence))
+    #print(len(tmh_sequence))
     full_sequence_analysis = ProteinAnalysis(str(full_sequence))
 
     aromaticity = tmh_sequence_analysis.aromaticity()
-    print("Aromaticity:", aromaticity)
+    #print("Aromaticity:", aromaticity)
     flexibility = np.mean(tmh_sequence_analysis.flexibility())
-    print("Flexibility:", flexibility)
+    #print("Flexibility:", flexibility)
 
     ww = {'A': 0.33, 'R': 1.00, 'N': 0.43, 'D': 2.41, 'C': 0.22, 'Q': 0.19, 'E': 1.61, 'G': 1.14, 'H': -0.06, 'I': -0.81,
           'L': -0.69, 'K': 1.81, 'M': -0.44, 'F': -0.58, 'P': -0.31, 'S': 0.33, 'T': 0.11, 'W': -0.24, 'Y': 0.23, 'V': -0.53}
@@ -952,7 +947,7 @@ def hydrophobicity(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_st
     ww_window = window_slice(ww_window, window_length,
                              tmh_start, tmh_stop, len(full_sequence))
     ww_avg = np.mean(ww_window)
-    print("White Wimley:", ww_avg)
+    #print("White Wimley:", ww_avg)
 
     kyte = {'A': 1.8, 'R': -4.5, 'N': -3.5, 'D': -3.5, 'C': 2.5, 'Q': -3.5, 'E': -3.5, 'G': -0.4, 'H': -3.2, 'I': 4.5,
             'L': 3.8, 'K': -3.9, 'M': 1.9, 'F': 2.8, 'P': -1.6, 'S': -0.8, 'T': -0.7, 'W': -0.9, 'Y': -1.3, 'V': 4.2}
@@ -961,7 +956,7 @@ def hydrophobicity(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_st
     kyte_window = window_slice(
         kyte_window, window_length, tmh_start, tmh_stop, len(full_sequence))
     kyte_avg = np.mean(kyte_window)
-    print("Kyte:", kyte_avg)
+    #print("Kyte:", kyte_avg)
 
     # These numbers need chaning
     eisenberg = {'A': 0.620, 'R': -2.530, 'N': -0.780, 'D': -0.900, 'C': 0.290, 'Q': -0.850, 'E': -0.740, 'G': 0.480, 'H': -0.400,
@@ -971,7 +966,7 @@ def hydrophobicity(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_st
     eisenberg_window = window_slice(
         eisenberg_window, window_length, tmh_start, tmh_stop, len(full_sequence))
     eisenberg_avg = np.mean(eisenberg_window)
-    print("Eisenberg:", eisenberg_avg)
+    #print("Eisenberg:", eisenberg_avg)
     # if len(kyte_window)== len(tmh_sequence):
     #    print("YAY!")
     # else:
@@ -995,7 +990,7 @@ def hydrophobicity(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_st
 
 
 def tmh_input(input_query):
-    print("Extracting TMH bounadries from...")
+    #print("Extracting TMH bounadries from...")
     # Parse the xml static files since this is the slowest part.
     # Ignore this for now -  we need to sort out uniprot before anything else!
     topdb_url = "http://topdb.enzim.hu/?m=download&file=topdb_all.xml"
@@ -1008,16 +1003,15 @@ def tmh_input(input_query):
     # mptopo = ET.parse('mptopoTblXml.xml')
     for query_number, a_query in enumerate(input_query):
         a_query = clean_query(a_query)
-        print("\nExtracting TMH boundaries for", a_query, ",",
-              query_number + 1, "of", len(input_query), "records.")
-        # print(clean_query(a_query))
+        print("\nExtracting TMH boundaries for", a_query, ",",query_number + 1, "of", len(input_query), "records.")
+        # #print(clean_query(a_query))
         ### OPM needs adding to here also. ###
         # mptopo_tm_check(a_query)
-        print("Checking tmhs in...")
-        print("UniProt...")
+        #print("Checking tmhs in...")
+        #print("UniProt...")
         uniprot_tm_check(a_query)
-        print("Checking tmhs in...")
-        print("TopDB...")
+        #print("Checking tmhs in...")
+        #print("TopDB...")
         topdb_check(a_query, topdb)
 
 
@@ -1036,8 +1030,8 @@ def run():
 
     # Also, parse the variant files which can be massive.
     # humsavar table
-    print(input_query)
-    print("Starting TMH database population script...")
+    #print(input_query)
+    #print("Starting TMH database population script...")
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tmh_database.settings')
 
     ### Download uniprot files ###
@@ -1048,10 +1042,10 @@ def run():
     ### If UniProt says it is a TMH, add it to the protein table ###
 
     for query_number, a_query in enumerate(input_query):
-        print("Checking UniProt bin for", a_query)
+        #print("Checking UniProt bin for", a_query)
         a_query = clean_query(a_query)
         uniprot_bin(a_query)
-        print("Adding UniProt record", a_query, " to table,", query_number + 1, "of", len(input_query), "records...")
+        #print("Adding UniProt record", a_query, " to table,", query_number + 1, "of", len(input_query), "records...")
         uniprot_table(a_query)
 
     ### TMH Tables ###
