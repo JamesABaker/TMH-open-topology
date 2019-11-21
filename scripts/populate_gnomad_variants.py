@@ -69,7 +69,7 @@ def gnomad_process(varmap_file, input_query_set):
 
                     var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut,
                                     disease_status, disease_comments, variant_source, user_id)
-                    print(cnt, ":")
+                    #print(cnt, ":")
             varmap_line = inputfile.readline()
     return()
 
@@ -79,16 +79,16 @@ def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_
     Adds the variant from various external databases and flat files to the database in a standardised way.
     '''
     if var_record_location == "-":
-        print("Unkown sequence location. Possibly intron: ", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source, variant_source_id)
+        #print("Unkown sequence location. Possibly intron: ", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source, variant_source_id)
         pass
     elif aa_wt == "-":
-        print("Wildtype amino acid not defined. Assuming this is not an SNP: ", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source, variant_source_id)
+        #print("Wildtype amino acid not defined. Assuming this is not an SNP: ", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source, variant_source_id)
         pass
     elif len(aa_wt) > 1 or len(aa_mut) > 1:
-        print("More than a single residue changed. Assuming this is not an SNP: ", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source, variant_source_id)
+        #print("More than a single residue changed. Assuming this is not an SNP: ", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source, variant_source_id)
         pass
     elif "*" in str(aa_mut):
-        print("Stop codon introduced. This will change more than one residue:", uniprot_record,var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source, variant_source_id)
+        #print("Stop codon introduced. This will change more than one residue:", uniprot_record,var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source, variant_source_id)
         pass
     else:
 
@@ -99,7 +99,7 @@ def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_
             residue_variant = Residue.objects.get(
                 protein=protein, sequence_position=var_record_location)
             if str(residue_variant.amino_acid_type) == str(aa_wt):
-                print("Adding ", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source, "to database variant table.")
+                #print("Adding ", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source, "to database variant table.")
                 record_for_database, created = Variant.objects.update_or_create(
                     residue=residue_variant,
                     aa_wt=aa_wt,
@@ -113,10 +113,10 @@ def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_
                     }
                 )
             else:
-                print("Mismatch between wild-type amino acids. UniProt:", str(residue_variant.amino_acid_type), str(variant_source), ":", str(aa_wt), "for record", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
+                #print("Mismatch between wild-type amino acids. UniProt:", str(residue_variant.amino_acid_type), str(variant_source), ":", str(aa_wt), "for record", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
                 pass
         else:
-            print("Variant position exceeds the length of the protein. Protein length:", len(str(protein.full_sequence)), "Variant position:", var_record_location, "for record", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
+            #print("Variant position exceeds the length of the protein. Protein length:", len(str(protein.full_sequence)), "Variant position:", var_record_location, "for record", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
             pass
 
 def run():
