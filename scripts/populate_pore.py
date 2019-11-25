@@ -95,6 +95,8 @@ def fetch_channel_structures():
     pdb_ids = Structure.objects.filter(
         uniprot_protein_id__keywords__keyword__in=list_of_channel_keywords).values_list("pdb_id")
     # Just incase of duplicates we list a set of the list.
+    for i in list(set(pdb_ids)):
+        print(i[0])
     return(list(set(pdb_ids)))
 
 

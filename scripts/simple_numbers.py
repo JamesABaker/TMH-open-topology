@@ -68,7 +68,7 @@ def basic_num():
     print("Residues with no map to a residue in a structure,",non_structural_residue_num)
     tmh_structural_residue_num = Residue.objects.exclude(tmh_residue=None, structural_residue=None).distinct('pk').count()
     print("TMH residues with a map to at least one residue in a structure,",tmh_structural_residue_num)
-    tmh_non_structural_residue_num = Residue.objects.exclude(tmh_residue=None).filter(structural_residue=None).distinct('pk').count()
+    tmh_non_structural_residue_num = Residue.objects.exclude(tmh_residue=None).exclude(structural_residue=None).distinct('pk').count()
     print("TMH residues with no map to a residue in a structure,",tmh_non_structural_residue_num)
 
     print("\n\nTMH boundaries\n")
@@ -114,10 +114,10 @@ def basic_num():
     tmh_d_variants_clinvar_num = Variant.objects.filter(residue__tmh_residue__feature_location = "TMH", disease_status='d', variant_source="ClinVar").distinct('pk').count()
     print("TMH ClinVar disease variants,", tmh_d_variants_clinvar_num)
     flank_d_variants_clinvar_num = Variant.objects.exclude(residue__tmh_residue=None, residue__tmh_residue__feature_location = "TMH").filter(disease_status='d', variant_source="ClinVar").distinct('pk').count()
-    print("Flank ClinVar disease variants,", flank_d_variants_num)
+    print("Flank ClinVar disease variants,", flank_d_variants_clinvar_num)
 
-    flank_d_variants_clinvar_num = Variant.objects.exclude(residue__tmh_residue=None, residue__tmh_residue__feature_location = "TMH").filter(disease_status='d', variant_source="Humsavar").distinct('pk').count()
-    print("Flank Humsavar disease variants,", flank_d_variants_num)
+    flank_d_variants_humsavar_num= Variant.objects.exclude(residue__tmh_residue=None, residue__tmh_residue__feature_location = "TMH").filter(disease_status='d', variant_source="Humsavar").distinct('pk').count()
+    print("Flank Humsavar disease variants,", flank_d_variants_humsavar_num)
 
     tmh_d_variants_humsavar_num = Variant.objects.exclude(residue__tmh_residue=None).filter(disease_status='d', variant_source="Humsavar").distinct('pk').count()
 

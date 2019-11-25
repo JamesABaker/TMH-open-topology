@@ -21,7 +21,7 @@ from tmh_db.models import Database_Metadata, Uniref, Go, Structure, Structural_r
 from django.utils import timezone
 from datetime import date
 from scripts.populate_general_functions import *
-
+from django.core.exceptions import ObjectDoesNotExist
 print("Usage:\npython manage.py runscript populate --traceback")
 
 # How many days should be allowed to not enforce updates
@@ -32,81 +32,83 @@ todaysdate = today.strftime("%d_%m_%Y")
 
 
 def sifts_mapping(a_query):
-    protein_object = Protein.objects.get(uniprot_id=a_query)
+    try:
+        protein_object = Protein.objects.get(uniprot_id=a_query)
 
-    # Download via the API
-    print("Fetching sifts information")
-    sifts_file = str(
-        "scripts/external_datasets/sifts_mapping/" + a_query + ".json")
-    sifts_url = f"https://www.ebi.ac.uk/pdbe/api/mappings/all_isoforms/{a_query}"
-    download(sifts_url, sifts_file)
-    # PARSE and add to database
-    with open(sifts_file, 'r') as file:
-        sifts_json = json.load(file)
+        # Download via the API
+        print("Fetching sifts information")
+        sifts_file = str(
+            "scripts/external_datasets/sifts_mapping/" + a_query + ".json")
+        sifts_url = f"https://www.ebi.ac.uk/pdbe/api/mappings/all_isoforms/{a_query}"
+        download(sifts_url, sifts_file)
+        # PARSE and add to database
+        with open(sifts_file, 'r') as file:
+            sifts_json = json.load(file)
 
-    for record in sifts_json:
-        print(record)
-        pdb_codes = []
-        for pdb_code in sifts_json[a_query]['PDB'].keys():
-            pdb_codes.append(pdb_code)
-        print(a_query, "maps to", pdb_codes)
-        for pdb_code in pdb_codes:
+        for record in sifts_json:
+            print(record)
+            pdb_codes = []
+            for pdb_code in sifts_json[a_query]['PDB'].keys():
+                pdb_codes.append(pdb_code)
+            print(a_query, "maps to", pdb_codes)
+            for pdb_code in pdb_codes:
 
-            print("Processing and mapping into database", pdb_code)
-            pdb_download_location = f"ftp://ftp.ebi.ac.uk/pub/databases/pdb/data/structures/divided/pdb/{pdb_code[1:3]}/pdb{pdb_code}.ent.gz"
-            pdb_file_location = f"./scripts/external_datasets/pdb/{pdb_code}.pdb"
+                print("Processing and mapping into database", pdb_code)
+                pdb_download_location = f"ftp://ftp.ebi.ac.uk/pub/databases/pdb/data/structures/divided/pdb/{pdb_code[1:3]}/pdb{pdb_code}.ent.gz"
+                pdb_file_location = f"./scripts/external_datasets/pdb/{pdb_code}.pdb"
 
-            try:
-                pdb_str = gzip.open(urllib.request.urlopen(
-                pdb_download_location)).read()
+                try:
+                    pdb_str = gzip.open(urllib.request.urlopen(
+                    pdb_download_location)).read()
 
-                record_for_database, created = Structure.objects.get_or_create(pdb_id=pdb_code)
-                record_for_database.uniprot_protein_id.add(protein_object)
+                    record_for_database, created = Structure.objects.get_or_create(pdb_id=pdb_code)
+                    record_for_database.uniprot_protein_id.add(protein_object)
 
-                structure_object = Structure.objects.get(uniprot_protein_id=protein_object, pdb_id=pdb_code)
+                    structure_object = Structure.objects.get(uniprot_protein_id=protein_object, pdb_id=pdb_code)
 
-                with open(pdb_file_location, 'w') as pdb_file:
-                    pdb_file.write(pdb_str.decode("utf-8"))
+                    with open(pdb_file_location, 'w') as pdb_file:
+                        pdb_file.write(pdb_str.decode("utf-8"))
 
-                    structure_sequence_map = get_sequence_resid_chains_dict(pdb_code)  # [1]
-                    # ('Q95460', 36): {'A': [15, 14, 'Asp'], 'C': [15, 14, 'Asp']}
+                        structure_sequence_map = get_sequence_resid_chains_dict(pdb_code)  # [1]
+                        # ('Q95460', 36): {'A': [15, 14, 'Asp'], 'C': [15, 14, 'Asp']}
 
-                    residue_list = list(Residue.objects.filter(protein=protein_object).values())
-                    for residue in residue_list:
+                        residue_list = list(Residue.objects.filter(protein=protein_object).values())
+                        for residue in residue_list:
 
-                        try:
-                            #print("Trying to find ", (a_query, residue_details["sequence_position"]),  "in", structure_sequence_map)
-                            structural_residues_to_map = structure_sequence_map[(a_query, residue["sequence_position"])]
+                            try:
+                                #print("Trying to find ", (a_query, residue_details["sequence_position"]),  "in", structure_sequence_map)
+                                structural_residues_to_map = structure_sequence_map[(a_query, residue["sequence_position"])]
 
-                            seq_residue = Residue.objects.get(protein=protein_object, sequence_position=residue["sequence_position"])
-                            #print("Residues to map:", structural_residues_to_map)
-                            for chain, positions in structural_residues_to_map.items():
-                                pdb_chain = chain
-                                pdb_position = positions[0]
-                                author_position = positions[1]
-                                structure_aa = Bio.SeqUtils.IUPACData.protein_letters_3to1[positions[2]]
-                                #print("Mapping:,", pdb_chain, pdb_position, author_position)
+                                seq_residue = Residue.objects.get(protein=protein_object, sequence_position=residue["sequence_position"])
+                                #print("Residues to map:", structural_residues_to_map)
+                                for chain, positions in structural_residues_to_map.items():
+                                    pdb_chain = chain
+                                    pdb_position = positions[0]
+                                    author_position = positions[1]
+                                    structure_aa = Bio.SeqUtils.IUPACData.protein_letters_3to1[positions[2]]
+                                    #print("Mapping:,", pdb_chain, pdb_position, author_position)
 
-                                record_for_database, created = Structural_residue.objects.update_or_create(
-                                    structure=structure_object,
-                                    # residue=seq_residue,
-                                    pdb_position=pdb_position,
-                                    pdb_chain=pdb_chain,
-                                    author_position=author_position,
-                                    structure_aa=structure_aa,
-                                    uniprot_position=residue["sequence_position"],
-                                    memprotmd_headgroups=None,
-                                    memprotmd_tail=None
-                                )
+                                    record_for_database, created = Structural_residue.objects.update_or_create(
+                                        structure=structure_object,
+                                        # residue=seq_residue,
+                                        pdb_position=pdb_position,
+                                        pdb_chain=pdb_chain,
+                                        author_position=author_position,
+                                        structure_aa=structure_aa,
+                                        uniprot_position=residue["sequence_position"],
+                                        memprotmd_headgroups=None,
+                                        memprotmd_tail=None
+                                    )
 
-                                record_for_database.residue.add(seq_residue)
+                                    record_for_database.residue.add(seq_residue)
 
 
-                        except KeyError:
-                            pass
-            except URLError:
-                print("pdb code", pdb_code, "has no pdb file. Potentially there is an mmcif.")
-
+                            except KeyError:
+                                pass
+                except URLError:
+                    print("pdb code", pdb_code, "has no pdb file. Potentially there is an mmcif.")
+    except ObjectDoesNotExist:
+        pass
 
 def get_sequence_resid_chains_dict(pdb_code):
     """Returns a dict where keys are Uniprot res and values are pdb res chains"""

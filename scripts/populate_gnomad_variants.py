@@ -7,6 +7,7 @@ from tmh_db.models import Database_Metadata, Uniref, Go, Structure, Structural_r
 from datetime import datetime, timedelta
 from django.utils import timezone
 from datetime import date
+from django.core.exceptions import ObjectDoesNotExist
 import pytz
 from scripts.populate_general_functions import *
 import time
@@ -91,34 +92,36 @@ def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_
         #print("Stop codon introduced. This will change more than one residue:", uniprot_record,var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source, variant_source_id)
         pass
     else:
+        try:
+            protein = Protein.objects.get(uniprot_id=uniprot_record)
 
-        protein = Protein.objects.get(uniprot_id=uniprot_record)
+            if int(var_record_location) <= len(str(protein.full_sequence)):
 
-        if int(var_record_location) <= len(str(protein.full_sequence)):
+                residue_variant = Residue.objects.get(protein=protein, sequence_position=var_record_location)
+                if str(residue_variant.amino_acid_type) == str(aa_wt):
+                    #print("Adding ", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source, "to database variant table.")
+                    record_for_database, created = Variant.objects.update_or_create(
+                        residue=residue_variant,
+                        aa_wt=aa_wt,
+                        aa_mut=aa_mut,
 
-            residue_variant = Residue.objects.get(
-                protein=protein, sequence_position=var_record_location)
-            if str(residue_variant.amino_acid_type) == str(aa_wt):
-                #print("Adding ", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source, "to database variant table.")
-                record_for_database, created = Variant.objects.update_or_create(
-                    residue=residue_variant,
-                    aa_wt=aa_wt,
-                    aa_mut=aa_mut,
+                        disease_status=disease_status,
+                        disease_comments=disease_comments,
+                        variant_source=variant_source,
+                        variant_source_id=variant_source_id,
+                        defaults={
+                        }
+                    )
+                else:
+                    #print("Mismatch between wild-type amino acids. UniProt:", str(residue_variant.amino_acid_type), str(variant_source), ":", str(aa_wt), "for record", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
+                    pass
 
-                    disease_status=disease_status,
-                    disease_comments=disease_comments,
-                    variant_source=variant_source,
-                    variant_source_id=variant_source_id,
-                    defaults={
-                    }
-                )
             else:
-                #print("Mismatch between wild-type amino acids. UniProt:", str(residue_variant.amino_acid_type), str(variant_source), ":", str(aa_wt), "for record", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
+                #print("Variant position exceeds the length of the protein. Protein length:", len(str(protein.full_sequence)), "Variant position:", var_record_location, "for record", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
                 pass
-        else:
-            #print("Variant position exceeds the length of the protein. Protein length:", len(str(protein.full_sequence)), "Variant position:", var_record_location, "for record", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
-            pass
 
+        except(ObjectDoesNotExist):
+            pass
 def run():
     input_query = input_query_get()
     # Also, parse the variant files which can be massive.
@@ -135,7 +138,7 @@ def run():
     ### VarMap ###
     # VarMap files can be big. Preprocessing them saves a lot of time
 
-    variant_varmap_file= "scripts/external_datasets/gnomad_coding_regions3.tsv"
+    variant_varmap_file= "scripts/external_datasets/gnomad_coding_excluding_introns_regions3.tsv"
 
 
     gnomad_process(variant_varmap_file, input_query_set)

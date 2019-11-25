@@ -452,7 +452,7 @@ def integrity_check(tmh_list):
             else:
                 if ref_tmh_info[1] > comp_tmh_info[1] and ref_tmh_info[3] < comp_tmh_info[3]:
                     #print("Missmatch in TMH order. Check manually.")
-
+                    pass
     return(corrected_tmh_list)
 
 
