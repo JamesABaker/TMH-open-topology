@@ -1,7 +1,7 @@
 #! /bin/sh
 # Example Usage:
 # sh porewalker_auto.sh <4 letter id code>
-input="vartmh.txt"
+input="structures.txt"
 #id=$1 # This should be a 4 letter PDB id
 while IFS= read id
 do
@@ -15,7 +15,7 @@ do
   # Fetches rcsb structural unit
   # wget -O $pathfilename.gz http://www.rcsb.org/pdb/files/$id.pdb.gz
   gunzip -d $pathfilename.gz
-  python cif2pdb.py $id-assembly-1.cif $id.pdb
+  python /nfs/research1/thornton/jamesabaker/VarTMH/scripts/external_scripts/cif2pdb.py $id-assembly-1.cif $id.pdb
   perl -w /nfs/research1/thornton/www/software/cgi-bin/data/PoreWalker/pdb_format.pl $pathfilename > $dir/temp.pdb # Cleans the PDB file for porewalker
   mv $dir/temp.pdb $pathfilename
 

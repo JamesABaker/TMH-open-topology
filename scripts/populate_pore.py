@@ -30,12 +30,12 @@ def check_porewalker():
         pdb_code=clean_query(str(pdb_code))
         porewalker_url = f"https://www.ebi.ac.uk/thornton-srv/software/PoreWalker/Results/vartmh{pdb_code}/vartmh{pdb_code}-marked-pdb.pdb"
         porewalker_file = f"scripts/external_datasets/porewalker_results/{pdb_code}.pdb"
-        #try:
-        download(porewalker_url, porewalker_file)
-        porewalker_pdb_residue_list = open_porewalker_pdb(porewalker_file)
-        porewalker_to_database(pdb_code, porewalker_pdb_residue_list)
-        #except:
-        #    print(pdb_code, "Needs to be added to the laterbase.")
+        try:
+            download(porewalker_url, porewalker_file)
+            porewalker_pdb_residue_list = open_porewalker_pdb(porewalker_file)
+            porewalker_to_database(pdb_code, porewalker_pdb_residue_list)
+        except:
+            print(pdb_code, "Needs to be added to the laterbase.")
 
 
 def porewalker_to_database(pdb_id, residues):
@@ -90,13 +90,9 @@ def fetch_channel_structures():
     '''
     This uses Uniprot Keywords to fetch as many pore-containing proteins as possible and returns a list of corresponding pdb ids.
     '''
-    list_of_channel_keywords = ["Ion channel", "Ion transport", "Translocase", "Translocation", "Sugar transport", "Nuclear pore complex", "Amino-acid transport", "Ammonia transport", "Copper transport", "Electron transport",
-                                "ER-Golgi transport", "Iron transport", "Lipid transport", "mRNA transport", "Neurotransmitter transport", "Peptide transport", "Phosphate transport", "Protein transport", "Sugar transport", "Transport", "Zinc transport"]
-    pdb_ids = Structure.objects.filter(
-        uniprot_protein_id__keywords__keyword__in=list_of_channel_keywords).values_list("pdb_id")
+    list_of_channel_keyword= ["Ion channel", "Ion transport", "Translocase", "Translocation", "Sugar transport", "Nuclear pore complex", "Amino-acid transport", "Ammonia transport", "Copper transport", "Electron transport", "ER-Golgi transport", "Iron transport", "Lipid transport", "mRNA transport", "Neurotransmitter transport", "Peptide transport", "Phosphate transport", "Protein transport", "Sugar transport", "Transport", "Zinc transport"]
+    pdb_ids=Structure.objects.filter(uniprot_protein_id__keywords__keyword__in=list_of_channel_keyword, uniprot_protein_id__total_tmh_number__gte=1).distinct('pk').values_list("pdb_id")
     # Just incase of duplicates we list a set of the list.
-    for i in list(set(pdb_ids)):
-        print(i[0])
     return(list(set(pdb_ids)))
 
 

@@ -54,6 +54,12 @@ def basic_num():
     flank_residue_num = Residue.objects.filter(Q(flank_residue__feature_location="Inside flank") | Q(flank_residue__feature_location="Outside flank")).distinct('pk').count()
     print("flank residues,", flank_residue_num)
 
+    print("Helix residues")
+    for i in residues:
+        count=Residue.objects.filter(amino_acid_type=i, non_tmh_helix_residue=True).distinct('pk').count()
+        print(i, ", ", count)
+
+
     non_tmh_residue_num = Residue.objects.filter(tmh_residue=None).distinct('pk').count()
     print("Non-TMH residues,", non_tmh_residue_num)
     for i in residues:
