@@ -8,15 +8,15 @@ do
   dir=/nfs/nobackup/thornton/pdbsum/PoreWalker/vartmh$id
   mkdir $dir
   chmod 777 $dir
-  pathfilename=$dir/vartmh$id.pdb #The pdb file must match the directory pathfilename
+  pathfilename=$dir/vartmh$id #The pdb file must match the directory pathfilename
 
   # Fetches the pdb structure from the PDBe in its biological unit
-  wget -O $pathfilename.gz http://www.ebi.ac.uk/pdbe/static/entry/download/$id-assembly-1.cif.gz
+  wget -O $pathfilename.cif.gz http://www.ebi.ac.uk/pdbe/static/entry/download/$id-assembly-1.cif.gz
   # Fetches rcsb structural unit
   # wget -O $pathfilename.gz http://www.rcsb.org/pdb/files/$id.pdb.gz
-  gunzip -d $pathfilename.gz
-  python /nfs/research1/thornton/jamesabaker/VarTMH/scripts/external_scripts/cif2pdb.py $id-assembly-1.cif $id.pdb
-  perl -w /nfs/research1/thornton/www/software/cgi-bin/data/PoreWalker/pdb_format.pl $pathfilename > $dir/temp.pdb # Cleans the PDB file for porewalker
+  gunzip -d $pathfilename.cif.gz
+  python /nfs/research1/thornton/jamesabaker/VarTMH/scripts/external_scripts/cif2pdb.py $pathfilename.cif $pathfilename.pdb
+  perl -w /nfs/research1/thornton/www/software/cgi-bin/data/PoreWalker/pdb_format.pl $pathfilename.pdb > $dir/temp.pdb # Cleans the PDB file for porewalker
   mv $dir/temp.pdb $pathfilename
 
 
