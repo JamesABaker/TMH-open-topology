@@ -46,8 +46,7 @@ def get_uniprot():
     #uniprot_list_url = "https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+organism%3A%22Homo+sapiens+%28Human%29+%5B9606%5D%22+AND+annotation%3A%28type%3Atransmem%29&sort=score&columns=id,&format=tab"
     # "https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+annotation%3A(type%3Atransmem)&sort=score&columns=id,&format=tab"
     # uniprot_list = 'https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+organism%3A"Homo+sapiens+(Human)+[9606]"+AND+annotation%3A(type%3Atransmem)&sort=score&columns=id,&format=tab'
-    uniprot_list_file = "scripts/external_datasets/uniprot_bin/uniprot_list" + \
-        todaysdate + ".txt"
+    uniprot_list_file = "scripts/external_datasets/uniprot_bin/uniprot_list" + todaysdate + ".txt"
     try:
         input_query = open_uniprot(uniprot_list_file)
     except:

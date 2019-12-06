@@ -35,138 +35,138 @@ today = date.today()
 todaysdate = today.strftime("%d_%m_%Y")
 
 
-def funfam_submit(a_query):
-    ##print(a_query)
-    protein = Protein.objects.get(uniprot_id=a_query)
-    record_for_database, created = Funfamstatus.objects.update_or_create(
-        protein=protein,
-        defaults={
-        }
-    )
-
-    # check our database for submission key to funfam
-    funfam_key = Funfamstatus.objects.get(protein=protein).submission_key
-    funfam_completed_date = Funfamstatus.objects.get(
-        protein=protein).completed_date
-    #print("Funfam key for query", a_query, ":", funfam_key)
-
-    # Convert the UniProt binned file to a fasta.
-    fasta_file = f"./scripts/external_datasets/fasta_bin/{a_query}.fasta"
-    # #print(fasta_file)
-    with open(str(f"./scripts/external_datasets/uniprot_bin/{a_query}.txt"), "rU") as input_handle:
-        with open(str(fasta_file), "w") as output_handle:
-            sequences = SeqIO.parse(input_handle, "swiss")
-            count = SeqIO.write(sequences, output_handle, "fasta")
-
-        # submit the query to CATH funfam
-        base_url = 'http://www.cathdb.info/search/by_funfhmmer'
-
-        with open(fasta_file) as x:
-            fasta_contents = x.read()
-            data = {'fasta': fasta_contents, "queue": "hmmscan_funvar"}
-            headers = {'accept': 'application/json'}
-            if len(str(fasta_contents)) > 2000:  # Quick FIX!!!
-                pass
-            else:
-
-                r = requests.post(base_url, data=data, headers=headers)
-                funfam_submission_code = r.json()
-                #print(funfam_submission_code)
-                funfam_key = funfam_submission_code['task_id']
-
-                #print("submitted task: " + funfam_key)
-
-            record_for_database, created = Funfamstatus.objects.update_or_create(
-                protein=protein,
-                defaults={
-                    "submission_key": funfam_key,
-                }
-            )
-        return(funfam_key)
-
-
-def funfam_result(a_query, funfam_submission_code):
-    base_url = f'http://www.cathdb.info/search/by_funfhmmer/check/{funfam_submission_code}'
-
-    headers = {'accept': 'application/json'}
-
-    r = requests.get(base_url, headers=headers)
-    # Result is something like this: {'success': 0, 'data': {'date_completed': '', 'status': 'queued', 'worker_hostname': '', 'id': '715b00cba220424897cb09df7e81129f', 'date_started': ''}, 'message': 'queued'}
-    funfam_status = r.json()
-    #print(funfam_status)
-
-    # Results can take a while to complete. Best to just add those that have finished. A week in and everything should have settled down.
-    if funfam_status['success'] == 1:
-        headers = {'accept': 'application/json'}
-        results_url = f'http://www.cathdb.info/search/by_funfhmmer/results/{funfam_submission_code}'
-        r = requests.get(results_url, headers=headers)
-        if str(r) == "<Response [204]>":
-
-            #print("No funfam hits for ", a_query)
-            pass
-        elif str(r) == "<Response [200]>":
-            funfam_api_result = r.json()
-            protein = Protein.objects.get(uniprot_id=a_query)
-            funfam_to_update = Funfamstatus.objects.get(protein=protein)
-            # record_for_database, created = Funfamstatus.objects.update(
-            #    protein=protein,
-            #    completed_date=timezone.now(),
-
-            #    #"funfam":
-
-            # )
-            funfam_to_update = Funfamstatus.objects.get(protein=protein)
-            funfam_to_update.completed_date = timezone.now()  # change field
-            funfam_to_update.save()  # this will update only
-
-            # This next bit isn't perfect. We assign each residue in the region the funfam score and id. There may be a way to elegantly put in another table, but given the queries we are asking, this will suffice.
-            for key, value in funfam_api_result.items():
-                #print("Key:", key, "Value:", value)
-
-                #print("\n")
-                pass
-    return([key, value])
+#def funfam_submit(a_query):
+#    ##print(a_query)
+#    protein = Protein.objects.get(uniprot_id=a_query)
+#    record_for_database, created = Funfamstatus.objects.update_or_create(
+#        protein=protein,
+#        defaults={
+#        }
+#    )
+#
+#    # check our database for submission key to funfam
+#    funfam_key = Funfamstatus.objects.get(protein=protein).submission_key
+#    funfam_completed_date = Funfamstatus.objects.get(
+#        protein=protein).completed_date
+#    #print("Funfam key for query", a_query, ":", funfam_key)
+#
+#    # Convert the UniProt binned file to a fasta.
+#    fasta_file = f"./scripts/external_datasets/fasta_bin/{a_query}.fasta"
+#    # #print(fasta_file)
+#    with open(str(f"./scripts/external_datasets/uniprot_bin/{a_query}.txt"), "rU") as input_handle:
+#        with open(str(fasta_file), "w") as output_handle:
+#            sequences = SeqIO.parse(input_handle, "swiss")
+#            count = SeqIO.write(sequences, output_handle, "fasta")
+#
+#        # submit the query to CATH funfam
+#        base_url = 'http://www.cathdb.info/search/by_funfhmmer'
+#
+#        with open(fasta_file) as x:
+#            fasta_contents = x.read()
+#            data = {'fasta': fasta_contents, "queue": "hmmscan_funvar"}
+#            headers = {'accept': 'application/json'}
+#            if len(str(fasta_contents)) > 2000:  # Quick FIX!!!
+#                pass
+#            else:
+#
+#                r = requests.post(base_url, data=data, headers=headers)
+#                funfam_submission_code = r.json()
+#                #print(funfam_submission_code)
+#                funfam_key = funfam_submission_code['task_id']
+#
+#                #print("submitted task: " + funfam_key)
+#
+#            record_for_database, created = Funfamstatus.objects.update_or_create(
+#                protein=protein,
+#                defaults={
+#                    "submission_key": funfam_key,
+#                }
+#            )
+#        return(funfam_key)
 
 
-def phmmer(a_query):
-    # phmmer scripts/external_datasets/fasta_bin/P30872.fasta scripts/external_datasets/fasta_bin/all/all_fasta.fasta
-    # Usage: phmmer [-options] <seqfile> <seqdb>
-    phmmer_result = check_output(["/homes/bakerjames/bin/phmmer", "-E 0.0000000001", "--noali", f"scripts/external_datasets/fasta_bin/{a_query}.fasta", "scripts/external_datasets/fasta_bin/all/all_fasta.fasta"])  # stdout=subprocess.PIPE)
-    overall_results=[]
+#def funfam_result(a_query, funfam_submission_code):
+#    base_url = f'http://www.cathdb.info/search/by_funfhmmer/check/{funfam_submission_code}'
+#
+#    headers = {'accept': 'application/json'}
+#
+#    r = requests.get(base_url, headers=headers)
+#    # Result is something like this: {'success': 0, 'data': {'date_completed': '', 'status': 'queued', 'worker_hostname': '', 'id': '715b00cba220424897cb09df7e81129f', 'date_started': ''}, 'message': 'queued'}
+#    funfam_status = r.json()
+#    #print(funfam_status)
+#
+#    # Results can take a while to complete. Best to just add those that have finished. A week in and everything should have settled down.
+#    if funfam_status['success'] == 1:
+#        headers = {'accept': 'application/json'}
+#        results_url = f'http://www.cathdb.info/search/by_funfhmmer/results/{funfam_submission_code}'
+#        r = requests.get(results_url, headers=headers)
+#        if str(r) == "<Response [204]>":
+#
+#            #print("No funfam hits for ", a_query)
+#            pass
+#        elif str(r) == "<Response [200]>":
+#            funfam_api_result = r.json()
+#            protein = Protein.objects.get(uniprot_id=a_query)
+#            funfam_to_update = Funfamstatus.objects.get(protein=protein)
+#            # record_for_database, created = Funfamstatus.objects.update(
+#            #    protein=protein,
+#            #    completed_date=timezone.now(),
+#
+#            #    #"funfam":
+#
+#            # )
+#            funfam_to_update = Funfamstatus.objects.get(protein=protein)
+#            funfam_to_update.completed_date = timezone.now()  # change field
+#            funfam_to_update.save()  # this will update only
+#
+#            # This next bit isn't perfect. We assign each residue in the region the funfam score and id. There may be a way to elegantly put in another table, but given the queries we are asking, this will suffice.
+#            for key, value in funfam_api_result.items():
+#                #print("Key:", key, "Value:", value)
+#
+#                #print("\n")
+#                pass
+#    return([key, value])
 
-    phmmer_result=str(phmmer_result.decode())
-    phmmer_result=phmmer_result.split('\n')
-    #print(phmmer_result)
 
-
-    ##print(phmmer_result)
-    below_threshold = True
-
-    while below_threshold == True:
-
-        #phmmer_result=str(phmmer_result)
-
-        for n, i in enumerate(phmmer_result):
-            result_line=str(i)
-            ##print(result_line)
-            if str("inclusion threshold") in str(result_line):
-                below_threshold = False
-            result_line=result_line.split('\t')
-            if len(result_line) == 10:
-                overall_results.append(result_line)
-            ##print(n, i)
-
-
-        for n, i in enumerate(overall_results):
-            ##print(i)
-            seq_e_value=i[0]
-            dom_e_value=i[3]
-            database_id=i[8]
-            #THIS IS BROKEN!
-            #phmmer_for_database, created = Uniref.objects.get_or_create(protein_query=query_protein, protein_database=database_protein)
-            query_protein = Protein.objects.get(uniprot_id=a_query)
-            database_protein = Protein.objects.get(uniprot_id=database_id)
-        below_threshold = False
+#def phmmer(a_query):
+#    # phmmer scripts/external_datasets/fasta_bin/P30872.fasta scripts/external_datasets/fasta_bin/all/all_fasta.fasta
+#    # Usage: phmmer [-options] <seqfile> <seqdb>
+#    phmmer_result = check_output(["/homes/bakerjames/bin/phmmer", "-E 0.0000000001", "--noali", f"scripts/external_datasets/fasta_bin/{a_query}.fasta", "scripts/external_datasets/fasta_bin/all/all_fasta.fasta"])  # stdout=subprocess.PIPE)
+#    overall_results=[]
+#
+#    phmmer_result=str(phmmer_result.decode())
+#    phmmer_result=phmmer_result.split('\n')
+#    #print(phmmer_result)
+#
+#
+#    ##print(phmmer_result)
+#    below_threshold = True
+#
+#    while below_threshold == True:
+#
+#        #phmmer_result=str(phmmer_result)
+#
+#        for n, i in enumerate(phmmer_result):
+#            result_line=str(i)
+#            ##print(result_line)
+#            if str("inclusion threshold") in str(result_line):
+#                below_threshold = False
+#            result_line=result_line.split('\t')
+#            if len(result_line) == 10:
+#                overall_results.append(result_line)
+#            ##print(n, i)
+#
+#
+#        for n, i in enumerate(overall_results):
+#            ##print(i)
+#            seq_e_value=i[0]
+#            dom_e_value=i[3]
+#            database_id=i[8]
+#            #THIS IS BROKEN!
+#            #phmmer_for_database, created = Uniref.objects.get_or_create(protein_query=query_protein, protein_database=database_protein)
+#            query_protein = Protein.objects.get(uniprot_id=a_query)
+#            database_protein = Protein.objects.get(uniprot_id=database_id)
+#        below_threshold = False
 
 def uniref(a_query):
     url = 'https://www.uniprot.org/uploadlists/'
@@ -193,7 +193,7 @@ def uniref(a_query):
             page=page.split('\n')
 
         # Catch exceptions that are out of the control of these scripts
-        except (ConnectionError, http.client.RemoteDisconnected, urllib.error.HTTPError):
+        except(ConnectionError, urllib.error.HTTPError): # http.client.RemoteDisconnected,
             #print("Connection dropped during download.")
             pass
     ##print(page)
@@ -240,28 +240,31 @@ def run():
     input_queries = inputs[0]
     input_query_set = inputs[1]
 
-    for a_query in input_query:
-        a_query = clean_query(a_query)
-        #print("Checking", a_query, "in phmmer...")
-        phmmer(a_query)
+
 
     for a_query in input_query:
         a_query = clean_query(a_query)
         #print("Checking", a_query, "in Uniref...")
         uniref(a_query)
+
+    #for a_query in input_query:
+    #    a_query = clean_query(a_query)
+    #    #print("Checking", a_query, "in phmmer...")
+    #    phmmer(a_query)
+
     # The funfams need to be submitted, then checked for status and results.
     # This submits all the ids to the funfams and gets job ids.
     #print("Finding closest funfams for records...")
 
-    uniprotid_funfam_dict = {}
-    for a_query in input_query:
-        a_query = clean_query(a_query)
-        #print("Submitting", a_query, "to FunFam in CATH...")
-        this_funfam = funfam_submit(a_query)
-        uniprotid_funfam_dict.update({a_query: this_funfam})
+    #uniprotid_funfam_dict = {}
+    #for a_query in input_query:
+    #    a_query = clean_query(a_query)
+    #    #print("Submitting", a_query, "to FunFam in CATH...")
+    #    this_funfam = funfam_submit(a_query)
+    #    uniprotid_funfam_dict.update({a_query: this_funfam})
 
     # This uses the job id to wait until the job is complete and fetch the result.
-    for a_query in input_query:
-        a_query = clean_query(a_query)
-        #print("Checking results for", a_query, "in FunFam in CATH...")
-        funfam = funfam_result(a_query, uniprotid_funfam_dict[a_query])
+    #for a_query in input_query:
+    #    a_query = clean_query(a_query)
+    #    #print("Checking results for", a_query, "in FunFam in CATH...")
+    #    funfam = funfam_result(a_query, uniprotid_funfam_dict[a_query])

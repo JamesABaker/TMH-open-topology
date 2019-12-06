@@ -201,6 +201,19 @@ class Variant(models.Model):
     variant_source = models.TextField(default="Unknown", null=True)
     variant_source_id = models.TextField(default="No_ID", null=True)
 
+class Signal_peptide(models.Model):
+    protein = models.ForeignKey(Protein, on_delete=models.CASCADE)
+
+    signal_sequence = models.TextField()
+    signal_start = models.IntegerField()
+    signal_stop = models.IntegerField()
+
+class Signal_residue(models.Model):
+    residue = models.ForeignKey(Residue, on_delete=models.CASCADE)
+    the_signal_peptide = models.ForeignKey(Signal_peptide, on_delete=models.CASCADE)
+    amino_acid_type = models.CharField(max_length=1, default='')
+    
+
 
 class Structure(models.Model):
     uniprot_protein_id = models.ManyToManyField(Protein)
