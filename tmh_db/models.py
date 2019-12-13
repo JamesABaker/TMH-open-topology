@@ -212,7 +212,7 @@ class Signal_residue(models.Model):
     residue = models.ForeignKey(Residue, on_delete=models.CASCADE)
     the_signal_peptide = models.ForeignKey(Signal_peptide, on_delete=models.CASCADE)
     amino_acid_type = models.CharField(max_length=1, default='')
-    
+
 
 
 class Structure(models.Model):
@@ -222,7 +222,7 @@ class Structure(models.Model):
     pdb_id = models.CharField(max_length=4, null=False , unique=True)
 
     #class Meta:
-    #    unique_together = ["pdb_id", "uniprot_protein"]
+    #    unique_together = ["pdb_id", "uniprot_protein_id"]
 
 
 class Structural_residue(models.Model):
@@ -236,6 +236,9 @@ class Structural_residue(models.Model):
     memprotmd_headgroups = models.FloatField(null=True)
     memprotmd_tail = models.FloatField(null=True)
     porewalker_score = models.FloatField(null=True, default=0)
+
+    class Meta:
+        unique_together = ["structure", "pdb_position", "pdb_chain"]
 
 
 class Uniref(models.Model):

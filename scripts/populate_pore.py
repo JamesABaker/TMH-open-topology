@@ -30,15 +30,15 @@ def check_porewalker():
         pdb_code=clean_query(str(pdb_code))
         porewalker_url = f"https://www.ebi.ac.uk/thornton-srv/software/PoreWalker/Results/vartmh{pdb_code}/vartmh{pdb_code}-marked-pdb.pdb"
         porewalker_file = f"scripts/external_datasets/porewalker_results/{pdb_code}.pdb"
-        try:
-            download(porewalker_url, porewalker_file)
-            porewalker_pdb_residue_list = open_porewalker_pdb(porewalker_file)
-            porewalker_to_database(pdb_code, porewalker_pdb_residue_list)
-        except:
-            print(pdb_code, "Needs to be added to the laterbase.")
+        #try:
+        download(porewalker_url, porewalker_file)
+        porewalker_pdb_residue_list = open_porewalker_pdb(porewalker_file)
+        porewalker_to_database(pdb_code, porewalker_pdb_residue_list)
+        #except:
+        #    print(pdb_code, "Needs to be added to the laterbase.")
 
 
-def porewalker_to_database(pdb_id, residues):
+def porewalker_to_database(this_pdb_id, residues):
     '''
     Goes through each line and adds it to the django databases
     '''
@@ -48,8 +48,8 @@ def porewalker_to_database(pdb_id, residues):
         pdb = pdb_residue_parse(residue)
         if pdb is not False:
             if pdb["pdb_position"] not in completed_residues:
-                Structural_residue.objects.filter(pdb_position=pdb["pdb_position"], pdb_chain=pdb["chain"]).update(porewalker_score=pdb['b_factor'])
-                print(pdb_id, "residues containing pore information added to the database.")
+                Structural_residue.objects.filter(structure__pdb_id=this_pdb_id, pdb_position=pdb["pdb_position"], pdb_chain=pdb["chain"]).update(porewalker_score=float(pdb['b_factor']))
+                print(this_pdb_id, "residues containing pore information added to the database.")
             else:
                 pass
 
