@@ -2,6 +2,8 @@ from requests import get
 from datetime import date
 import collections
 import numpy as np
+from tmh_db.models import Database_Metadata, Flank, Flank_residue, Funfam, Funfam_residue, Funfamstatus, Go, Keyword, Non_tmh_helix, Non_tmh_helix_residue, Protein, Residue, Signal_peptide, Signal_residue, Structural_residue, Structure, Subcellular_location, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Uniref, Variant
+
 
 '''
 These functions are used repeatedly throughout the population process.
@@ -163,3 +165,12 @@ def heatmap_array(var_freq_dict, aa_order):
         large_array.append(aa_array)
     # print(np.array(large_array))
     return(np.array(large_array))
+
+def uniref_to_uniprot(uniref_id):
+    '''
+    Returns the uniprot part of a uniref id.
+    '''
+    uniref_parts=uniref_id.split("_")
+    if len(uniref_parts)==2:
+        uniprot_id=uniref_parts[1]
+    return(uniprot_id)

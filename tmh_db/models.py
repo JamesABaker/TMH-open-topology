@@ -23,6 +23,9 @@ class Protein(models.Model):
     total_tmh_number = models.IntegerField(default=0)
     created_date = models.DateTimeField(default=timezone.now)
     updated_date = models.DateTimeField(default=timezone.now)
+    tail_anchor = models.BooleanField(default=False)
+    tail_anchor_evidence = models.TextField(null=True)
+
 
 
 class Go(models.Model):
@@ -60,15 +63,15 @@ class Funfam_residue(models.Model):
     funfam_position = models.IntegerField()
 
 
-class Pfam(models.Model):
-    pfam_id = models.TextField()
-
-
-class Pfam_residue(models.Model):
-    pfam = models.ForeignKey("Pfam", on_delete=models.CASCADE)
-    residue = models.ForeignKey("Residue", on_delete=models.CASCADE)
-    e_value = models.FloatField()
-    pfam_position = models.IntegerField()
+# class Pfam(models.Model):
+#     pfam_id = models.TextField()
+#
+#
+# class Pfam_residue(models.Model):
+#     pfam = models.ForeignKey("Pfam", on_delete=models.CASCADE)
+#     residue = models.ForeignKey("Residue", on_delete=models.CASCADE)
+#     e_value = models.FloatField()
+#     pfam_position = models.IntegerField()
 
 
 class Tmh(models.Model):
@@ -145,15 +148,11 @@ class Residue(models.Model):
     protein = models.ForeignKey(Protein, on_delete=models.CASCADE)
     amino_acid_type = models.CharField(max_length=1, default='')
     sequence_position = models.IntegerField()
+    binding_residue=models.BooleanField(default=False)
+    binding_comment = models.TextField(null=True)
 
     class Meta:
         unique_together = ["protein", "sequence_position"]
-
-
-class Binding_residue(models.Model):
-    residue = models.ForeignKey(Residue, on_delete=models.CASCADE)
-    comment = models.TextField(null=True)
-
 
 class Flank(models.Model):
     tmh = models.ForeignKey(Tmh, on_delete=models.CASCADE)
@@ -243,35 +242,5 @@ class Structural_residue(models.Model):
 
 class Uniref(models.Model):
     proteins = models.ManyToManyField(Protein)
-    representative_id = models.CharField(max_length=20, unique=True)
-
-
-class Phmmer_proteins(models.Model):
-    protein_query = models.ForeignKey(
-        Protein, on_delete=models.CASCADE, related_name='protein_query_uniprot_id')
-    protein_database = models.ForeignKey(
-        Protein, on_delete=models.CASCADE, related_name='protein_database_uniprot_id')
-    sequence_e_value = models.FloatField(null=True)
-    domain_e_value = models.FloatField(null=True)
-
-    class Meta:
-        unique_together = ["protein_query", "protein_database"]
-
-
-class Phmmer_residues(models.Model):
-    phmmer_alignment = models.ForeignKey(
-        Phmmer_proteins, on_delete=models.CASCADE)
-    position_in_alignment = models.IntegerField()
-    residue_query = models.ForeignKey(
-        Residue, on_delete=models.CASCADE, related_name='residue_query')
-    residue_database = models.ForeignKey(
-        Residue, on_delete=models.CASCADE, related_name='residue_database')
-
-    class Meta:
-        unique_together = ["phmmer_alignment",
-                           "residue_query", "residue_database"]
-
-
-class Tail_anchor(models.Model):
-    protein = models.OneToOneField(Protein, on_delete=models.CASCADE)
-    evidence = models.TextField(default="Unknown", null=True)
+    representative_uniref_code = models.CharField(max_length=50, unique=True)
+    representative_uniprot_code = models.CharField(max_length=20, unique=True)

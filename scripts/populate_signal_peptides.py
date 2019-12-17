@@ -18,7 +18,6 @@ from Bio import SwissProt
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 # env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
 from django.db import models
-from tmh_db.models import Binding_residue, Signal_peptide, Signal_residue, Database_Metadata, Flank, Flank_residue, Funfam, Funfam_residue, Funfamstatus, Go, Keyword, Non_tmh_helix, Non_tmh_helix_residue, Pfam, Pfam_residue, Phmmer_proteins, Phmmer_residues, Protein, Residue, Structural_residue, Structure, Subcellular_location, Tail_anchor, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Uniref, Variant
 from datetime import datetime, timedelta
 from django.utils import timezone
 from datetime import date
