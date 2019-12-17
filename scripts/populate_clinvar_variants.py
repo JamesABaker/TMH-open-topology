@@ -3,7 +3,6 @@ import os
 # env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
 from django.conf import settings
 from django.db import models
-from tmh_db.models import Database_Metadata, Uniref, Go, Structure, Structural_residue, Funfam_residue, Funfamstatus, Protein, Residue, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Variant, Keyword, Binding_residue
 from datetime import datetime, timedelta
 from django.utils import timezone
 from datetime import date
@@ -116,19 +115,19 @@ def disease_class(disease_type):
     '''
     # Sometimes spaces are used instead of "_" s.
     disease_type = str(disease_type.replace(" ", "_"))
-    disease = ["Disease", "Likely_pathogenic",
-               "Pathogenic", "Pathogenic/Likely_pathogenic"]
-    benign = ["Unclassified", "Polymorphism", "Affects", "association", "Benign", "Benign/Likely_benign", "Likely_benign", "Conflicting_interpretations_of_pathogenicity",
-              "drug_response", "no_interpretation_for_the_single_variant", "not_provided",  "other", "protective", "risk_factor", "Uncertain_significance"]
+    disease = ["Disease", "Likely_pathogenic","Pathogenic", "Pathogenic/Likely_pathogenic"]
+    benign = ["Benign", "Benign/Likely_benign", "Likely_benign", ]
+    unknown = ["Unclassified", "Polymorphism", "Affects", "association", "Conflicting_interpretations_of_pathogenicity", "drug_response", "no_interpretation_for_the_single_variant", "not_provided",  "other", "protective", "risk_factor", "Uncertain_significance"]
+
     if str(disease_type) in disease:
         pathogenicity = "d"
     elif str(disease_type) in benign:
         pathogenicity = "n"
+    elif str(disease_type) in unknown:
+        pathogenicity = "n"
     else:
-        pathogenicity = "u"
-        print("Unknown pathogenicity:", str(disease_type))
+        pathogenicity = "e"
     return(pathogenicity)
-
 
 def humsavar(uniprot_input_set):
 
@@ -242,14 +241,17 @@ def varmap_process(varmap_list, source, varmap_index, *clinvar_summary):
             for summary_line in list: #No idea why this [0] is needed. A list in a list should be what it is, not a list in a list in a list.
                 # print(summary_line)
                     #print("Is", int(i[-1]), "equal to", int(USER_ID), "?" )
-                try:
-                    if int(summary_line[-1]) == int(user_id):  #  (variant id is last column in summary)
-                        # print("clinvar summary and snipclip finally found a hit for variant ",int(var_record_id))
 
-                        disease_status = disease_class(summary_line[6])
-                        disease_comments = summary_line[24]
-                except(ValueError):
-                    print(user_id, "should be a number. Summary line:", summary_line)
+                if int(summary_line[0]) == int(user_id):  #  (variant id is last column in summary)
+                    # print("clinvar summary and snipclip finally found a hit for variant ",int(var_record_id))
+
+                    disease_status = disease_class(summary_line[1])
+                    disease_comments = summary_line[3]
+        if disease_status=="":
+            print(user_id, "not in summary file.")
+
+        print(uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, variant_source, user_id)
+
 
         var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut,
                         disease_status, disease_comments, variant_source, user_id)
@@ -304,7 +306,7 @@ def run():
                 summary_variant = summary_variant.strip().split('\t')
                 # print(str(summary_variant[-1]))
                 # This relies on the last column being the id column
-                if clean_query(str(summary_variant[-1])) in clinvar_results_set:
+                if clean_query(str(summary_variant[0])) in clinvar_results_set:
                     clinvar_summary_lines.append(summary_variant)
             else:
                 pass
