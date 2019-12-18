@@ -448,6 +448,73 @@ def integrity_check(tmh_list):
                     pass
     return(corrected_tmh_list)
 
+def mptopo_check(query_id, mptopo):
+    '''
+    Checks the MPTOPO xml file for transmemembrane regions mapped to a UniProt ID.
+    '''
+
+    # Sequences don't exactly match UniProt
+    evidence_type = str("MPTOPO")
+
+    # for item in root.findall("item"):
+    #   ElementTree.dump(item)
+
+    for node in mptopo.findall('.//mptopoProtein'):
+
+        features = node.getchildren()
+        for feature in features:
+
+            if str(feature.tag) == str("uniprotNumber") and str(feature.text) == str(query_id):
+                # print("Matches query...")
+                for tm_find in features:
+                    # print(str(tm_find))
+                    if str(tm_find.tag) == str("nTerminal"):
+                        # Frustratingly, the database only includes the first topology. Re-entrant helices will therefor be incorrect.
+                        starting_topology = tm_find.text
+                        # print(str(starting_topology))
+                    if str(tm_find.tag) == str("tmSegments"):
+                        # print("Checking for tmsegments")
+                        tmhs = tm_find.getchildren()
+                        # print(tmhs)
+
+                        tmh_list = []
+                        for tm_number, tmh_segment in enumerate(tmhs):
+                            tmh_locations = tmh_segment.getchildren()
+                            for tmh_location in tmh_locations:
+                                if str(tmh_location.tag) == str("beginIndex"):
+                                    tmh_start = int(tmh_location.text)
+                                elif str(tmh_location.tag) == str("endIndex"):
+                                    tmh_stop = int(tmh_location.text)
+                                else:
+                                    pass
+
+                            # get around 0 base counting
+                            tmh_number = tm_number + 1
+
+                            # %2==0 checks if number is even.
+                            # if tmh number is even and N terminal is inside
+                            if tmh_number % 2 == 0 and str(starting_topology) == str("in"):
+                                tmh_topology = "Outside"
+                            # if tmh number is even and N terminal is outside
+                            elif tmh_number % 2 == 0 and str(starting_topology) == str("out"):
+                                tmh_topology = "Inside"
+                            # if tmh number is odd and N terminal is inside
+                            elif tmh_number % 2 != 0 and str(starting_topology) == str("in"):
+                                tmh_topology = "Inside"
+                            # if tmh number is odd and N terminal is inside
+                            elif tmh_number % 2 != 0 and str(starting_topology) == str("out"):
+                                tmh_topology = "Outside"
+                            else:
+                                tmh_topology = "None"
+
+                            #tmh_list.append([query_id, tmh_start, tmh_stop, tmh_topology, evidence_type])
+
+                            tmh_list.append([query_id, tmh_number, total_tmh_number, tmh_start , tmh_stop, tmh_topology, evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence_type, full_sequence, tm_type])
+
+                            tmh_list=integrity_check(tmh_list)
+                            tmh_list=clash_correction(tmh_list)
+                            tmh_to_database(tmh_list)
+                            return(tmh_list)
 
 def topdb_check(query_id, topdb):
     '''
@@ -988,24 +1055,32 @@ def tmh_input(input_query):
     # Ignore this for now -  we need to sort out uniprot before anything else!
     topdb_url = "http://topdb.enzim.hu/?m=download&file=topdb_all.xml"
     topdb_file = 'scripts/external_datasets/topdb_all.xml'
+
+
     try:
         topdb = ET.parse(topdb_file)
     except FileNotFoundError:
         download(topdb_url, topdb_file)
         topdb = ET.parse(topdb_file)
-    # mptopo = ET.parse('mptopoTblXml.xml')
+    # mptopo = ET.parse('')
+
+    mptopo_url="https://blanco.biomol.uci.edu/mpstruc/mptopo/mptopoAlphaHlxTblXml"
+    mptopo_file="scripts/external_datasets/mptopo_alpha.xml"
+
+    try:
+        mptopo = ET.parse(mptopo_file)
+    except FileNotFoundError:
+        download(mptopo_url, mptopo_file)
+        mptopo = ET.parse(mptopo_file)
+
     for query_number, a_query in enumerate(input_query):
         a_query = clean_query(a_query)
         print("\nExtracting TMH boundaries for", a_query, ",",query_number + 1, "of", len(input_query), "records.")
         # #print(clean_query(a_query))
         ### OPM needs adding to here also. ###
-        # mptopo_tm_check(a_query)
-        #print("Checking tmhs in...")
-        #print("UniProt...")
         uniprot_tm_check(a_query)
-        #print("Checking tmhs in...")
-        #print("TopDB...")
         topdb_check(a_query, topdb)
+        mptopo_check(a_query, mptopo)
 
 
 def run():

@@ -209,7 +209,8 @@ def uniref(a_query):
         protein = Protein.objects.get(uniprot_id=a_query)
         representative_id = clean_query(representative_id)
         representative_uniprot_code=uniref_to_uniprot(representative_id)
-        uniref_for_database, created = Uniref.objects.get_or_create(representative_uniref_code=representative_id, representative_uniprot_code=)
+
+        uniref_for_database, created = Uniref.objects.get_or_create(representative_uniref_code=representative_id, representative_uniprot_code=representative_uniprot_code)
         uniref_for_database.proteins.add(protein)
 
         return(True)
