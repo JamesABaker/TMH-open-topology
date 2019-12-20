@@ -35,7 +35,7 @@ today = date.today()
 todaysdate = today.strftime("%d_%m_%Y")
 
 
-#def funfam_submit(a_query):
+# def funfam_submit(a_query):
 #    ##print(a_query)
 #    protein = Protein.objects.get(uniprot_id=a_query)
 #    record_for_database, created = Funfamstatus.objects.update_or_create(
@@ -85,7 +85,7 @@ todaysdate = today.strftime("%d_%m_%Y")
 #        return(funfam_key)
 
 
-#def funfam_result(a_query, funfam_submission_code):
+# def funfam_result(a_query, funfam_submission_code):
 #    base_url = f'http://www.cathdb.info/search/by_funfhmmer/check/{funfam_submission_code}'
 #
 #    headers = {'accept': 'application/json'}
@@ -128,7 +128,7 @@ todaysdate = today.strftime("%d_%m_%Y")
 #    return([key, value])
 
 
-#def phmmer(a_query):
+# def phmmer(a_query):
 #    # phmmer scripts/external_datasets/fasta_bin/P30872.fasta scripts/external_datasets/fasta_bin/all/all_fasta.fasta
 #    # Usage: phmmer [-options] <seqfile> <seqdb>
 #    phmmer_result = check_output(["/homes/bakerjames/bin/phmmer", "-E 0.0000000001", "--noali", f"scripts/external_datasets/fasta_bin/{a_query}.fasta", "scripts/external_datasets/fasta_bin/all/all_fasta.fasta"])  # stdout=subprocess.PIPE)
@@ -189,28 +189,30 @@ def uniref(a_query):
         try:
             response = urllib.request.urlopen(request)
             page = response.read(200000)
-            page=page.decode(encoding='utf-8', errors='strict')
-            page=page.split('\n')
+            page = page.decode(encoding='utf-8', errors='strict')
+            page = page.split('\n')
 
         # Catch exceptions that are out of the control of these scripts
-        except(ConnectionError, urllib.error.HTTPError): # http.client.RemoteDisconnected,
+        except(ConnectionError, urllib.error.HTTPError):  # http.client.RemoteDisconnected,
             #print("Connection dropped during download.")
             pass
-    ##print(page)
+    # print(page)
     for n, i in enumerate(page):
-        i=i.split('\t')
-        page[n]=i
+        i = i.split('\t')
+        page[n] = i
 
-    if len(page)>1:
-        representative_id=page[1][1]
+    if len(page) > 1:
+        representative_id = page[1][1]
         print("target=", a_query, ",rep=", representative_id)
 
         #print(a_query, "is represented in UniRef90 by", representative_id)
         protein = Protein.objects.get(uniprot_id=a_query)
         representative_id = clean_query(representative_id)
-        representative_uniprot_code=uniref_to_uniprot(representative_id)
+        representative_uniprot_code = uniref_to_uniprot(representative_id)
 
-        uniref_for_database, created = Uniref.objects.get_or_create(representative_uniref_code=representative_id, representative_uniprot_code=representative_uniprot_code)
+        uniref_for_database, created = Uniref.objects.get_or_create(
+            representative_uniref_code=representative_id,
+            representative_uniprot_code=representative_uniprot_code)
         uniref_for_database.proteins.add(protein)
 
         return(True)
@@ -234,7 +236,7 @@ def run():
 
     # Also, parse the variant files which can be massive.
     # humsavar table
-    #print(input_query)
+    # print(input_query)
     #print("Starting TMH database population script...")
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tmh_database.settings')
 
@@ -243,14 +245,12 @@ def run():
     input_queries = inputs[0]
     input_query_set = inputs[1]
 
-
-
     for a_query in input_query:
         a_query = clean_query(a_query)
         #print("Checking", a_query, "in Uniref...")
         uniref(a_query)
 
-    #for a_query in input_query:
+    # for a_query in input_query:
     #    a_query = clean_query(a_query)
     #    #print("Checking", a_query, "in phmmer...")
     #    phmmer(a_query)
@@ -260,14 +260,14 @@ def run():
     #print("Finding closest funfams for records...")
 
     #uniprotid_funfam_dict = {}
-    #for a_query in input_query:
+    # for a_query in input_query:
     #    a_query = clean_query(a_query)
     #    #print("Submitting", a_query, "to FunFam in CATH...")
     #    this_funfam = funfam_submit(a_query)
     #    uniprotid_funfam_dict.update({a_query: this_funfam})
 
     # This uses the job id to wait until the job is complete and fetch the result.
-    #for a_query in input_query:
+    # for a_query in input_query:
     #    a_query = clean_query(a_query)
     #    #print("Checking results for", a_query, "in FunFam in CATH...")
     #    funfam = funfam_result(a_query, uniprotid_funfam_dict[a_query])

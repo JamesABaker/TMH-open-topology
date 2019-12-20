@@ -124,7 +124,7 @@ def disease_class(disease_type):
     elif str(disease_type) in benign:
         pathogenicity = "n"
     elif str(disease_type) in unknown:
-        pathogenicity = "n"
+        pathogenicity = "u"
     else:
         pathogenicity = "e"
     return(pathogenicity)

@@ -60,6 +60,14 @@ def get_uniprot():
     return(input_query)
 
 
+def output(line_for_output):
+    output_file=open("log.txt", "a")
+    line_for_output=str(line_for_output)
+    line_for_output=line_for_output.translate(None, "()',")
+    line_for_output=line_for_output+"\n"
+    output_file.write(line_for_output)
+    output_file.close()
+
 def input_query_get():
     '''
     Returns a list of uniprot ids.
