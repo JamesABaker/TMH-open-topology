@@ -97,7 +97,7 @@ def binding_residues_to_table(filename):
         for i, f in enumerate(record.features):
             if f.type == "BINDING":
                 for position in range(f.location.start, f.location.end):
-                    specific_residue = Residue.objects.get(protein=protein, sequence_position=int(position)).update(binding_residue=True, binding_comment=f.qualifiers)
+                    specific_residue = Residue.objects.filter(protein=protein, sequence_position=int(position)).update(binding_residue=True, binding_comment=f.qualifiers)
 
 def subcellular_location(filename):
     for record in SeqIO.parse(filename, "swiss"):
