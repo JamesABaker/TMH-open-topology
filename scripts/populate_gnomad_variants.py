@@ -23,7 +23,7 @@ def varmap_columns_and_keys(column_headers):
 
 
 
-def gnomad_process(varmap_file, input_query_set):
+def gnomad_process(varmap_file, input_query_set, version_name):
 
     varmap_results = []
 
@@ -50,7 +50,7 @@ def gnomad_process(varmap_file, input_query_set):
                     ##print("Line {}: {}".format(cnt, varmap_line))
 
                     #now lets do the database stuff
-                    variant_source = "gnomAD"
+                    variant_source = version_name
                     var_record_location = varmap_line[varmap_headers["SEQ_NO"]]
                     var_record_id = varmap_line[varmap_headers["USER_ID"]]
                     uniprot_record = varmap_line[varmap_headers["UNIPROT_ACCESSION"]]
@@ -72,7 +72,6 @@ def gnomad_process(varmap_file, input_query_set):
                     #print(cnt, ":")
             varmap_line = inputfile.readline()
     return()
-
 
 def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, disease_comments, variant_source, variant_source_id):
     '''
@@ -121,6 +120,7 @@ def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_
 
         except(ObjectDoesNotExist):
             pass
+
 def run():
     input_query = input_query_get()
     # Also, parse the variant files which can be massive.
@@ -137,7 +137,10 @@ def run():
     ### VarMap ###
     # VarMap files can be big. Preprocessing them saves a lot of time
 
-    variant_varmap_file= "scripts/external_datasets/gnomad_coding_excluding_introns_regions3.tsv"
+    gnomad3_variant_varmap_file= "scripts/external_datasets/gnomad_coding_regions3.tsv"
 
+    gnomad_process(gnomad3_variant_varmap_file, input_query_set, "gnomAD3")
 
-    gnomad_process(variant_varmap_file, input_query_set)
+    gnomad2_variant_varmap_file= "scripts/external_datasets/gnomad_coding_regions2.tsv"
+
+    gnomad_process(gnomad2_variant_varmap_file, input_query_set, "gnomAD2")
