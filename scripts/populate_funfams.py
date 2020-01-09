@@ -36,7 +36,7 @@ todaysdate = today.strftime("%d_%m_%Y")
 
 
 def funfam_submit(a_query):
-    print(a_query, "submitted to FunFam")
+    #print(a_query, "submitted to FunFam")
     protein = Protein.objects.get(uniprot_id=a_query)
     record_for_database, created = Funfamstatus.objects.update_or_create(
         protein=protein,
@@ -68,10 +68,10 @@ def funfam_submit(a_query):
             if len(str(fasta_contents)) > 2000:  # Quick FIX!!!
                 pass
             else:
-
+                #print(base_url, data, headers)
                 r = requests.post(base_url, data=data, headers=headers)
                 funfam_submission_code = r.json()
-                # print(funfam_submission_code)
+                #print(funfam_submission_code)
                 funfam_key = funfam_submission_code['task_id']
 
                 #print("submitted task: " + funfam_key)
@@ -84,8 +84,16 @@ def funfam_submit(a_query):
             )
         return(funfam_key)
 
+def funfam_api_to_funfam_hits(result):
+    result=result["funfam_resolved_scan"]["results"][0]["hits"]
+    funfam_hits=[]
+    for n, i in enumerate(result):
+    #    print(i)
+        funfam_hits.append(result[n]["match_name"])
+    return(funfam_hits)
 
 def funfam_result(a_query, funfam_submission_code):
+    time.sleep(1) # Some sort of limit on CATH
     base_url = f'http://www.cathdb.info/search/by_funfhmmer/check/{funfam_submission_code}'
 
     headers = {'accept': 'application/json'}
@@ -93,7 +101,7 @@ def funfam_result(a_query, funfam_submission_code):
     r = requests.get(base_url, headers=headers)
     # Result is something like this: {'success': 0, 'data': {'date_completed': '', 'status': 'queued', 'worker_hostname': '', 'id': '715b00cba220424897cb09df7e81129f', 'date_started': ''}, 'message': 'queued'}
     funfam_status = r.json()
-    # print(funfam_status)
+    #print(funfam_status)
 
     # Results can take a while to complete. Best to just add those that have finished. A week in and everything should have settled down.
     if funfam_status['success'] == 1:
@@ -102,31 +110,42 @@ def funfam_result(a_query, funfam_submission_code):
         r = requests.get(results_url, headers=headers)
         if str(r) == "<Response [204]>":
 
-            #print("No funfam hits for ", a_query)
+            print("No funfam hits for ", a_query)
             pass
         elif str(r) == "<Response [200]>":
             funfam_api_result = r.json()
             protein = Protein.objects.get(uniprot_id=a_query)
             funfam_to_update = Funfamstatus.objects.get(protein=protein)
-            # record_for_database, created = Funfamstatus.objects.update(
-            #    protein=protein,
+
+            #print("results:", funfam_api_result)
+            #record_for_database, created = Funfamstatus.objects.update(
             #    completed_date=timezone.now(),
 
             #    #"funfam":
-
-            # )
+            #)
             funfam_to_update = Funfamstatus.objects.get(protein=protein)
             funfam_to_update.completed_date = timezone.now()  # change field
-            funfam_to_update.save()  # this will update only
+            #funfam_to_update.save()  # this will update only
 
+
+
+            funfam_match_id=funfam_api_to_funfam_hits(funfam_api_result)
+            print(a_query, funfam_match_id)
             # This next bit isn't perfect. We assign each residue in the region the funfam score and id. There may be a way to elegantly put in another table, but given the queries we are asking, this will suffice.
-            for key, value in funfam_api_result.items():
-                #print("Key:", key, "Value:", value)
+            #for key, value in funfam_api_result.items():
+            #    if key == "funfam_resolved_scan":
+            #        #print("Key:", key, "Value:", value)
+            #        for subkey in value.items():
 
-                # print("\n")
-                pass
-    return([key, value])
+            #            for subsubkey in subkey.items():
+            #                print("This is:",subkey)
+            #            #if subkey=="match_id":
+            #            #    print(subkey)
 
+            #    # print("\n")
+            #    pass
+            #return([key, value])
+            return()
 
 def run():
     '''
