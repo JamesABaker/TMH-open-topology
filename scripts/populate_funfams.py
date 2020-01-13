@@ -30,7 +30,6 @@ from scripts.populate_general_functions import *
 #print("Usage:\npython manage.py runscript populate --traceback")
 
 # How many days should be allowed to not enforce updates
-time_threshold = 7
 today = date.today()
 todaysdate = today.strftime("%d_%m_%Y")
 
@@ -40,64 +39,66 @@ def funfam_submit(a_query):
     protein = Protein.objects.get(uniprot_id=a_query)
     record_for_database, created = Funfamstatus.objects.update_or_create(
         protein=protein,
-        defaults={
-        }
     )
 
     # check our database for submission key to funfam
     funfam_key = Funfamstatus.objects.get(protein=protein).submission_key
-    funfam_completed_date = Funfamstatus.objects.get(
-        protein=protein).completed_date
-    #print("Funfam key for query", a_query, ":", funfam_key)
+    print(a_query, funfam_key)
+    if len(funfam_key) < 1 :
+        #print("Funfam key for query", a_query, ":", funfam_key)
 
-    # Convert the UniProt binned file to a fasta.
-    fasta_file = f"./scripts/external_datasets/fasta_bin/{a_query}.fasta"
-    # #print(fasta_file)
-    with open(str(f"./scripts/external_datasets/uniprot_bin/{a_query}.txt"), "rU") as input_handle:
-        with open(str(fasta_file), "w") as output_handle:
-            sequences = SeqIO.parse(input_handle, "swiss")
-            count = SeqIO.write(sequences, output_handle, "fasta")
+        # Convert the UniProt binned file to a fasta.
+        fasta_file = f"./scripts/external_datasets/fasta_bin/{a_query}.fasta"
+        # #print(fasta_file)
+        with open(str(f"./scripts/external_datasets/uniprot_bin/{a_query}.txt"), "rU") as input_handle:
+            with open(str(fasta_file), "w") as output_handle:
+                sequences = SeqIO.parse(input_handle, "swiss")
+                count = SeqIO.write(sequences, output_handle, "fasta")
 
-        # submit the query to CATH funfam
-        base_url = 'http://www.cathdb.info/search/by_funfhmmer'
+            # submit the query to CATH funfam
+            base_url = 'http://www.cathdb.info/search/by_funfhmmer'
 
-        with open(fasta_file) as x:
-            fasta_contents = x.read()
-            data = {'fasta': fasta_contents, "queue": "hmmscan_funvar"}
-            headers = {'accept': 'application/json'}
-            if len(str(fasta_contents)) > 2000:  # Quick FIX!!!
-                pass
-            else:
-                #print(base_url, data, headers)
-                r = requests.post(base_url, data=data, headers=headers)
-                funfam_submission_code = r.json()
-                #print(funfam_submission_code)
-                funfam_key = funfam_submission_code['task_id']
+            with open(fasta_file) as x:
+                fasta_contents = x.read()
+                data = {'fasta': fasta_contents, "queue": "hmmscan_funvar"}
+                headers = {'accept': 'application/json'}
+                if len(str(fasta_contents)) > 2000:  # Quick FIX!!!
+                    pass
+                else:
+                    #print(base_url, data, headers)
+                    r = requests.post(base_url, data=data, headers=headers)
+                    funfam_submission_code = r.json()
+                    #print(funfam_submission_code)
+                    funfam_key = funfam_submission_code['task_id']
 
-                #print("submitted task: " + funfam_key)
+                    #print("submitted task: " + funfam_key)
 
-            record_for_database, created = Funfamstatus.objects.update_or_create(
-                protein=protein,
-                defaults={
-                    "submission_key": funfam_key,
-                }
-            )
-        return(funfam_key)
+                record_for_database, created = Funfamstatus.objects.update_or_create(
+                    protein=protein,
+                    defaults={
+                        "submission_key": funfam_key,
+                    }
+                )
+
+    else:
+        pass
+    return(funfam_key)
 
 def funfam_api_to_funfam_hits(result):
     result=result["funfam_resolved_scan"]["results"][0]["hits"]
     funfam_hits=[]
     for n, i in enumerate(result):
-    #    print(i)
-        funfam_hits.append(result[n]["match_name"])
+        print(i)
+        funfam_name=result[n]["match_name"]
+        query_start_position=result[n]["hsps"][0]["query_start"]
+        print(funfam_name,query_start_position)
+        funfam_hits.append([funfam_name,query_start_position])
     return(funfam_hits)
 
 def funfam_result(a_query, funfam_submission_code):
     time.sleep(1) # Some sort of limit on CATH
     base_url = f'http://www.cathdb.info/search/by_funfhmmer/check/{funfam_submission_code}'
-
     headers = {'accept': 'application/json'}
-
     r = requests.get(base_url, headers=headers)
     # Result is something like this: {'success': 0, 'data': {'date_completed': '', 'status': 'queued', 'worker_hostname': '', 'id': '715b00cba220424897cb09df7e81129f', 'date_started': ''}, 'message': 'queued'}
     funfam_status = r.json()
@@ -178,8 +179,9 @@ def run():
         this_funfam = funfam_submit(a_query)
         uniprotid_funfam_dict.update({a_query: this_funfam})
 
-    #ßThis uses the job id to wait until the job is complete and fetch the result.
+    #This uses the job id to wait until the job is complete and fetch the result.
     for a_query in input_query:
         a_query = clean_query(a_query)
         #print("Checking results for", a_query, "in FunFam in CATH...")
+        print(uniprotid_funfam_dict[a_query])
         funfam = funfam_result(a_query, uniprotid_funfam_dict[a_query])
