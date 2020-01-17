@@ -35,13 +35,14 @@ for i in tmhs:
     tmh_stop=i.tmh_stop
     tmh_protein=i.protein.uniprot_id
     tmh_evidence=i.tmh_evidence
-
     tmhs_for_comparison=[]
     for x in tmhs:
         comparison_start=x.tmh_start
         comparison_stop=x.tmh_stop
         comparison_protein=x.protein.uniprot_id
         comparison_evidence=x.tmh_evidence
+        #print(tmh_start,tmh_protein, tmh_evidence)
+        #print(comparison_start,comparison_protein,comparison_evidence )
         if tmh_protein == comparison_protein:
             if tmh_evidence == comparison_evidence:
                 pass
@@ -53,16 +54,20 @@ for i in tmhs:
 
     meta=True
     rep=None
-    for comparison_tmh in tmhs_for_comparison:
-        comparison_evidence=comparison_tmh.tmh_evidence
-        is_priority = priority(tmh_evidence, comparison_tmh)
-        if is_priotity == False:
-            meta=False
-            rep=comparison_tmh
-            #i.meta_tmh_rep=comparison_tmh
-        else:
-            rep=None
+    if len(tmhs_for_comparison) > 0:
+        for comparison_tmh in tmhs_for_comparison:
+            comparison_evidence=comparison_tmh.tmh_evidence
+            is_priority = priority(tmh_evidence, comparison_evidence)
+            if is_priority == False:
+                meta=False
+                rep=comparison_tmh
 
-        i.meta_tmh=meta
+                #i.meta_tmh_rep=comparison_tmh
+            else:
+                rep=None
+    elif len(tmhs_for_comparison) == 0:
+        meta=True
 
-bulk_update(tmhs)
+    #i.meta_tmh=meta
+    #specific_residue = Residue.objects.filter(protein=protein, sequence_position=int(position)).update(binding_residue=True, binding_comment=f.qualifiers)
+    meta_tmh=Tmh.objects.filter(pk=i.pk).update(meta_tmh=meta)
