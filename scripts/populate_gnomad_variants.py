@@ -45,7 +45,6 @@ def gnomad_process(varmap_file, input_query_set, version_name):
                 uniprot_accession = str(varmap_line[uniprot_accession_index])
                 ##print("gnomAD in:", uniprot_accession)
                 if str(uniprot_accession) in input_query_set:
-                    ##print("Storing variant", varmap_user_id, "for", uniprot_accesstion, "to memory.")
                     #varmap_results.append(varmap_line)
                     ##print("Line {}: {}".format(cnt, varmap_line))
 
@@ -66,6 +65,7 @@ def gnomad_process(varmap_file, input_query_set, version_name):
 
                     # Is the variant disease causing?
                     # This only applies to clinvar
+                    print("Trying to store variant", var_record_id, "for", uniprot_accession, "to memory.")
 
                     var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut,
                                     disease_status, disease_comments, variant_source, user_id)
@@ -115,7 +115,7 @@ def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_
                     pass
 
             else:
-                #print("Variant position exceeds the length of the protein. Protein length:", len(str(protein.full_sequence)), "Variant position:", var_record_location, "for record", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
+                print("Variant position exceeds the length of the protein. Protein length:", len(str(protein.full_sequence)), "Variant position:", var_record_location, "for record", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
                 pass
 
         except(ObjectDoesNotExist):
@@ -135,7 +135,6 @@ def run():
     input_query_set = inputs[1]
 
     ### VarMap ###
-    # VarMap files can be big. Preprocessing them saves a lot of time
 
     gnomad3_variant_varmap_file= "scripts/external_datasets/gnomad_coding_regions3.tsv"
 

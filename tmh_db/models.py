@@ -93,6 +93,8 @@ class Tmh(models.Model):
     created_date = models.DateTimeField(default=timezone.now)
     membrane_type = models.CharField(max_length=100, default='')
     n_terminal_inside = models.CharField(max_length=100, default='')
+    meta_tmh=models.BooleanField(null=True)
+    # meta_tmh_rep=models.ForeignKey(Tmh, null=True)
 
 class Non_tmh_helix(models.Model):
     protein = models.ForeignKey(Protein, on_delete=models.CASCADE)
