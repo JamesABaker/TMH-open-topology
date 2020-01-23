@@ -35,7 +35,7 @@ todaysdate = today.strftime("%d_%m_%Y")
 
 
 def funfam_submit(a_query):
-    #print(a_query, "submitted to FunFam")
+    #print(a_query)
     protein = Protein.objects.get(uniprot_id=a_query)
     record_for_database, created = Funfamstatus.objects.update_or_create(
         protein=protein,
@@ -44,7 +44,7 @@ def funfam_submit(a_query):
     # check our database for submission key to funfam
     funfam_key = Funfamstatus.objects.get(protein=protein).submission_key
     #print(a_query, funfam_key)
-    if len(funfam_key) < 1 :
+    if len(funfam_key) < 1 or funfam_key == "NA":
         #print("Funfam key for query", a_query, ":", funfam_key)
 
         # Convert the UniProt binned file to a fasta.
@@ -67,9 +67,9 @@ def funfam_submit(a_query):
                 else:
                     #print(base_url, data, headers)
                     r = requests.post(base_url, data=data, headers=headers)
-                    funfam_submission_code = r.json()
-                    #print(funfam_submission_code)
-                    funfam_key = funfam_submission_code['task_id']
+                    funfam_submission= r.json()
+                    print(funfam_submission)
+                    funfam_key = funfam_submission['task_id']
 
                     #print("submitted task: " + funfam_key)
 
@@ -95,33 +95,33 @@ def funfam_api_to_funfam_hits(result):
         funfam_hits.append([funfam_name,query_start_position])
     return(funfam_hits)
 
-def funfam_result(a_query, funfam_submission_code):
+def funfam_result(a_query):
     file="scripts/external_datasets/funfam_bin/"+a_query+".ali"
     try:
         text_file = open(file, "r")
         #n = text_file.write('Welcome to pythonexamples.org')
         text_file.close()
     except(FileNotFoundError):
-
+        funfam_submission_key=Funfamstatus.objects.filter(protein__uniprot_id=a_query).values_list("submission_key")
+        funfam_submission_key=funfam_submission_key[0][0]
         time.sleep(0.1) # Some sort of limit on CATH
-        base_url = f'http://www.cathdb.info/search/by_funfhmmer/check/{funfam_submission_code}'
+        base_url = f'http://www.cathdb.info/search/by_funfhmmer/check/{funfam_submission_key}'
         headers = {'accept': 'application/json'}
         r = requests.get(base_url, headers=headers)
         # Result is something like this: {'success': 0, 'data': {'date_completed': '', 'status': 'queued', 'worker_hostname': '', 'id': '715b00cba220424897cb09df7e81129f', 'date_started': ''}, 'message': 'queued'}
         funfam_status = r.json()
         print(funfam_status)
-
         # Results can take a while to complete. Best to just add those that have finished. A week in and everything should have settled down.
         if "error" in str(funfam_status):
-            print("Wub wub...")
+            Funfamstatus.objects.filter(protein__uniprot_id=a_query).delete()
             pass
         elif funfam_status['success'] == 1:
             headers = {'accept': 'application/json'}
-            results_url = f'http://www.cathdb.info/search/by_funfhmmer/results/{funfam_submission_code}'
+            results_url = f'http://www.cathdb.info/search/by_funfhmmer/results/{funfam_submission_key}'
             r = requests.get(results_url, headers=headers)
 
             text_file = open(file, "w")
-            n = text_file.write(r)
+            n = text_file.write(str(r))
             text_file.close()
     return()
 
@@ -184,10 +184,6 @@ def run():
 
     input_query = input_query_get()
 
-    # Also, parse the variant files which can be massive.
-    # humsavar table
-    # print(input_query)
-    #print("Starting TMH database population script...")
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tmh_database.settings')
 
     ### Download uniprot files ###
@@ -195,16 +191,14 @@ def run():
     input_queries = inputs[0]
     input_query_set = inputs[1]
 
-    uniprotid_funfam_dict = {}
     for a_query in input_query:
         a_query = clean_query(a_query)
         #print("Submitting", a_query, "to FunFam in CATH...")
         this_funfam = funfam_submit(a_query)
-        uniprotid_funfam_dict.update({a_query: this_funfam})
+        print("id:", a_query, ", key:", this_funfam)
 
     #This uses the job id to wait until the job is complete and fetch the result.
     for a_query in input_query:
         a_query = clean_query(a_query)
         #print("Checking results for", a_query, "in FunFam in CATH...")
-        print(uniprotid_funfam_dict[a_query])
-        funfam = funfam_result(a_query, uniprotid_funfam_dict[a_query])
+        funfam = funfam_result(a_query)
