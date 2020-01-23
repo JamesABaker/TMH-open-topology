@@ -66,9 +66,10 @@ def funfam_submit(a_query):
                     pass
                 else:
                     #print(base_url, data, headers)
+
                     r = requests.post(base_url, data=data, headers=headers)
                     funfam_submission= r.json()
-                    print(funfam_submission)
+                    #print(funfam_submission)
                     funfam_key = funfam_submission['task_id']
 
                     #print("submitted task: " + funfam_key)
@@ -110,7 +111,7 @@ def funfam_result(a_query):
         r = requests.get(base_url, headers=headers)
         # Result is something like this: {'success': 0, 'data': {'date_completed': '', 'status': 'queued', 'worker_hostname': '', 'id': '715b00cba220424897cb09df7e81129f', 'date_started': ''}, 'message': 'queued'}
         funfam_status = r.json()
-        print(funfam_status)
+        #print(funfam_status)
         # Results can take a while to complete. Best to just add those that have finished. A week in and everything should have settled down.
         if "error" in str(funfam_status):
             Funfamstatus.objects.filter(protein__uniprot_id=a_query).delete()
@@ -119,28 +120,23 @@ def funfam_result(a_query):
             headers = {'accept': 'application/json'}
             results_url = f'http://www.cathdb.info/search/by_funfhmmer/results/{funfam_submission_key}'
             r = requests.get(results_url, headers=headers)
-
-            text_file = open(file, "w")
-            n = text_file.write(str(r))
-            text_file.close()
+            funfam_to_database(a_query, r)
     return()
 
-def funfam_to_database(a_query):
+def funfam_to_database(a_query, result_api):
     file="scripts/external_datasets/funfam_bin/"+a_query+".ali"
 
-    with open(file, 'r') as alignment:
-        r = file.read()
 
-    if str(r) == "<Response [204]>":
+    if str(result_api) == "<Response [204]>":
         print("No funfam hits for ", a_query)
-        Funfamstatus.objects.filter(protein__uniprot_id=a_query).delete()
-
+        #Funfamstatus.objects.filter(protein__uniprot_id=a_query).delete()
         pass
-    elif str(r) == "<Response [200]>":
-        funfam_api_result = r.json()
+
+    elif str(result_api) == "<Response [200]>":
+        funfam_api_result = result_api.json()
         protein = Protein.objects.get(uniprot_id=a_query)
         funfam_to_update = Funfamstatus.objects.get(protein=protein)
-
+        #print(funfam_api_result)
         #print("results:", funfam_api_result)
         #record_for_database, created = Funfamstatus.objects.update(
         #    completed_date=timezone.now(),
@@ -154,6 +150,26 @@ def funfam_to_database(a_query):
 
 
         funfam_match_id=funfam_api_to_funfam_hits(funfam_api_result)
+        print(a_query, "funfam_hits:", funfam_match_id)
+
+        for hits in funfam_match_id:
+            funfam=hits[0].replace("FF", "funfam")
+            url=f'http://www.cathdb.info/version/v4_2_0/superfamily/{funfam}/files/stockholm'
+            file='scripts/external_datasets/funfam_bin/'+str(funfam.replace("/" , "_"))+'.ali'
+            download(url,file)
+
+            file_to_database(a_query, file)
+
+
+def file_to_database(a_query, file):
+    with open(file) as f:
+        content = f.readlines()
+    # you may also want to remove whitespace characters like `\n` at the end of each line
+    content = [x.strip("\n") for x in content]
+    for i in content:
+        if a_query in i:
+            print(i)
+
         #print(funfam_match_id)
         # This next bit isn't perfect. We assign each residue in the region the funfam score and id. There may be a way to elegantly put in another table, but given the queries we are asking, this will suffice.
         #for key, value in funfam_api_result.items():
@@ -169,7 +185,7 @@ def funfam_to_database(a_query):
         #    # print("\n")
         #    pass
         #return([key, value])
-        return()
+    return()
 
 def run():
     '''
@@ -195,7 +211,7 @@ def run():
         a_query = clean_query(a_query)
         #print("Submitting", a_query, "to FunFam in CATH...")
         this_funfam = funfam_submit(a_query)
-        print("id:", a_query, ", key:", this_funfam)
+        #print("id:", a_query, ", key:", this_funfam)
 
     #This uses the job id to wait until the job is complete and fetch the result.
     for a_query in input_query:
