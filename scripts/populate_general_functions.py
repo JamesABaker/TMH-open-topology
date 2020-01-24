@@ -14,6 +14,7 @@ time_threshold = 7
 today = date.today()
 todaysdate = today.strftime("%d_%m_%Y")
 
+test_query_list = ["Q5VTH2", "Q8NHU3","P01850", "P22760", "P18507", "Q5K4L6","Q7Z5H4", "O14925", "Q9NR77", "P31644", "Q9NS61", "P02748", "A0A075B6J2"]
 
 def open_uniprot(uniprot_list_file):
     with open(uniprot_list_file) as f:
@@ -44,10 +45,13 @@ def get_uniprot():
     '''
     # Grab the input list
     print("Fetching UniProt TM protein IDs")
+    # All human proteins
     uniprot_list_url="https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+organism%3A%22Homo+sapiens+%28Human%29+%5B9606%5D%22&sort=score&columns=id,&format=tab"
+    # All human transmembrane proteins
     #uniprot_list_url = "https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+organism%3A%22Homo+sapiens+%28Human%29+%5B9606%5D%22+AND+annotation%3A%28type%3Atransmem%29&sort=score&columns=id,&format=tab"
     # "https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+annotation%3A(type%3Atransmem)&sort=score&columns=id,&format=tab"
     # uniprot_list = 'https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+organism%3A"Homo+sapiens+(Human)+[9606]"+AND+annotation%3A(type%3Atransmem)&sort=score&columns=id,&format=tab'
+
     uniprot_list_file = "scripts/external_datasets/uniprot_bin/uniprot_list" + todaysdate + ".txt"
     try:
         input_query = open_uniprot(uniprot_list_file)
@@ -73,9 +77,9 @@ def input_query_get():
     Returns a list of uniprot ids.
     '''
     # In full scale mode it will take a long time which may not be suitable for development.
-    input_query_list = get_uniprot()
+    # input_query_list = get_uniprot()
     # Here we will just use a watered down list of tricky proteins. Uncomment this line for testing the whole list.
-    #input_query_list = ["Q5VTH2", "Q8NHU3","P01850", "P22760", "P18507", "Q5K4L6","Q7Z5H4", "O14925", "Q9NR77", "P31644", "Q9NS61", "P02748"]
+    input_query_list = test_query_list
     # This protein currently throws an error in biopython parsing.
     blacklist=[]
     with open('scripts/external_datasets/exclusion_list.txt') as f:
@@ -94,7 +98,7 @@ def input_query_get():
 
     new_input_set = input_set - blacklist
     new_input_set=list(new_input_set)
-    print("Test", new_input_set)
+    #print("Test", new_input_set)
     return(new_input_set)
 
 
@@ -108,7 +112,7 @@ def download(url, file_name):
         response = None
         while response is None:
             try:
-                print("Donwloading", url, "to", file_name, "...")
+                #print("Donwloading", url, "to", file_name, "...")
                 # connect
                 response = get(url)
             except ConnectionError:
@@ -152,8 +156,7 @@ def input_query_process(input_query):
     input_queries = []
     for query_number, a_query in enumerate(input_query):
         a_query = clean_query(a_query)
-        print("Checking cache/downloading", a_query, ",",
-              query_number + 1, "of", len(input_query), "records...")
+        #print("Checking cache/downloading", a_query, ",",query_number + 1, "of", len(input_query), "records...")
 
         input_queries.append(clean_query(a_query))
 

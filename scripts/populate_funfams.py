@@ -160,6 +160,8 @@ def funfam_to_database(a_query, result_api):
 
             file_to_database(a_query, file)
 
+    return()
+
 
 def file_to_database(a_query, file):
     with open(file) as f:
