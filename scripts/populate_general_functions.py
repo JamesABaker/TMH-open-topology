@@ -14,7 +14,51 @@ time_threshold = 7
 today = date.today()
 todaysdate = today.strftime("%d_%m_%Y")
 
-test_query_list = ["Q5VTH2", "Q8NHU3","P01850", "P22760", "P18507", "Q5K4L6","Q7Z5H4", "O14925", "Q9NR77", "P31644", "Q9NS61", "P02748", "A0A075B6J2"]
+test_query_list = ["Q5VTH2", "Q8NHU3", "P01850", "P22760", "P18507", "Q5K4L6",
+                   "Q7Z5H4", "O14925", "Q9NR77", "P31644", "Q9NS61", "P02748", "A0A075B6J2"]
+
+
+def aa_baezo_order():
+    '''
+    Returns the amino acids in the order according to Baezo-Delgado paper.
+    '''
+
+    return(['K', 'R', 'E', 'D', 'Q', 'H', 'N', 'P', 'Y', 'W', 'C', 'M', 'T', 'S', 'G', 'V', 'F', 'A', 'I', 'L'])
+
+
+def remove_duplicate_variants(list_of_variants):
+    remove_duplicate_list_of_variants = set(list_of_variants)
+    remove_duplicate_list_of_variants = list(remove_duplicate_list_of_variants)
+    truncate_list=[]
+    for variant in remove_duplicate_list_of_variants:
+        truncate_list.append((variant[0], variant[1]))
+    return(truncate_list)
+
+
+def impossible_subs():
+    aa_impossible_subs_dict = {
+        "A": ['K', 'R', 'Q', 'H', 'N', 'Y', 'W', 'C', 'M', 'F', 'I', 'L'],
+        "R": ['E', 'D', 'N', 'Y', 'V', 'F', 'A'],
+        "N": ['R', 'E', 'Q', 'P', 'W', 'C', 'M', 'G', 'V', 'F', 'A', 'L'],
+        "D": ['K', 'R', 'Q', 'P', 'W', 'C', 'M', 'T', 'S', 'F', 'I', 'L'],
+        "C": ['K', 'E', 'D', 'Q', 'H', 'N', 'P', 'M', 'T', 'V', 'A', 'I', 'L'],
+        "Q": ['D', 'N', 'Y', 'W', 'C', 'M', 'T', 'S', 'G', 'V', 'F', 'A', 'I'],
+        "E": ['R', 'H', 'N', 'P', 'Y', 'W', 'C', 'M', 'T', 'S', 'F', 'I', 'L'],
+        "G": ['K', 'Q', 'H', 'N', 'P', 'Y', 'M', 'T', 'F', 'I', 'L'],
+        "H": ['K', 'E', 'W', 'C', 'M', 'T', 'S', 'G', 'V', 'F', 'A', 'I'],
+        "I": ['E', 'D', 'Q', 'H', 'P', 'Y', 'W', 'C', 'G', 'A'],
+        "L": ['K', 'E', 'D', 'N', 'Y', 'C', 'T', 'G', 'A'],
+        "K": ['D', 'H', 'P', 'Y', 'W', 'C', 'S', 'G', 'V', 'F', 'A', 'L'],
+        "M": ['E', 'D', 'Q', 'H', 'N', 'P', 'Y', 'W', 'C', 'S', 'G', 'F', 'A'],
+        "F": ['K', 'R', 'E', 'D', 'Q', 'H', 'N', 'P', 'W', 'M', 'T', 'G', 'A'],
+        "P": ['K', 'E', 'D', 'N', 'Y', 'W', 'C', 'M', 'G', 'V', 'F', 'I'],
+        "S": ['K', 'E', 'D', 'Q', 'H', 'M', 'V'],
+        "T": ['E', 'D', 'Q', 'H', 'Y', 'W', 'C', 'G', 'V', 'F', 'L'],
+        "W": ['K', 'E', 'D', 'Q', 'H', 'N', 'P', 'Y', 'M', 'T', 'V', 'F', 'A', 'I'],
+        "Y": ['K', 'R', 'E', 'Q', 'P', 'W', 'M', 'T', 'G', 'V', 'A', 'I', 'L'],
+        "V": ['K', 'R', 'Q', 'H', 'N', 'P', 'Y', 'W', 'C', 'T', 'S']}
+    return(aa_impossible_subs_dict)
+
 
 def open_uniprot(uniprot_list_file):
     with open(uniprot_list_file) as f:
@@ -26,6 +70,7 @@ def open_uniprot(uniprot_list_file):
         input_query = input_query[1:]
         return(input_query)
 
+
 def uniprot_bin(query_id):
     try:
         filename = str(f"scripts/external_datasets/uniprot_bin/{query_id}.txt")
@@ -35,7 +80,8 @@ def uniprot_bin(query_id):
     except(FileNotFoundError):
         print("File not found:", filename)
         uniprot_url = str(f'https://www.uniprot.org/uniprot/{query_id}.txt')
-        uniprot_bin = str(f"scripts/external_datasets/uniprot_bin/{query_id}.txt")
+        uniprot_bin = str(
+            f"scripts/external_datasets/uniprot_bin/{query_id}.txt")
         download(uniprot_url, uniprot_bin)
 
 
@@ -46,13 +92,14 @@ def get_uniprot():
     # Grab the input list
     print("Fetching UniProt TM protein IDs")
     # All human proteins
-    uniprot_list_url="https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+organism%3A%22Homo+sapiens+%28Human%29+%5B9606%5D%22&sort=score&columns=id,&format=tab"
+    uniprot_list_url = "https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+organism%3A%22Homo+sapiens+%28Human%29+%5B9606%5D%22&sort=score&columns=id,&format=tab"
     # All human transmembrane proteins
     #uniprot_list_url = "https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+organism%3A%22Homo+sapiens+%28Human%29+%5B9606%5D%22+AND+annotation%3A%28type%3Atransmem%29&sort=score&columns=id,&format=tab"
     # "https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+annotation%3A(type%3Atransmem)&sort=score&columns=id,&format=tab"
     # uniprot_list = 'https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+organism%3A"Homo+sapiens+(Human)+[9606]"+AND+annotation%3A(type%3Atransmem)&sort=score&columns=id,&format=tab'
 
-    uniprot_list_file = "scripts/external_datasets/uniprot_bin/uniprot_list" + todaysdate + ".txt"
+    uniprot_list_file = "scripts/external_datasets/uniprot_bin/uniprot_list" + \
+        todaysdate + ".txt"
     try:
         input_query = open_uniprot(uniprot_list_file)
     except:
@@ -65,12 +112,13 @@ def get_uniprot():
 
 
 def output(line_for_output):
-    output_file=open("log.txt", "a")
-    line_for_output=str(line_for_output)
-    line_for_output=line_for_output.translate(None, "()',")
-    line_for_output=line_for_output+"\n"
+    output_file = open("log.txt", "a")
+    line_for_output = str(line_for_output)
+    line_for_output = line_for_output.translate(None, "()',")
+    line_for_output = line_for_output + "\n"
     output_file.write(line_for_output)
     output_file.close()
+
 
 def input_query_get():
     '''
@@ -81,23 +129,22 @@ def input_query_get():
     # Here we will just use a watered down list of tricky proteins. Uncomment this line for testing the whole list.
     input_query_list = test_query_list
     # This protein currently throws an error in biopython parsing.
-    blacklist=[]
+    blacklist = []
     with open('scripts/external_datasets/exclusion_list.txt') as f:
         blacklist_lines = f.read().splitlines()
         for i in blacklist_lines:
             blacklist.append(clean_query(i))
 
-    input_set=[]
+    input_set = []
     for i in input_query_list:
         input_set.append(clean_query(i))
-
 
     blacklist = set(blacklist)
 
     input_set = set(input_set)
 
     new_input_set = input_set - blacklist
-    new_input_set=list(new_input_set)
+    new_input_set = list(new_input_set)
     #print("Test", new_input_set)
     return(new_input_set)
 
@@ -128,18 +175,20 @@ def clean_query(query):
      dirty input like a user input.
     '''
 
-    illegal_characters = ["!", "\n", " ", "@", "'", ")", ",", "(", "[", "]", " "]
+    illegal_characters = ["!", "\n", " ", "@",
+                          "'", ")", ",", "(", "[", "]", " "]
     for char in illegal_characters:
         query = query.replace(char, "")
     a_clean_query = query
     # print("Clean query result:", a_clean_query)
     return(a_clean_query)
 
+
 def list_to_csv(a_list):
     '''
     This takes a list and prints as CSV
     '''
-    a_list=str(a_list)
+    a_list = str(a_list)
     illegal_characters = ["[", "]", "'", '"']
     for char in illegal_characters:
         a_list = a_list.replace(char, "")
@@ -177,11 +226,12 @@ def heatmap_array(var_freq_dict, aa_order):
     # print(np.array(large_array))
     return(np.array(large_array))
 
+
 def uniref_to_uniprot(uniref_id):
     '''
     Returns the uniprot part of a uniref id.
     '''
-    uniref_parts=uniref_id.split("_")
-    if len(uniref_parts)==2:
-        uniprot_id=uniref_parts[1]
+    uniref_parts = uniref_id.split("_")
+    if len(uniref_parts) == 2:
+        uniprot_id = uniref_parts[1]
     return(uniprot_id)

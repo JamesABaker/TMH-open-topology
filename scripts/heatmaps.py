@@ -442,9 +442,9 @@ thornton_matrix = {
     ("V", "V"): 98485,
 }
 
-aa_list_baezo_order = ['K', 'R', 'E', 'D', 'Q', 'H', 'N', 'P',            'Y', 'W', 'C', 'M', 'T', 'S', 'G', 'V', 'F', 'A', 'I', 'L']
+aa_list_baezo_order = ['K', 'R', 'E', 'D', 'Q', 'H', 'N', 'P', 'Y', 'W', 'C', 'M', 'T', 'S', 'G', 'V', 'F', 'A', 'I', 'L']
 
-aa_list_alpha = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K',      'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y']
+aa_list_alpha = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y']
 
 # prefetch the residues with variants
 Residue.objects.all().prefetch_related("variant")
