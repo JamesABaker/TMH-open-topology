@@ -221,7 +221,7 @@ def heatmap_array(var_freq_dict, aa_order):
         aa_array = []
         for aa_wt in aa_order:
             # This query is counter intuitive. The aa_wt is first in the tuple, the aa_mut is second. The aa_mut is first in the loop to make sure it is on the y axis.
-            aa_array.append(var_freq[(aa_wt, aa_mut)])
+            aa_array.append(float(var_freq[(aa_wt, aa_mut)]))
         large_array.append(aa_array)
     # print(np.array(large_array))
     return(np.array(large_array))

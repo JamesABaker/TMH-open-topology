@@ -69,7 +69,11 @@ def x_histogram(var_freqs_list):
 def y_histogram(var_freqs_list):
     y_values = []
     for row_number, frequencies in enumerate(var_freqs_list):
-        y_values.append(sum(var_freqs_list[row_number]))
+        total_residues_in_row = 0
+        for i in var_freqs_list[row_number]:
+            total_residues_in_row = total_residues_in_row + i
+        y_values.append(total_residues_in_row)
+    y_values=y_values[::-1]
     return(y_values)
 
 
@@ -132,7 +136,7 @@ def annotate_heatmap(im, data=None, valfmt="{x:.2f}",
     return texts
 
 
-def heatmap(var_freqs_list, title, aa_order, color, is_it_log):
+def heatmap(var_freqs_list, title, aa_order, color, is_it_log, annotation_format="{x:n}"):
     '''
     var_freqs_list
         heatmap array in list of lists
@@ -164,9 +168,10 @@ def heatmap(var_freqs_list, title, aa_order, color, is_it_log):
     ax_histx.tick_params(direction='in', labelbottom=False)
     ax_scale = plt.axes(rect_scale)
 
+    print(var_freqs_list)
     im = ax_heatmap.imshow(var_freqs_list, cmap=color,
                            interpolation='nearest', norm=is_it_log)
-    texts = annotate_heatmap(im, valfmt="{x:.1f}")
+    texts = annotate_heatmap(im, valfmt=annotation_format)
 
     # We want to show all ticks...
     ax_heatmap.set_xticks(np.arange(len(aa_order)))
@@ -180,20 +185,40 @@ def heatmap(var_freqs_list, title, aa_order, color, is_it_log):
     ax_heatmap.set_ylabel("Variant (to)")
     # ax.set_ylim(len(aa_order)-0.5, -0.5) # temp bug workaround: https://github.com/matplotlib/matplotlib/issues/14751
     # ax.set_xlim(len(aa_order)-0, -0.5) # temp bug workaround: https://github.com/matplotlib/matplotlib/issues/14751
-    ax_heatmap.set_title(title)
+    #ax_heatmap.set_title(title)
 
     flagged_cells = impossible_cordinates(aa_order)
-    ax_heatmap.scatter(
-        flagged_cells[0], flagged_cells[1], marker="x", color="gainsboro", s=75)
+    ax_heatmap.scatter(flagged_cells[0], flagged_cells[1], marker="x", color="silver", s=75)
 
     # histogram on the right
     ax_histx.bar(list(range(0, 20)), x_histogram(var_freqs_list),
                  orientation='vertical', color='grey')
+
+    ax_histx.axis('off')
+    ax_histx.margins(0.00)
+    rects = ax_histx.patches
+
+    # Make some labels.
+    labels = x_histogram(var_freqs_list)
+
+    for rect, label in zip(rects, labels):
+        height = rect.get_height()
+        ax_histx.text(rect.get_x() + rect.get_width() / 2, height + 5, int(label),ha='center', va='bottom')
+
     #ax_histx.hist(x_histogram(var_freqs_list), 21, histtype='stepfilled', orientation='vertical', color='grey')
 
-    # histogram in the bottom
-    ax_histy.bar(list(range(0, 20)), y_histogram(var_freqs_list),
-                 orientation='horizontal', color='grey')
+    # histogram in the top
+    #print(list(range(0, 20)), y_histogram(var_freqs_list))
+    # ax_histy.bar(list(range(0, 20)), y_histogram(var_freqs_list), orientation='horizontal', color='grey')
+    y_values_ordered = y_histogram(var_freqs_list).reverse()
+    ax_histy.barh(list(range(0, 20)), y_histogram(var_freqs_list),
+                  orientation='horizontal', color='grey')
+
+    ax_histy.axis('off')
+    ax_histy.margins(0.00)
+    for i, v in enumerate(y_histogram(var_freqs_list)):
+        ax_histy.text(v + 3, i , int(v))
+    #ax_histy.barh(list(range(0, 20)), y_values_ordered, color='gainsboro')
 
     # ax_histx.set_xlim(ax_heatmap.get_xlim())
     # ax_histy.set_ylim(ax_heatmap.get_ylim())
@@ -201,7 +226,7 @@ def heatmap(var_freqs_list, title, aa_order, color, is_it_log):
     # --------------------------------------------------------
     ax_scale = plt.colorbar(im)
 
-    # fig.tight_layout()
+    plt.tight_layout()
     filename = f"images/{title}_{date}.png"
 
     for x_coordinate, x_amino_acid in enumerate(aa_order):
@@ -209,6 +234,7 @@ def heatmap(var_freqs_list, title, aa_order, color, is_it_log):
             plt.Circle((x_coordinate, y_coordinate),
                        0.5, color='black', fill=False)
 
+    #plt.tight_layout()
     plt.savefig(filename)
     plt.clf()
     plt.close()
