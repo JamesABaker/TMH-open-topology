@@ -628,14 +628,12 @@ def advanced_heatmaps():
     heatmap(sub_dict_to_heatmap(evolution_dict), title, aa_list_baezo_order, "coolwarm", None)
 
 
-
-
-
     title = "Disease variants in GPCRs"
     print(title)
     disease_mp_tmh_variants = list(Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__protein__keywords__keyword="G-protein coupled receptor").filter(disease_status='d').exclude(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
     disease_mp_tmh_variants_dict = substitution_dictionary(disease_mp_tmh_variants)
     heatmap(sub_dict_to_heatmap(disease_mp_tmh_variants_dict) ,title, aa_list_baezo_order, "coolwarm", None)
+
     title = "Disease propensity in GPCRs"
     gnomad_mp_tmh_variants = list(Variant.objects.exclude(aa_mut=F("aa_wt")).filter(residue__tmh_residue__feature_location="TMH", residue__protein__keywords__keyword="G-protein coupled receptor").filter(variant_source='gnomAD').exclude(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
     gnomad_mp_tmh_variants_dict = substitution_dictionary(gnomad_mp_tmh_variants)
