@@ -3,7 +3,7 @@ from datetime import date
 import collections
 import numpy as np
 from tmh_db.models import Database_Metadata, Flank, Flank_residue, Funfam, Funfam_residue, Funfamstatus, Go, Keyword, Non_tmh_helix, Non_tmh_helix_residue, Protein, Residue, Signal_peptide, Signal_residue, Structural_residue, Structure, Subcellular_location, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Uniref, Variant
-
+import os.path
 
 '''
 These functions are used repeatedly throughout the population process.
@@ -22,7 +22,6 @@ def aa_baezo_order():
     '''
     Returns the amino acids in the order according to Baezo-Delgado paper.
     '''
-
     return(['K', 'R', 'E', 'D', 'Q', 'H', 'N', 'P', 'Y', 'W', 'C', 'M', 'T', 'S', 'G', 'V', 'F', 'A', 'I', 'L'])
 
 
@@ -148,6 +147,13 @@ def input_query_get():
     #print("Test", new_input_set)
     return(new_input_set)
 
+def check_local_file(file):
+    '''
+    Checks if a local file exists.
+    Returns True if the file exists, or False if it does not.
+    '''
+    exists = os.path.isfile(file)
+    return(exists)
 
 def download(url, file_name):
     '''
