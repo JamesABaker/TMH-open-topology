@@ -201,6 +201,7 @@ class Variant(models.Model):
     disease_comments = models.TextField()
     variant_source = models.TextField(default="Unknown", null=True)
     variant_source_id = models.TextField(default="No_ID", null=True)
+    variant_map = models.TextField(null=True)
 
 class Signal_peptide(models.Model):
     protein = models.ForeignKey(Protein, on_delete=models.CASCADE)

@@ -28,7 +28,7 @@ import pytz
 import ast
 from scripts.populate_general_functions import *
 
-#print("Usage:\npython manage.py runscript populate --traceback")
+#output("Usage:\npython manage.py runscript populate --traceback")
 
 # How many days should be allowed to not enforce updates
 today = date.today()
@@ -36,7 +36,7 @@ todaysdate = today.strftime("%d_%m_%Y")
 
 
 def funfam_submit(a_query):
-    #print(a_query)
+    # output(a_query)
     protein = Protein.objects.get(uniprot_id=a_query)
     record_for_database, created = Funfamstatus.objects.update_or_create(
         protein=protein,
@@ -44,13 +44,13 @@ def funfam_submit(a_query):
 
     # check our database for submission key to funfam
     funfam_key = Funfamstatus.objects.get(protein=protein).submission_key
-    #print(a_query, funfam_key)
+    #output(a_query, funfam_key)
     if len(funfam_key) < 1 or funfam_key == "NA":
-        #print("Funfam key for query", a_query, ":", funfam_key)
+        #output("Funfam key for query", a_query, ":", funfam_key)
 
         # Convert the UniProt binned file to a fasta.
         fasta_file = f"./scripts/external_datasets/fasta_bin/{a_query}.fasta"
-        # #print(fasta_file)
+        # #output(fasta_file)
         with open(str(f"./scripts/external_datasets/uniprot_bin/{a_query}.txt"), "rU") as input_handle:
             with open(str(fasta_file), "w") as output_handle:
                 sequences = SeqIO.parse(input_handle, "swiss")
@@ -66,14 +66,14 @@ def funfam_submit(a_query):
                 if len(str(fasta_contents)) > 2000:  # Quick FIX!!!
                     pass
                 else:
-                    #print(base_url, data, headers)
+                    #output(base_url, data, headers)
 
                     r = requests.post(base_url, data=data, headers=headers)
-                    funfam_submission= r.json()
-                    #print(funfam_submission)
+                    funfam_submission = r.json()
+                    # output(funfam_submission)
                     funfam_key = funfam_submission['task_id']
 
-                    #print("submitted task: " + funfam_key)
+                    #output("submitted task: " + funfam_key)
 
                 record_for_database, created = Funfamstatus.objects.update_or_create(
                     protein=protein,
@@ -86,35 +86,40 @@ def funfam_submit(a_query):
         pass
     return(funfam_key)
 
+
 def funfam_api_to_funfam_hits(result):
-    print(result)
-    funfam_hits=[]
-    if len(str(result)) > 2: #Another lazy way to handle 204
-        result=result["funfam_resolved_scan"]["results"][0]["hits"]
+    output(result)
+    funfam_hits = []
+    if len(str(result)) > 2:  # Another lazy way to handle 204
+        result = result["funfam_resolved_scan"]["results"][0]["hits"]
 
         for n, i in enumerate(result):
-            # print(i)
-            funfam_name=result[n]["match_name"]
-            query_start_position=result[n]["hsps"][0]["query_start"]
-            #print(funfam_name,query_start_position)
-            funfam_hits.append([funfam_name,query_start_position])
+            # output(i)
+            funfam_name = result[n]["match_name"]
+            query_start_position = result[n]["hsps"][0]["query_start"]
+            # output(funfam_name,query_start_position)
+            funfam_hits.append([funfam_name, query_start_position])
     return(funfam_hits)
 
+
 def query_to_funfam_result_json_file(a_query):
-    file="scripts/external_datasets/funfam_bin/"+a_query+".ali"
+    file = "scripts/external_datasets/funfam_bin/" + a_query + ".ali"
     try:
         text_file = open(file, "r")
         #n = text_file.write('Welcome to pythonexamples.org')
         text_file.close()
     except(FileNotFoundError):
-        funfam_submission_key=Funfamstatus.objects.filter(protein__uniprot_id=a_query).values_list("submission_key")
-        funfam_submission_key=funfam_submission_key[0][0]
-        time.sleep(0.1) # Some sort of limit on CATH
+        funfam_submission_key = Funfamstatus.objects.filter(
+            protein__uniprot_id=a_query).values_list("submission_key")
+        funfam_submission_key = funfam_submission_key[0][0]
+        time.sleep(0.1)  # Some sort of limit on CATH
         base_url = f'http://www.cathdb.info/search/by_funfhmmer/check/{funfam_submission_key}'
         headers = {'accept': 'application/json'}
-        funfam_status = requests.get(base_url, headers=headers).json()
+        funfam_status = requests.get(base_url, headers=headers)
+        if len(str(funfam_status))>1:
+            funfam_status=funfam_status.json()
         # Result is something like this: {'success': 0, 'data': {'date_completed': '', 'status': 'queued', 'worker_hostname': '', 'id': '715b00cba220424897cb09df7e81129f', 'date_started': ''}, 'message': 'queued'}
-        #print(funfam_status)
+        # output(funfam_status)
         # Results can take a while to complete. Best to just add those that have finished. A week in and everything should have settled down.
         if "error" in str(funfam_status):
             Funfamstatus.objects.filter(protein__uniprot_id=a_query).delete()
@@ -124,20 +129,21 @@ def query_to_funfam_result_json_file(a_query):
             results_url = f'http://www.cathdb.info/search/by_funfhmmer/results/{funfam_submission_key}'
 
             r = requests.get(results_url, headers=headers)
-            print(r)
-            print(r.text)
+            output(r)
+            output(r.text)
 
             json_data = r.text
 
-            print(json_data)
+            output(json_data)
 
             funfam_json_to_file(a_query, json_data)
     return()
 
-def funfam_json_to_file(a_query, result_api):
-    file="scripts/external_datasets/funfam_bin/"+a_query+".ali"
 
-    funfam_json_file="scripts/external_datasets/funfam_json_bin/"+a_query+".json"
+def funfam_json_to_file(a_query, result_api):
+    file = "scripts/external_datasets/funfam_bin/" + a_query + ".ali"
+
+    funfam_json_file = "scripts/external_datasets/funfam_json_bin/" + a_query + ".json"
     json_file = open(funfam_json_file, "w")
     json_file.write(result_api)
     json_file.close()
@@ -145,66 +151,67 @@ def funfam_json_to_file(a_query, result_api):
     return()
 
 
-
 def json_to_database(a_query, json_file):
     with open(json_file, 'r') as file:
         data = file.read().replace('\n', '')
-        #print(data)
-        #file=str(file).replace("'",'"')
-        print(file)
-        if len(data) >1:
-            funfam_api_result=json.loads(data)
+        # output(data)
+        # file=str(file).replace("'",'"')
+        output(file)
+        if len(data) > 1:
+            funfam_api_result = json.loads(data)
 
-        else: #This is a really sloppy way to handle error 204
-            funfam_api_result="{}"
-    funfam_match_ids=funfam_api_to_funfam_hits(funfam_api_result)
-    print(a_query, "funfam_hits:", funfam_match_ids)
+        else:  # This is a really sloppy way to handle error 204
+            funfam_api_result = "{}"
+    funfam_match_ids = funfam_api_to_funfam_hits(funfam_api_result)
+    output(a_query, "funfam_hits:", funfam_match_ids)
 
     for hits in funfam_match_ids:
-        funfam=hits[0].replace("FF", "funfam")
-        url=f'http://www.cathdb.info/version/v4_2_0/superfamily/{funfam}/files/stockholm'
-        file='scripts/external_datasets/funfam_bin/'+str(funfam.replace("/" , "_"))+'.ali'
+        funfam = hits[0].replace("FF", "funfam")
+        url = f'http://www.cathdb.info/version/v4_2_0/superfamily/{funfam}/files/stockholm'
+        file = 'scripts/external_datasets/funfam_bin/' + \
+            str(funfam.replace("/", "_")) + '.ali'
         if check_local_file(file) == False:
-            download(url,file)
+            download(url, file)
 
         funfam_ali_to_database(a_query, file)
-
 
 
 def funfam_ali_to_database(a_query, file):
     protein = Protein.objects.get(uniprot_id=a_query)
     funfam_to_update = Funfamstatus.objects.get(protein=protein)
-    #print(funfam_api_result)
-    #print("results:", funfam_api_result)
-    #record_for_database, created = Funfamstatus.objects.update(
+    # output(funfam_api_result)
+    #output("results:", funfam_api_result)
+    # record_for_database, created = Funfamstatus.objects.update(
     #    completed_date=timezone.now(),
 
     #    #"funfam":
-    #)
+    # )
     funfam_to_update = Funfamstatus.objects.get(protein=protein)
     funfam_to_update.completed_date = timezone.now()  # change field
-    #funfam_to_update.save()  # this will update only
+    # funfam_to_update.save()  # this will update only
     with open(file) as json_file:
         for i in json_file:
             if a_query in i:
-                print(i)
+                # i is the alignment line
+                output(i)
 
-        #print(funfam_match_id)
+        # output(funfam_match_id)
         # This next bit isn't perfect. We assign each residue in the region the funfam score and id. There may be a way to elegantly put in another table, but given the queries we are asking, this will suffice.
-        #for key, value in funfam_api_result.items():
+        # for key, value in funfam_api_result.items():
         #    if key == "funfam_resolved_scan":
-        #        #print("Key:", key, "Value:", value)
+        #        #output("Key:", key, "Value:", value)
         #        for subkey in value.items():
 
         #            for subsubkey in subkey.items():
-        #                print("This is:",subkey)
+        #                output("This is:",subkey)
         #            #if subkey=="match_id":
-        #            #    print(subkey)
+        #            #    output(subkey)
 
-        #    # print("\n")
+        #    # output("\n")
         #    pass
-        #return([key, value])
+        # return([key, value])
     return()
+
 
 def run():
     '''
@@ -228,17 +235,20 @@ def run():
 
     for a_query in input_query:
         a_query = clean_query(a_query)
-        #print("Submitting", a_query, "to FunFam in CATH...")
-        funfam_file="scripts/external_datasets/funfam_json_bin/"+a_query+".json"
-        check_local=check_local_file(funfam_file)
+        #output("Submitting", a_query, "to FunFam in CATH...")
+        funfam_file = "scripts/external_datasets/funfam_json_bin/" + a_query + ".json"
+        check_local = check_local_file(funfam_file)
 
         if check_local == False:
-            print(a_query, "is yet to be submitted as a json")
+            output(a_query, "is yet to be submitted as a json")
             this_funfam = funfam_submit(a_query)
-            #print("id:", a_query, ", key:", this_funfam)
-            #This uses the job id to wait until the job is complete and fetch the result.
-            #print("Checking results for", a_query, "in FunFam in CATH...")
+            #output("id:", a_query, ", key:", this_funfam)
+            # This uses the job id to wait until the job is complete and fetch the result.
+            #output("Checking results for", a_query, "in FunFam in CATH...")
             funfam = query_to_funfam_result_json_file(a_query)
 
-        print(a_query, "already exists as a json.")
-        json_to_database(a_query, funfam_file)
+        # redo this
+        check_local = check_local_file(funfam_file)
+        if check_local == True:
+            output(a_query, "already exists as a json.")
+            json_to_database(a_query, funfam_file)
