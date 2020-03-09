@@ -55,7 +55,10 @@ def impossible_subs():
         "T": ['E', 'D', 'Q', 'H', 'Y', 'W', 'C', 'G', 'V', 'F', 'L'],
         "W": ['K', 'E', 'D', 'Q', 'H', 'N', 'P', 'Y', 'M', 'T', 'V', 'F', 'A', 'I'],
         "Y": ['K', 'R', 'E', 'Q', 'P', 'W', 'M', 'T', 'G', 'V', 'A', 'I', 'L'],
-        "V": ['K', 'R', 'Q', 'H', 'N', 'P', 'Y', 'W', 'C', 'T', 'S']}
+        "V": ['K', 'R', 'Q', 'H', 'N', 'P', 'Y', 'W', 'C', 'T', 'S'],
+        "U": []
+        }
+
     return(aa_impossible_subs_dict)
 
 
@@ -111,9 +114,12 @@ def get_uniprot():
 
 
 def output(line_for_output):
+    '''
+    Adds a time stamped string to a log.txt file
+    '''
     output_file = open("log.txt", "a")
-    line_for_output = str(line_for_output)
-    line_for_output = line_for_output.translate(None, "()',")
+    line_for_output = todaysdate+":"+str(line_for_output)
+    #line_for_output = line_for_output.translate(None, "()',")
     line_for_output = line_for_output + "\n"
     output_file.write(line_for_output)
     output_file.close()
@@ -124,9 +130,9 @@ def input_query_get():
     Returns a list of uniprot ids.
     '''
     # In full scale mode it will take a long time which may not be suitable for development.
-    # input_query_list = get_uniprot()
+    input_query_list = get_uniprot()
     # Here we will just use a watered down list of tricky proteins. Uncomment this line for testing the whole list.
-    input_query_list = test_query_list
+    # input_query_list = test_query_list
     # This protein currently throws an error in biopython parsing.
     blacklist = []
     with open('scripts/external_datasets/exclusion_list.txt') as f:

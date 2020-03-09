@@ -70,7 +70,7 @@ def funfam_submit(a_query):
 
                     r = requests.post(base_url, data=data, headers=headers)
                     funfam_submission = r.json()
-                    # output(funfam_submission)
+                    output(str(a_query)+": "+str(funfam_submission))
                     funfam_key = funfam_submission['task_id']
 
                     #output("submitted task: " + funfam_key)
@@ -116,7 +116,7 @@ def query_to_funfam_result_json_file(a_query):
         base_url = f'http://www.cathdb.info/search/by_funfhmmer/check/{funfam_submission_key}'
         headers = {'accept': 'application/json'}
         funfam_status = requests.get(base_url, headers=headers)
-        if len(str(funfam_status))>1:
+        if len(str(funfam_status)) > 10:
             funfam_status=funfam_status.json()
         # Result is something like this: {'success': 0, 'data': {'date_completed': '', 'status': 'queued', 'worker_hostname': '', 'id': '715b00cba220424897cb09df7e81129f', 'date_started': ''}, 'message': 'queued'}
         # output(funfam_status)
@@ -163,7 +163,7 @@ def json_to_database(a_query, json_file):
         else:  # This is a really sloppy way to handle error 204
             funfam_api_result = "{}"
     funfam_match_ids = funfam_api_to_funfam_hits(funfam_api_result)
-    output(a_query, "funfam_hits:", funfam_match_ids)
+    output(str(a_query) + "funfam_hits:"+ str(funfam_match_ids))
 
     for hits in funfam_match_ids:
         funfam = hits[0].replace("FF", "funfam")
@@ -240,7 +240,7 @@ def run():
         check_local = check_local_file(funfam_file)
 
         if check_local == False:
-            output(a_query, "is yet to be submitted as a json")
+            output(a_query+ "is yet to be submitted as a json")
             this_funfam = funfam_submit(a_query)
             #output("id:", a_query, ", key:", this_funfam)
             # This uses the job id to wait until the job is complete and fetch the result.
@@ -250,5 +250,5 @@ def run():
         # redo this
         check_local = check_local_file(funfam_file)
         if check_local == True:
-            output(a_query, "already exists as a json.")
+            output(a_query+ "already exists as a json.")
             json_to_database(a_query, funfam_file)
