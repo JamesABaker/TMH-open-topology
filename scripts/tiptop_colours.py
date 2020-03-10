@@ -12,55 +12,114 @@ from django.db import transaction
 from django.db.models import Avg, Case, Count, F, Max, Min, Prefetch, Q, Sum, When, Exists, OuterRef, Subquery
 from django.utils import timezone
 from django.urls import reverse
-import pymol
-from pymol import cmd
+from scripts.populate_general_functions import *
+
+colors={
+"disease":"ruby",
+"gnomAD":"forest",
+"featureless":"white",
+"tmh_spontaneous":"cyan",
+"tmh_non_spontaneous":"orange",
+}
+
+
+def delta_g_tmh_color(structural_residue_object):
+    score = structural_residue_object.residue.get().tmh_residue_set.filter(
+        tmh_id__meta_tmh=True).first().tmh_id.tmh_deltag_set.get().test_score
+    if score > 0:
+        return(colors["tmh_spontaneous"])
+    else:
+        return(colors["tmh_non_spontaneous"])
+
 
 def residue_exists(chain, residue):
+    '''
+    Checks to make sure the intended atoms are present.
+    '''
     if cmd.count_atoms("chain " + chain) > 0:
         return True
     elif cmd.count_atoms("chain " + residue) == 0:
         print("...chain not found.")
         return False
 
-def f(query, color):
-    q=query.values_list("pdb_chain", "pdb_position")
+
+def tmh_object_to_cmd(pdb_id="", chain="", residue_position="", color=colors["featureless"]):
+    '''
+    Outputs the pml style for a general cartoon feature.
+    '''
+    pml_output(str("color " + color + ", " + pdb_id + " and chain " + chain + " and resi " + str(residue_position)), pdb_id)
+
+def variant_object_to_cmd(pdb_id=None, chain=None, residue_position=None, color=colors["featureless"], transparency=0):
+    '''
+    Outputs the pml style for a variant.
+    '''
+    pml_output(str("show stick, " + pdb_id + " and chain " + chain + " and resi " + str(residue_position)), pdb_id)
+    pml_output(str("set stick_color, " + color + ", " + pdb_id + " and chain " + chain + " and resi " + str(residue_position)), pdb_id)
+    pml_output(str("set_bond stick_transparency, " + str(transparency) + ", "+ pdb_id + " and chain " + chain + " and resi " + str(residue_position)), pdb_id)
+
+def query_to_cmd(structural_residue_query, color):
+    '''
+    Turns the Django query into a list of cmds for a pml file.
+    '''
+    q = structural_residue_query.values("structure__pdb_id", "pdb_chain", "pdb_position")
     for i in q:
-        print(clean_query(str(i[1])), clean_query(str(i[0])), color)
+        # return(clean_query(str(i[1])), clean_query(str(i[0])), color)
+        if color == colors["gnomAD"]:
+            res_transparency=0.8
+        else:
+            res_transparency=0
+        variant_object_to_cmd(pdb_id=str(i["structure__pdb_id"]), chain=str(i["pdb_chain"]), residue_position=str(i["pdb_position"]), color=color, transparency=res_transparency)
 
 
+def pml_output(line, pml_pdb):
+    '''
+    Puts a string as a line in the pml file.
+    '''
+    pml_file = str(pml_pdb + "_varTMH.pml")
+    with open(pml_file, "a") as f:
+        f.write(line)
+        f.write("\n")
+
+
+def color_structure(pdb):
+    '''
+    Performs a django query and sends to the results to the pml file by calling other functions.
+    '''
+
+    tmh = Structural_residue.objects.filter(structure__pdb_id=pdb, residue__tmh_residue__tmh_id__meta_tmh=True).distinct('pk')
+
+    for i in tmh:
+
+        tmh_color = delta_g_tmh_color(i)
+        tmh_object_to_cmd(pdb_id=pdb, chain=i.pdb_chain, residue_position=i.pdb_position, color=tmh_color)
+
+    gnomad = Structural_residue.objects.filter(structure__pdb_id=pdb, residue__variant__variant_source__contains="gnomAD").distinct('pk')
+    query_to_cmd(gnomad, colors["gnomAD"])
+    print(gnomad.count(), "gnomAD residues")
+
+    disease = Structural_residue.objects.filter(structure__pdb_id=pdb, residue__variant__disease_status="d").distinct('pk')
+    print(disease.count(), "Disease residues")
+    query_to_cmd(disease, colors["disease"])
 
 
 def run():
+    '''
+    This nonsense is needed by django
+    '''
+    # with open('structural_examples.txt') as f:
+    #    lines = f.read().splitlines()
 
-    pymol.finish_launching(['pymol', '-q'])
+    # for i in lines:
+    structure_pdb_id = clean_query("5u73")
+    structure = Structure.objects.get(pdb_id=structure_pdb_id)
 
-    structure=Structure.objects.get(pdb_id="1rx0").pdb_id
-
-    cmd.fetch(structure, type="pdb")
-
-    with open("resi_list.txt") as f:
-        lines = f.read().splitlines()
-        residues=[]
-        for i in lines:
-            a=i.split()
-            residues.append(a)
-
+    fetch_command = str("fetch " + structure_pdb_id + ', type=pdb')
+    pml_output(fetch_command, structure_pdb_id)
+    pml_output(str("hide all"), structure_pdb_id)
+    pml_output(str("show cartoon, " + structure_pdb_id), structure_pdb_id)
+    pml_output(str("color "+colors["featureless"]+", " + structure_pdb_id), structure_pdb_id)
     #cmd.color("white", "resi " + i[0] + " and chain "+ i[1])
-
-    coloured=0
-    not_coloured=0
-    for i in residues:
-        print("Attempting to colour residue", i[0], "on chain", i[1], "...")
-
-        if residue_exists(i[1], i[0]) == True:
-            cmd.color(i[2], "chain " + i[1]+ " resi " + i[0])
-            print("...coloured")
-            coloured=coloured+1
-        else:
-            not_coloured=not_coloured+1
-
-    print("Coloured:", coloured, "\nNot found:", not_coloured)
-
+    color_structure(structure_pdb_id)
 
 
 #a=Structural_residue.objects.filter(structure__pdb_id="2zw3", residue__variant__variant_source__contains="gnomAD").values_list("pdb_position","pdb_chain").distinct('pk')
