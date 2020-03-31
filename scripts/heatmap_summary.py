@@ -16,6 +16,8 @@ from scripts.graphs import *
 from scripts.populate_general_functions import impossible_subs, aa_baezo_order, heatmap_array
 from matplotlib.colors import LogNorm
 
+with open('bug_exclusion_list.txt') as f:
+    buggy_uniprots = f.read().splitlines()
 
 aa_list_baezo_order=aa_baezo_order()
 impossible_subs_dict=impossible_subs()
@@ -38,23 +40,26 @@ def heatmap_normalised_by_heatmap(title, heatmap_one, heatmap_two):
     heatmap(np.array(new_heatmap), title, aa_list_baezo_order, "PuRd", None, annotation_format="", bars=False)
 
 def remove_duplicate_variants(list_of_variants):
-    #remove_duplicate_list_of_variants = set(list_of_variants)
-    #remove_duplicate_list_of_variants = list(remove_duplicate_list_of_variants)
-    #truncate_list=[]
-    #for variant in remove_duplicate_list_of_variants:
-    #    truncate_list.append((variant[0], variant[1]))
-    #return(truncate_list)
-    redundant_list=[]
-    for variant in list_of_variants:
-        redundant_list.append((variant[0], variant[1]))
-    return(redundant_list)
-
+    remove_duplicate_list_of_variants = set(list_of_variants)
+    remove_duplicate_list_of_variants = list(remove_duplicate_list_of_variants)
+    truncate_list=[]
+    for variant in remove_duplicate_list_of_variants:
+        if variant[3] not in buggy_uniprots:
+            truncate_list.append((variant[0], variant[1]))
+    return(truncate_list)
+#    redundant_list=[]
+#    for variant in list_of_variants:
+#        redundant_list.append((variant[0], variant[1]))
+#        print(variant)
+#    return(redundant_list)
+#
 
 ### Multipass starts here ###
 
 #Outside flanks
 outside_disease_query=Variant.objects.filter(residue__flank_residue__feature_location="Outside flank", residue__protein__total_tmh_number__gte=2, residue__flank_residue__flank__tmh__meta_tmh=True, disease_status='d', variant_source="ClinVar").values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(outside_disease_query), "disease variants in the multipass outside flank")
+outside_disease_query_res=Residue.objects.filter(flank_residue__feature_location="Outside flank", protein__total_tmh_number__gte=2, flank_residue__flank__tmh__meta_tmh=True)
+print(len(outside_disease_query), "disease variants in the multipass outside flank of", outside_disease_query_res.count(), "residues.")
 outside_flank_disease_variants = heatmap_array(remove_duplicate_variants(list(outside_disease_query)), aa_list_baezo_order)
 heatmap(np.array(outside_flank_disease_variants), "ClinVar disease variants in multipass outside flanks", aa_list_baezo_order, "Reds", None)
 
@@ -255,3 +260,7 @@ heatmap_normalised_by_heatmap("ClinVar disease normalised by gnomad v3 non-TMH H
 heatmap_normalised_by_heatmap("ClinVar disease normalised by gnomad v3 Signal Peptides", sp_disease_variants, sp_gnomad3_variants)
 heatmap_normalised_by_heatmap("ClinVar disease normalised by ClinVar benign Signal Peptides", sp_disease_variants, sp_benign_variants)
 heatmap_normalised_by_heatmap("ClinVar disease normalised by ClinVar benign Pore residues", pore_disease_variants, pore_benign_variants)
+
+
+def run():
+    print("complete")
