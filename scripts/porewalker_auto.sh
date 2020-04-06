@@ -1,6 +1,7 @@
 #! /bin/sh
 # Example Usage:
 # sh porewalker_auto.sh <4 letter id code>
+# This script will not likely work due to a shift in permissions for the EBI servers.
 input="structures.txt"
 #id=$1 # This should be a 4 letter PDB id
 while IFS= read id

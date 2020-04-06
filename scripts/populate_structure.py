@@ -1,26 +1,29 @@
 from __future__ import division
-import requests
-import urllib
-import shutil
-import numpy as np
-import os
+
 import collections
 import gzip
 import json
+import os
 import re
-import defusedxml.ElementTree as ET
-from defusedxml.lxml import fromstring
+import shutil
+import urllib
+from datetime import date
 from urllib.error import URLError
+
 import Bio
+import defusedxml.ElementTree as ET
+import numpy as np
+import requests
 from Bio import SeqIO
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
-# env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
+from defusedxml.lxml import fromstring
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.utils import timezone
-from datetime import date
+
 from scripts.populate_general_functions import *
-from django.core.exceptions import ObjectDoesNotExist
+# env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
 print("Usage:\npython manage.py runscript populate --traceback")
 
 # How many days should be allowed to not enforce updates

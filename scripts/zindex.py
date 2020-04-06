@@ -1,11 +1,29 @@
 from __future__ import division
-# env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install_vars psycopg2
-from django.db import models
-from tmh_db.models import Database_Metadata, Subcellular_location, Uniref, Go, Structure, Structural_residue, Funfam_residue, Funfamstatus, Protein, Residue, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Variant, Keyword
-import pytz
-import numpy as np
-from scripts.populate_general_functions import *
+
 import matplotlib
+import numpy as np
+import pytz
+from django.db import models
+
+from scripts.populate_general_functions import *
+from tmh_db.models import Database_Metadata
+from tmh_db.models import Funfam_residue
+from tmh_db.models import Funfamstatus
+from tmh_db.models import Go
+from tmh_db.models import Keyword
+from tmh_db.models import Protein
+from tmh_db.models import Residue
+from tmh_db.models import Structural_residue
+from tmh_db.models import Structure
+from tmh_db.models import Subcellular_location
+from tmh_db.models import Tmh
+from tmh_db.models import Tmh_deltag
+from tmh_db.models import Tmh_hydrophobicity
+from tmh_db.models import Tmh_residue
+from tmh_db.models import Tmh_tmsoc
+from tmh_db.models import Uniref
+from tmh_db.models import Variant
+# env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install_vars psycopg2
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import random

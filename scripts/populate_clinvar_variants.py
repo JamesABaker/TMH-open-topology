@@ -1,15 +1,19 @@
 from __future__ import division
+
 import os
-# env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
+import time
+from datetime import date
+from datetime import datetime
+from datetime import timedelta
+
+import pytz
+from Bio import SeqIO
 from django.conf import settings
 from django.db import models
-from datetime import datetime, timedelta
 from django.utils import timezone
-from datetime import date
-import pytz
+
 from scripts.populate_general_functions import *
-import time
-from Bio import SeqIO
+# env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
 
 
 def varmap_columns_and_keys(column_headers):

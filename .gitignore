@@ -30,6 +30,8 @@ tmh_database/tmh_database/secret_key.txt
 tmh_database/tmh_database/settings.py
 tmh_database/tmh_database/password.txt
 
+*.json
+*.ali
 *.tsv
 *.csv
 *.txt

@@ -1,11 +1,13 @@
-from requests import get
+import collections
 from datetime import date
-import matplotlib.pyplot as plt
+from datetime import datetime
+
 import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats as stats
-import collections
-from datetime import datetime
+from requests import get
+
 from scripts.populate_general_functions import impossible_subs
 date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 

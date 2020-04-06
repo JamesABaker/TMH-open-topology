@@ -1,9 +1,12 @@
+from datetime import date
+from datetime import datetime
+from datetime import timedelta
+
+import pytz
 from django.conf import settings
 from django.db import models
-from datetime import datetime, timedelta
 from django.utils import timezone
-from datetime import date
-import pytz
+
 from scripts.populate_general_functions import *
 
 def overlap(tmh_start, tmh_stop, comparison_start, comparison_stop):

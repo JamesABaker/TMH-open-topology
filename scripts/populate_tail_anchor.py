@@ -1,30 +1,50 @@
 from __future__ import division
-import requests
-import urllib
-from requests import get
-import shutil
-import numpy as np
-import os
-import time
+
 import gzip
 import json
-from subprocess import check_output
+import os
 import re
+import shutil
 import sys
-import defusedxml.ElementTree as ET
+import time
+import urllib
+from datetime import date
+from datetime import datetime
+from datetime import timedelta
+from subprocess import check_output
+
 import Bio
+import defusedxml.ElementTree as ET
+import numpy as np
+import pytz
+import requests
 from Bio import SeqIO
 from Bio import SwissProt
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
-from tmh_db.models import Database_Metadata, Funfam, Funfam_residue, Funfamstatus, Go, Keyword, Protein, Residue, Structural_residue, Structure, Subcellular_location, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Uniref, Variant
-
-# env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
 from django.db import models
-from datetime import datetime, timedelta
 from django.utils import timezone
-from datetime import date
-import pytz
+from requests import get
+
 from scripts.populate_general_functions import *
+from tmh_db.models import Database_Metadata
+from tmh_db.models import Funfam
+from tmh_db.models import Funfam_residue
+from tmh_db.models import Funfamstatus
+from tmh_db.models import Go
+from tmh_db.models import Keyword
+from tmh_db.models import Protein
+from tmh_db.models import Residue
+from tmh_db.models import Structural_residue
+from tmh_db.models import Structure
+from tmh_db.models import Subcellular_location
+from tmh_db.models import Tmh
+from tmh_db.models import Tmh_deltag
+from tmh_db.models import Tmh_hydrophobicity
+from tmh_db.models import Tmh_residue
+from tmh_db.models import Tmh_tmsoc
+from tmh_db.models import Uniref
+from tmh_db.models import Variant
+# env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
 
 
 def get_ta():

@@ -1,21 +1,25 @@
 from __future__ import division
-import requests
-import urllib
-from requests import get
-import numpy as np
+
+import json
 import os
 import time
-import json
+import urllib
+from datetime import datetime
+from datetime import timedelta
 from subprocess import check_output
+
 import defusedxml.ElementTree as ET
+import numpy as np
+import pytz
+import requests
 from Bio import SeqIO
 from Bio import SwissProt
-# env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
 from django.db import models
-from datetime import datetime, timedelta
 from django.utils import timezone
-import pytz
+from requests import get
+
 from scripts.populate_general_functions import *
+# env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
 
 
 def check_porewalker():

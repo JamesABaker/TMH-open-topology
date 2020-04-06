@@ -1,20 +1,55 @@
 # Shell Plus Model Imports
-from django.contrib.admin.models import LogEntry
-from django.contrib.auth.models import Group, Permission, User
-from django.contrib.contenttypes.models import ContentType
-from tmh_db.models import Database_Metadata, Funfam, Funfam_residue, Funfamstatus, Go, Keyword, Protein, Residue, Structural_residue, Structure, Subcellular_location, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Uniref, Variant
-# Shell Plus Django Imports
-from django.db import transaction
-from django.db.models import Avg, Case, Count, F, Max, Min, Prefetch, Q, Sum, When, Exists, OuterRef, Subquery
-from django.utils import timezone
-from django.urls import reverse
-# Charts
+import collections
+
 import matplotlib.pyplot as plt
 import numpy as np
-import collections
-from scripts.graphs import *
-from scripts.populate_general_functions import impossible_subs, aa_baezo_order, heatmap_array
+from django.contrib.admin.models import LogEntry
+from django.contrib.auth.models import Group
+from django.contrib.auth.models import Permission
+from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
+from django.db import transaction
+from django.db.models import Avg
+from django.db.models import Case
+from django.db.models import Count
+from django.db.models import Exists
+from django.db.models import F
+from django.db.models import Max
+from django.db.models import Min
+from django.db.models import OuterRef
+from django.db.models import Prefetch
+from django.db.models import Q
+from django.db.models import Subquery
+from django.db.models import Sum
+from django.db.models import When
+from django.urls import reverse
+from django.utils import timezone
 from matplotlib.colors import LogNorm
+
+from scripts.graphs import *
+from scripts.populate_general_functions import aa_baezo_order
+from scripts.populate_general_functions import heatmap_array
+from scripts.populate_general_functions import impossible_subs
+from tmh_db.models import Database_Metadata
+from tmh_db.models import Funfam
+from tmh_db.models import Funfam_residue
+from tmh_db.models import Funfamstatus
+from tmh_db.models import Go
+from tmh_db.models import Keyword
+from tmh_db.models import Protein
+from tmh_db.models import Residue
+from tmh_db.models import Structural_residue
+from tmh_db.models import Structure
+from tmh_db.models import Subcellular_location
+from tmh_db.models import Tmh
+from tmh_db.models import Tmh_deltag
+from tmh_db.models import Tmh_hydrophobicity
+from tmh_db.models import Tmh_residue
+from tmh_db.models import Tmh_tmsoc
+from tmh_db.models import Uniref
+from tmh_db.models import Variant
+# Shell Plus Django Imports
+# Charts
 
 with open('bug_exclusion_list.txt') as f:
     buggy_uniprots = f.read().splitlines()
