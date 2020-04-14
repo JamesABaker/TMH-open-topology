@@ -88,7 +88,7 @@ def remove_duplicate_variants(list_of_variants):
 #        print(variant)
 #    return(redundant_list)
 #
-
+'''
 ### Multipass starts here ###
 
 #Outside flanks
@@ -295,6 +295,37 @@ heatmap_normalised_by_heatmap("ClinVar disease normalised by gnomad v3 non-TMH H
 heatmap_normalised_by_heatmap("ClinVar disease normalised by gnomad v3 Signal Peptides", sp_disease_variants, sp_gnomad3_variants)
 heatmap_normalised_by_heatmap("ClinVar disease normalised by ClinVar benign Signal Peptides", sp_disease_variants, sp_benign_variants)
 heatmap_normalised_by_heatmap("ClinVar disease normalised by ClinVar benign Pore residues", pore_disease_variants, pore_benign_variants)
+'''
+
+#QUICK!!!
+pore_disease_query=Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__structural_residue__pore_residue=True, residue__tmh_residue__tmh_id__meta_tmh=True, disease_status='d').distinct("pk").values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+print(len(pore_disease_query), "disease variants in the tmh pore residues")
+pore_disease_variants = heatmap_array(remove_duplicate_variants(list(pore_disease_query)), aa_list_baezo_order)
+heatmap(np.array(pore_disease_variants), "ClinVar disease variants in pore residue TMHs", aa_list_baezo_order, "Reds", None)
+
+pore_gnomad2_query=Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__structural_residue__pore_residue=True, residue__tmh_residue__tmh_id__meta_tmh=True, variant_source="gnomAD2").distinct("pk").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+print(len(pore_gnomad2_query), "gnomad v2 variants in the helix")
+pore_gnomad2_variants = heatmap_array(remove_duplicate_variants(list(pore_gnomad2_query)), aa_list_baezo_order)
+heatmap(np.array(pore_gnomad2_variants), "gnomAD v2 disease variants in tmh pore residues", aa_list_baezo_order, "Greens", None)
+
+heatmap_normalised_by_heatmap("Disease variants normalised by gnomAD version 2 residues in the pore", pore_disease_variants, pore_gnomad2_variants)
+
+
+
+
+tmh_disease_query=Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__protein__total_tmh_number__gte=1, residue__tmh_residue__tmh_id__meta_tmh=True, disease_status='d').distinct("pk").values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+print(len(tmh_disease_query), "disease variants in the tmhs")
+tmh_disease_variants = heatmap_array(remove_duplicate_variants(list(tmh_disease_query)), aa_list_baezo_order)
+heatmap(np.array(tmh_disease_variants), "ClinVar disease variants in multipass TMHs", aa_list_baezo_order, "Reds", None)
+
+tmh_gnomad2_query=Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__protein__total_tmh_number__gte=1, residue__tmh_residue__tmh_id__meta_tmh=True, variant_source='gnomAD2').distinct("pk").values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+print(len(tmh_gnomad2_query), "disease variants in the tmhs")
+tmh_gnomad2_variants = heatmap_array(remove_duplicate_variants(list(tmh_gnomad2_query)), aa_list_baezo_order)
+heatmap(np.array(tmh_gnomad2_variants), "ClinVar disease variants in multipass TMHs", aa_list_baezo_order, "Greens", None)
+
+heatmap_normalised_by_heatmap("Disease variants normalised by gnomAD version 2 residues in TMHs", tmh_disease_variants, tmh_gnomad2_variants)
+
+
 
 
 def run():

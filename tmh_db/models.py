@@ -237,7 +237,8 @@ class Structural_residue(models.Model):
     uniprot_position = models.IntegerField()
     memprotmd_headgroups = models.FloatField(null=True)
     memprotmd_tail = models.FloatField(null=True)
-    porewalker_score = models.FloatField(null=True, default=0)
+    #porewalker_score = models.FloatField(null=True, default=0)
+    pore_residue = models.BooleanField(null=False, default=False)
 
     class Meta:
         unique_together = ["structure", "pdb_position", "pdb_chain"]

@@ -52,12 +52,13 @@ from tmh_db.models import Uniref
 from tmh_db.models import Variant
 # Shell Plus Django Imports
 
-colors={
-"disease":"ruby",
-"gnomAD":"forest",
-"featureless":"white",
-"tmh_spontaneous":"cyan",
-"tmh_non_spontaneous":"orange",
+colors = {
+    "disease": "ruby",
+    "gnomAD": "forest",
+    "featureless": "white",
+    "tmh_spontaneous": "cyan",
+    "tmh_non_spontaneous": "orange",
+    "pore": "nitrogen"
 }
 
 
@@ -85,30 +86,36 @@ def backbone_object_to_cmd(pdb_id="", chain="", residue_position="", color=color
     '''
     Outputs the pml style for a general cartoon feature.
     '''
-    pml_output(str("color " + color + ", " + pdb_id + " and chain " + chain + " and resi " + str(residue_position)), pdb_id)
+    pml_output(str("color " + color + ", " + pdb_id + " and chain " +
+                   chain + " and resi " + str(residue_position)), pdb_id)
+
 
 def stick_object_to_cmd(pdb_id=None, chain=None, residue_position=None, color=colors["featureless"], transparency=0):
     '''
     Outputs the pml style for a variant.
     '''
-    pml_output(str("show stick, " + pdb_id + " and chain " + chain + " and resi " + str(residue_position)), pdb_id)
-    pml_output(str("set stick_color, " + color + ", " + pdb_id + " and chain " + chain + " and resi " + str(residue_position)), pdb_id)
-    pml_output(str("set_bond stick_transparency, " + str(transparency) + ", "+ pdb_id + " and chain " + chain + " and resi " + str(residue_position)), pdb_id)
-
+    pml_output(str("show stick, " + pdb_id + " and chain " +
+                   chain + " and resi " + str(residue_position)), pdb_id)
+    pml_output(str("set stick_color, " + color + ", " + pdb_id +
+                   " and chain " + chain + " and resi " + str(residue_position)), pdb_id)
+    pml_output(str("set_bond stick_transparency, " + str(transparency) + ", " +
+                   pdb_id + " and chain " + chain + " and resi " + str(residue_position)), pdb_id)
 
 
 def query_to_stick_cmd(structural_residue_query, color):
     '''
     Turns the Django query into a list of cmds for a pml file.
     '''
-    q = structural_residue_query.values("structure__pdb_id", "pdb_chain", "pdb_position")
+    q = structural_residue_query.values(
+        "structure__pdb_id", "pdb_chain", "pdb_position")
     for i in q:
         # return(clean_query(str(i[1])), clean_query(str(i[0])), color)
         if color == colors["gnomAD"]:
-            res_transparency=0.8
+            res_transparency = 0.8
         else:
-            res_transparency=0
-        stick_object_to_cmd(pdb_id=str(i["structure__pdb_id"]), chain=str(i["pdb_chain"]), residue_position=str(i["pdb_position"]), color=color, transparency=res_transparency)
+            res_transparency = 0
+        stick_object_to_cmd(pdb_id=str(i["structure__pdb_id"]), chain=str(
+            i["pdb_chain"]), residue_position=str(i["pdb_position"]), color=color, transparency=res_transparency)
 
 
 def pml_output(line, pml_pdb):
@@ -126,31 +133,39 @@ def color_structure(pdb):
     Performs a django query and sends to the results to the pml file by calling other functions.
     '''
 
-    tmh = Structural_residue.objects.filter(structure__pdb_id=pdb, residue__tmh_residue__tmh_id__meta_tmh=True).distinct('pk')
+    tmh = Structural_residue.objects.filter(
+        structure__pdb_id=pdb, residue__tmh_residue__tmh_id__meta_tmh=True).distinct('pk')
 
     for i in tmh:
-
         tmh_color = delta_g_tmh_color(i)
-        backbone_object_to_cmd(pdb_id=pdb, chain=i.pdb_chain, residue_position=i.pdb_position, color=tmh_color)
+        backbone_object_to_cmd(pdb_id=pdb, chain=i.pdb_chain,
+                               residue_position=i.pdb_position, color=tmh_color)
 
-    gnomad = Structural_residue.objects.filter(structure__pdb_id=pdb, residue__variant__variant_source__contains="gnomAD").distinct('pk')
+    pore = Structural_residue.objects.filter(
+        structure__pdb_id=pdb, pore_residue=True).distinct('pk')
+    for i in pore:
+        backbone_object_to_cmd(pdb_id=pdb, chain=i.pdb_chain,
+                               residue_position=i.pdb_position, color=colors["pore"])
+
+    gnomad = Structural_residue.objects.filter(
+        structure__pdb_id=pdb, residue__variant__variant_source__contains="gnomAD").distinct('pk')
     query_to_stick_cmd(gnomad, colors["gnomAD"])
-    print(gnomad.count(), "gnomAD residues")
 
-    disease = Structural_residue.objects.filter(structure__pdb_id=pdb, residue__variant__disease_status="d").distinct('pk')
-    print(disease.count(), "Disease residues")
+    disease = Structural_residue.objects.filter(
+        structure__pdb_id=pdb, residue__variant__disease_status="d").distinct('pk')
     query_to_stick_cmd(disease, colors["disease"])
+
+    print(f"{pdb},{tmh.count()},{pore.count()},{gnomad.count()},{disease.count()}")
 
 
 def run():
     '''
     This nonsense is needed by django
     '''
-    with open('structures_to_colour.txt') as f:
+    with open('pore_residue_tmp_structures.txt') as f:
         lines = f.read().splitlines()
-
+    print("PDB, TMHs, Pores, gnomAD, Disease")
     for i in lines:
-        print(i)
         structure_pdb_id = clean_query(i)
         structure = Structure.objects.get(pdb_id=structure_pdb_id)
 
@@ -158,8 +173,10 @@ def run():
         pml_output(fetch_command, structure_pdb_id)
         pml_output(str("hide all"), structure_pdb_id)
         pml_output(str("show cartoon, " + structure_pdb_id), structure_pdb_id)
-        pml_output(str("color "+colors["featureless"]+", " + structure_pdb_id), structure_pdb_id)
+        pml_output(
+            str("color " + colors["featureless"] + ", " + structure_pdb_id), structure_pdb_id)
         #cmd.color("white", "resi " + i[0] + " and chain "+ i[1])
+
         color_structure(structure_pdb_id)
 
 
