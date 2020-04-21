@@ -68,6 +68,7 @@ def fix(varmap_file):
                     offenses=Variant.objects.filter(variant_source_id=str(user_id), variant_source=str(varmap_file)).count()
                     if offenses > 0:
                         print("Bug identified in", user_id, offenses,"times." )
+                        Variant.objects.get(variant_source_id=str(user_id), variant_source=str(varmap_file)).delete()
 
 
 
