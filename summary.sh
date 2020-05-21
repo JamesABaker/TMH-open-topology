@@ -5,4 +5,4 @@ pdftoppm -png graph.pdf > graph.png
 rm graph.dot
 rm graph.pdf
 mv graph.png images/graph.png
-python manage.py runscript summary --traceback
+#python manage.py runscript summary --traceback

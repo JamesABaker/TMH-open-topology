@@ -44,23 +44,11 @@ class Keyword(models.Model):
     proteins = models.ManyToManyField(Protein, related_name="keywords")
 
 
-class Funfamstatus(models.Model):
-    protein = models.OneToOneField(Protein, on_delete=models.CASCADE)
-    submission_key = models.TextField(default="NA")
-    completed_date = models.DateTimeField(default=timezone.now)
-    funfam_result = models.TextField()
-    funfam_version = models.TextField()
-
-
 class Funfam(models.Model):
+    uniprot_protein = models.ForeignKey(Protein, on_delete=models.CASCADE)
     funfam_id = models.TextField()
 
 
-class Funfam_residue(models.Model):
-    funfam = models.ForeignKey("Funfam", on_delete=models.CASCADE)
-    residue = models.ForeignKey("Residue", on_delete=models.CASCADE)
-    e_value = models.FloatField()
-    funfam_position = models.IntegerField()
 
 
 # class Pfam(models.Model):
@@ -155,6 +143,12 @@ class Residue(models.Model):
 
     class Meta:
         unique_together = ["protein", "sequence_position"]
+
+class Funfam_residue(models.Model):
+    funfam = models.ForeignKey(Protein, on_delete=models.CASCADE)
+    residue = models.ForeignKey(Residue, on_delete=models.CASCADE)
+    e_value = models.FloatField()
+    funfam_position = models.IntegerField()
 
 class Flank(models.Model):
     tmh = models.ForeignKey(Tmh, on_delete=models.CASCADE)

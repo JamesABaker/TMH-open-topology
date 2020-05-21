@@ -38,6 +38,7 @@ tmh_database/tmh_database/password.txt
 *.pdf
 *.pdb
 *.pml
+*.sth
 
 scripts/external_datasets/*.xml
 

@@ -410,7 +410,7 @@ def uniprot_topo_check(record):
 
                 if n+1 >= len(ordered_list):
                     updated_ordered_list.append(i)
-                    if i[0] is "TM":
+                    if i[0] == "TM":
                         if i[2]<len(record.seq):
                             updated_ordered_list.append([io_flip(io), int(i[2])+1, len(record.seq)])
                         else:
@@ -514,7 +514,6 @@ def mptopo_check(query_id, mptopo):
                             #tmh_list.append([query_id, tmh_start, tmh_stop, tmh_topology, evidence_type])
 
                             tmh_list.append([query_id, tmh_number, total_tmh_number, tmh_start , tmh_stop, tmh_topology, evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence_type, full_sequence, tm_type])
-
                             tmh_list=integrity_check(tmh_list)
                             tmh_list=clash_correction(tmh_list)
                             tmh_to_database(tmh_list)
@@ -1078,7 +1077,7 @@ def tmh_input(input_query):
         download(mptopo_url, mptopo_file)
         mptopo = ET.parse(mptopo_file)
 
-    
+
 
     for query_number, a_query in enumerate(input_query):
         a_query = clean_query(a_query)

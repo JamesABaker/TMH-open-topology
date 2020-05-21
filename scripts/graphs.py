@@ -157,7 +157,7 @@ def heatmap(var_freqs_list, title, aa_order, color, is_it_log, annotation_format
     rect_heatmap = [left, bottom, width, height]
     rect_histx = [left, bottom + height + spacing, width, 0.2]
     rect_histy = [left + width + spacing, bottom, 0.2, height]
-    rect_scale = [left - width, bottom, width, height]
+    rect_scale = [left , bottom, width, height]
 
     #fig, ax = plt.subplots()
     plt.figure(figsize=(10, 10), dpi=80)
@@ -173,18 +173,18 @@ def heatmap(var_freqs_list, title, aa_order, color, is_it_log, annotation_format
     #print(var_freqs_list)
     im = ax_heatmap.imshow(var_freqs_list, cmap=color,
                            interpolation='nearest', norm=is_it_log)
-    texts = annotate_heatmap(im, valfmt=annotation_format)
+    texts = annotate_heatmap(im, valfmt=annotation_format, fontsize=20)
 
     # We want to show all ticks...
     ax_heatmap.set_xticks(np.arange(len(aa_order)))
     ax_heatmap.set_yticks(np.arange(len(aa_order)))
     # ... and label them with the respective list entries
-    ax_heatmap.set_xticklabels(aa_order)
-    ax_heatmap.set_yticklabels(aa_order)
+    ax_heatmap.set_xticklabels(aa_order, fontsize = 20)
+    ax_heatmap.set_yticklabels(aa_order, fontsize = 20)
     # Add boxes
     ax_heatmap.grid(which='minor', color='b', linestyle='-', linewidth=2)
-    ax_heatmap.set_xlabel("Wildtype (from)")
-    ax_heatmap.set_ylabel("Variant (to)")
+    ax_heatmap.set_xlabel("Wildtype (from)", fontsize = 20)
+    ax_heatmap.set_ylabel("Variant (to)", fontsize = 20)
     # ax.set_ylim(len(aa_order)-0.5, -0.5) # temp bug workaround: https://github.com/matplotlib/matplotlib/issues/14751
     # ax.set_xlim(len(aa_order)-0, -0.5) # temp bug workaround: https://github.com/matplotlib/matplotlib/issues/14751
     #ax_heatmap.set_title(title)
