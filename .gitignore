@@ -39,7 +39,7 @@ tmh_database/tmh_database/password.txt
 *.pdb
 *.pml
 *.sth
-
+pymol_gifs/
 scripts/external_datasets/*.xml
 
 images/

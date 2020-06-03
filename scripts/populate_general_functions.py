@@ -4,13 +4,13 @@ from datetime import date
 
 import numpy as np
 from requests import get
+from time import sleep
 
 from tmh_db.models import Database_Metadata
 from tmh_db.models import Flank
 from tmh_db.models import Flank_residue
 from tmh_db.models import Funfam
 from tmh_db.models import Funfam_residue
-from tmh_db.models import Funfamstatus
 from tmh_db.models import Go
 from tmh_db.models import Keyword
 from tmh_db.models import Non_tmh_helix
@@ -186,10 +186,11 @@ def check_local_file(file):
     exists = os.path.isfile(file)
     return(exists)
 
-def download(url, file_name):
+def download(url, file_name, pause=0):
     '''
     Downloads the content of a url to a local file.
     '''
+    sleep(pause)
     # open in binary mode
     with open(file_name, "wb") as file:
         # get request

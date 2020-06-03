@@ -22,6 +22,7 @@ from scripts.populate_general_functions import *
 import time
 
 
+pause_time=5
 #output("Usage:\npython manage.py runscript populate --traceback")
 
 # How many days should be allowed to not enforce updates
@@ -37,8 +38,8 @@ def uniprot_to_funfams(a_query):
     '''
     funfam_url = f"http://www.cathdb.info/version/v4_2_0/api/rest/uniprot_to_funfam/{a_query}?content-type=application/json"
     funfam_file = f'scripts/external_datasets/funfam_bin/json/{a_query}.json'
-    download(funfam_url, funfam_file)
-    time.sleep(1)
+    if check_local_file(funfam_file)==False:
+        download(funfam_url, funfam_file, pause=pause_time)
     with open(funfam_file, "r") as json_file:
         funfam_json = json.load(json_file)
     funfams = []
@@ -53,9 +54,12 @@ def funfam_to_stockholm(uniprot_id, superfamily_number, funfam_number):
     '''
     #protein = Protein.objects.get(uniprot_id=a_query)
     stockholm_url = f"http://www.cathdb.info/version/v4_2_0/superfamily/{superfamily_number}/funfam/{funfam_number}/files/stockholm"
-    stockholm_file = f'scripts/external_datasets/funfam_bin/stockholm/{superfamily_number}_{funfam_number}.sth'
-    download(stockholm_url, stockholm_file)
-    time.sleep(1)
+    stockholm_file = f'scripts/external_datasets/funfam_bin/stockholm/{superfamily_number}/{funfam_number}.sth'
+    cath_superfamily_folder=f'scripts/external_datasets/funfam_bin/stockholm/{superfamily_number}'
+    if check_local_file(stockholm_file)==False:
+        if not os.path.exists(cath_superfamily_folder):
+            os.makedirs(cath_superfamily_folder)
+        download(stockholm_url, stockholm_file, pause=pause_time)
     return(stockholm_file)
 
 
@@ -66,13 +70,13 @@ def stockholm_to_database(a_query, stockholm_file_location):
     It adds the protein to the funfam, and the residue to the funfam_residue.
     '''
     print(stockholm_file_location)
-    align = AlignIO.read(stockholm_file_location, "stockholm")
-    for record in align:
-        print(str(record.id))
-        if str(record.id) in a_query:
-            #print(f"{record.id}, {len(record)}")
-            print(record.letter_annotations["scorecons_70"])
-        pass
+    #align = AlignIO.read(stockholm_file_location, "stockholm")
+    #for record in align:
+    #    print(str(record.id))
+    #    if str(record.id) in a_query:
+    #        #print(f"{record.id}, {len(record)}")
+    #        print(record.letter_annotations["scorecons_70"])
+    #    pass
     return()
 
 
