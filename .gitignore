@@ -40,7 +40,9 @@ tmh_database/tmh_database/password.txt
 *.pml
 *.sth
 pymol_gifs/
+#Large databases
 scripts/external_datasets/*.xml
+all_possible_variations_varsite/
 
 images/
 scratch.py
