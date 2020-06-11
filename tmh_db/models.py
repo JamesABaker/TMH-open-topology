@@ -33,20 +33,24 @@ class Go(models.Model):
     proteins = models.ManyToManyField(Protein, related_name="gos")
 
 
-class Subcellular_location(models.Model):
+class SubcellularLocation(models.Model):
     location = models.TextField(default=None, null=True)
     proteins = models.ManyToManyField(
         Protein, related_name="subcellular_locations")
 
 
 class Keyword(models.Model):
+    ''' UniProt Keywords''' 
     keyword = models.TextField(unique=True)
     proteins = models.ManyToManyField(Protein, related_name="keywords")
 
 
 class Funfam(models.Model):
-    uniprot_protein = models.ForeignKey(Protein, on_delete=models.CASCADE)
-    funfam_id = models.TextField()
+    '''
+     Funfams and their superfamily as well as pointers to the funfam sites.
+    '''
+    funfam_id = models.TextField(unique=True)
+    superfamily = models.TextField(default="None")
 
 
 
@@ -145,9 +149,9 @@ class Residue(models.Model):
         unique_together = ["protein", "sequence_position"]
 
 class Funfam_residue(models.Model):
-    funfam = models.ForeignKey(Protein, on_delete=models.CASCADE)
+    funfam = models.ForeignKey(Funfam, on_delete=models.CASCADE)
     residue = models.ForeignKey(Residue, on_delete=models.CASCADE)
-    e_value = models.FloatField()
+    scorecons= models.FloatField()
     funfam_position = models.IntegerField()
 
 class Flank(models.Model):

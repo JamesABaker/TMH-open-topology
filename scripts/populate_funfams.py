@@ -35,7 +35,7 @@ def json_decode_check(funfam_file):
 		with open(funfam_file, "r") as json_file:
 			funfam_json = json.load(json_file)
 		return(True)
-	except(JSONDecodeError):
+	except(json.decoder.JSONDecodeError):
 		return(False) 
 
 
@@ -78,20 +78,24 @@ def funfam_to_stockholm(uniprot_id, superfamily_number, funfam_number):
 		return(stockholm_file)
 
 
-def stockholm_to_database(a_query, stockholm_file_location):
+def stockholm_to_database(uniprot_id, superfamily, funfam, stockholm_file_location):
 		'''
 		Parses a stockholm alignment and links residues and proteins to the funfam
 		id in the VarTMH database.
 		It adds the protein to the funfam, and the residue to the funfam_residue.
 		'''
 		print(stockholm_file_location)
-		#align = AlignIO.read(stockholm_file_location, "stockholm")
-		#for record in align:
-		#	 print(str(record.id))
-		#	 if str(record.id) in a_query:
-		#			 #print(f"{record.id}, {len(record)}")
-		#			 print(record.letter_annotations["scorecons_70"])
-		#	 pass
+		align = AlignIO.read(stockholm_file_location, "stockholm")
+		for record in align:
+			alignment_record=(record)
+			alignment_name=str(record.name)
+			#this is a mixture of the uniprot id and of the start and end positions.
+			#print(record.id)
+			alignment_sequence=str(record.seq)
+			#print(record.features)
+			alignment_scorecons=str(align.column_annotations["GC:scorecons"])
+			alignment_record_start=(alignment_record.annotations['start'])
+			alignment_record_stop=(alignment_record.annotations['end'])
 		return()
 
 
@@ -120,4 +124,4 @@ def run():
 					superfamily_id = a_funfam[0]
 					funfam_id = a_funfam[1]
 					stockholm_file = funfam_to_stockholm(a_query, superfamily_id, funfam_id)
-					stockholm_to_database(a_query, stockholm_file)
+					stockholm_to_database(a_query, superfamily_id, funfam_id, stockholm_file)
