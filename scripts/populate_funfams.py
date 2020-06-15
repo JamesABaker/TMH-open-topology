@@ -96,6 +96,8 @@ def stockholm_to_database(uniprot_id, superfamily, funfam, stockholm_file_locati
 			alignment_scorecons=str(align.column_annotations["GC:scorecons"])
 			alignment_record_start=(alignment_record.annotations['start'])
 			alignment_record_stop=(alignment_record.annotations['end'])
+			# Now we have everything we need to start adding the record to the database.
+			# The funfam may or may not already exit, but the residue should not be touched.
 		return()
 
 

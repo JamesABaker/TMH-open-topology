@@ -150,9 +150,11 @@ class Residue(models.Model):
 
 class Funfam_residue(models.Model):
     funfam = models.ForeignKey(Funfam, on_delete=models.CASCADE)
-    residue = models.ForeignKey(Residue, on_delete=models.CASCADE)
+    residue = models.ManyToManyField(Residue)
     scorecons= models.FloatField()
     funfam_position = models.IntegerField()
+    class Meta:
+        unique_together = ["funfam","funfam_position"]
 
 class Flank(models.Model):
     tmh = models.ForeignKey(Tmh, on_delete=models.CASCADE)
