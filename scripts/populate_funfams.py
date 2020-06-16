@@ -75,29 +75,45 @@ def funfam_to_stockholm(uniprot_id, superfamily_number, funfam_number):
 			if not os.path.exists(cath_superfamily_folder):
 				os.makedirs(cath_superfamily_folder)
 				download(stockholm_url, stockholm_file, pause=pause_time)
+			else:
+				download(stockholm_url, stockholm_file, pause=pause_time)
 		return(stockholm_file)
 
 
-def stockholm_to_database(uniprot_id, superfamily, funfam, stockholm_file_location):
+def stockholm_to_database(uniprot_id, superfamily_record, funfam, stockholm_file_location):
 		'''
 		Parses a stockholm alignment and links residues and proteins to the funfam
 		id in the VarTMH database.
 		It adds the protein to the funfam, and the residue to the funfam_residue.
 		'''
-		print(stockholm_file_location)
+		print(uniprot_id, stockholm_file_location)
 		align = AlignIO.read(stockholm_file_location, "stockholm")
 		for record in align:
 			alignment_record=(record)
 			alignment_name=str(record.name)
 			#this is a mixture of the uniprot id and of the start and end positions.
-			#print(record.id)
 			alignment_sequence=str(record.seq)
-			#print(record.features)
 			alignment_scorecons=str(align.column_annotations["GC:scorecons"])
-			alignment_record_start=(alignment_record.annotations['start'])
-			alignment_record_stop=(alignment_record.annotations['end'])
-			# Now we have everything we need to start adding the record to the database.
-			# The funfam may or may not already exit, but the residue should not be touched.
+			# There is a lot of missing and weird annotation in non-human species, so here we just save some time and check that it is human before continuing.
+			try:
+				if str(alignment_record.annotations['organism']) == 'Homo sapiens':
+
+					alignment_record_start=(alignment_record.annotations['start'])
+					alignment_record_stop=(alignment_record.annotations['end'])
+					# Now we have everything we need to start adding the record to the database.
+					# The funfam may or may not already exit, but the residue should not be touched.
+					#Funfam.objects.update_or_create(
+					#funfam_id=funfam
+					#superfamily = superfamily_record			
+					#)	
+					for position, site in enumerate(alignment_sequence):
+						sc_score=alignment_scorecons[position]
+						ali_position=position+1
+						# This counts the dashes (-) that come before the site position.
+						uniprot_position=alignment_record_start+position+1-alignment_sequence.count("-", 0, position)
+						print(f'Uniprot position: {uniprot_position}, ali site{ali_position}, and ali aa {alignment_sequence[position]}, scorecons {sc_score}')
+			except KeyError:
+				pass			
 		return()
 
 
