@@ -28,30 +28,8 @@ from django.db.models import When
 from django.urls import reverse
 from django.utils import timezone
 
-from tmh_db.models import Database_Metadata
-from tmh_db.models import Flank
-from tmh_db.models import Flank_residue
-from tmh_db.models import Funfam
-from tmh_db.models import Funfam_residue
-from tmh_db.models import Funfamstatus
-from tmh_db.models import Go
-from tmh_db.models import Keyword
-from tmh_db.models import Non_tmh_helix
-from tmh_db.models import Non_tmh_helix_residue
-from tmh_db.models import Protein
-from tmh_db.models import Residue
-from tmh_db.models import Signal_peptide
-from tmh_db.models import Signal_residue
-from tmh_db.models import Structural_residue
-from tmh_db.models import Structure
-from tmh_db.models import Subcellular_location
-from tmh_db.models import Tmh
-from tmh_db.models import Tmh_deltag
-from tmh_db.models import Tmh_hydrophobicity
-from tmh_db.models import Tmh_residue
-from tmh_db.models import Tmh_tmsoc
-from tmh_db.models import Uniref
-from tmh_db.models import Variant
+from tmh_db.models import Database_Metadata, Flank, Flank_residue, Funfam, Funfam_residue, Go, Keyword, Non_tmh_helix, Non_tmh_helix_residue, Protein, Residue, Signal_peptide, Signal_residue, Structural_residue, Structure, SubcellularLocation, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Uniref, Variant
+
 # Shell Plus Model Imports
 # Shell Plus Django Imports
 

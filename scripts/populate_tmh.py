@@ -80,13 +80,17 @@ def uniprot_table(query_id):
     if tm_protein is True:
         tmh_input([query_id])
 
-    non_tmh_helix_input(record)
+    
+    for record in SeqIO.parse(filename, input_format):
+    	non_tmh_helix_input(record)
 
     binding_residues_to_table(filename)
     subcellular_location(filename)
 
-    for keyword in record.annotations["keywords"]:
-        keyword_to_database(keyword, query_id)
+
+    for record in SeqIO.parse(filename, input_format):
+    	for keyword in record.annotations["keywords"]:
+            keyword_to_database(keyword, query_id)
 
     record = SwissProt.read(open(filename))
     cross_reference = (record.cross_references)
@@ -258,6 +262,7 @@ def odd_or_even(number):
         return("even")
     elif number % 2 != 0:
         return("odd")
+    return(None)
 
 
 def uni_subcellular_location(feature_description):
@@ -290,6 +295,7 @@ def io_flip(io_value):
         return("Inside")
     elif io_value == "Unknown":
         return("Unknown")
+    return(None)
 
 
 def odd_even_io(ordered_topo_list):
@@ -312,7 +318,7 @@ def odd_even_io(ordered_topo_list):
             outside_oe=odd_or_even(number_of_nontm_regions)
             inside_oe=odd_or_even(number_of_nontm_regions+1)
             return({inside_oe: "Inside", outside_oe: "Outside"})
-
+    return(None)
 
 
     return(io_dict)
@@ -377,8 +383,7 @@ def non_tmh_helix_residues_input(protein_id, start, stop, sequence):
 def location_to_number(exact_position):
     if "UnknownPosition" in str(exact_position):
         return(0)
-    else:
-        return(int(exact_position))
+    return(int(exact_position))
 
 
 def uniprot_topo_check(record):

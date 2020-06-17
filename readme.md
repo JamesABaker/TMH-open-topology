@@ -48,7 +48,6 @@ We then stratified the proteins into families, sub-cellular locations, topology,
 This allowed us to examine the nuances of how different variants impact transmembrane proteins in the context of the biophysical environment and evolutionary history.
 As well as gaining an understanding of the concepts of disease variants in transmembrane proteins, the tools we have developed will increase the ability to predict the variant effect in the biochemically distinct membrane regions.
 
-
 ## Back-end structure
 
 The current database structure is laid out below. The key thing to keep in mind is that all records are centered around the UniProt id and UniProt sequence.

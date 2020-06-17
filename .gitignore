@@ -43,6 +43,6 @@ pymol_gifs/
 #Large databases
 scripts/external_datasets/*.xml
 all_possible_variations_varsite/
-
+scripts/external_datasets/opm
 images/
 scratch.py

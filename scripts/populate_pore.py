@@ -4,8 +4,6 @@ import json
 import os
 import time
 import urllib
-from datetime import datetime
-from datetime import timedelta
 from subprocess import check_output
 
 import defusedxml.ElementTree as ET

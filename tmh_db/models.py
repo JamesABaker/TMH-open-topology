@@ -148,7 +148,7 @@ class Residue(models.Model):
     class Meta:
         unique_together = ["protein", "sequence_position"]
 
-class Funfam_residue(models.Model):
+class FunfamResidue(models.Model):
     funfam = models.ForeignKey(Funfam, on_delete=models.CASCADE)
     residue = models.ManyToManyField(Residue)
     scorecons= models.FloatField()

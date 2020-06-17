@@ -73,7 +73,7 @@ def clean_positions(position_list):
     clean_list=[]
     for entry in position_list:
         #print(list(entry))
-        if entry[0] == None:
+        if entry[0] is None:
             pass
         else:
             clean_list.append(list(entry))
@@ -219,12 +219,10 @@ def run():
     add_to_delta_hydro_plot(d_flank_positions, b_flank_positions, "lightcoral")
     plt.savefig('delta_hydro_z.png')
 
-    '''
-    plt.title("Disease propensity variants across the TMH")
-    plt.xlabel("Distance in residues from TMH center")
-    plt.ylabel("Frequency normalised to sum of type")
+    # plt.title("Disease propensity variants across the TMH")
+    # plt.xlabel("Distance in residues from TMH center")
+    # plt.ylabel("Frequency normalised to sum of type")
 
-    plt.savefig('disease_propensity_z.png')
+    # plt.savefig('disease_propensity_z.png')
 
-    plot_positions_hydro_change(disease_clean_positions_list,benign_clean_positions_list, colour)
-    '''
+    # plot_positions_hydro_change(disease_clean_positions_list,benign_clean_positions_list, colour)

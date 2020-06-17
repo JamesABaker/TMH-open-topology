@@ -199,252 +199,250 @@ def run():
 
 ### Past stuff:
 
-'''
-### Multipass starts here ###
-
-#Outside flanks
-outside_disease_query=Variant.objects.filter(residue__flank_residue__feature_location="Outside flank", residue__protein__total_tmh_number__gte=2, residue__flank_residue__flank__tmh__meta_tmh=True, disease_status='d', variant_source="ClinVar").values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-outside_disease_query_res=Residue.objects.filter(flank_residue__feature_location="Outside flank", protein__total_tmh_number__gte=2, flank_residue__flank__tmh__meta_tmh=True)
-print(len(outside_disease_query), "disease variants in the multipass outside flank of", outside_disease_query_res.count(), "residues.")
-outside_flank_disease_variants = heatmap_array(remove_duplicate_variants(list(outside_disease_query)), aa_list_baezo_order)
-heatmap(np.array(outside_flank_disease_variants), "ClinVar disease variants in multipass outside flanks", aa_list_baezo_order, "Reds", None)
-
-
-outside_gnomad3_query=Variant.objects.filter(residue__flank_residue__feature_location="Outside flank", residue__protein__total_tmh_number__gte=2, residue__flank_residue__flank__tmh__meta_tmh=True,  variant_source="gnomAD3").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(outside_gnomad3_query), "gnomad v3 variants in the multipass outside flank")
-outside_flank_gnomad3_variants = heatmap_array(remove_duplicate_variants(list(outside_gnomad3_query)), aa_list_baezo_order)
-heatmap(np.array(outside_flank_gnomad3_variants), "gnomAD v3 disease variants in multipass outside flanks", aa_list_baezo_order, "Greens", None)
-
-
-outside_gnomad2_query=Variant.objects.filter(residue__flank_residue__feature_location="Outside flank", residue__protein__total_tmh_number__gte=2, residue__flank_residue__flank__tmh__meta_tmh=True,  variant_source="gnomAD2").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(outside_gnomad2_query), "gnomad v2 variants in the multipass outside flank")
-outside_flank_gnomad3_variants = heatmap_array(remove_duplicate_variants(list(outside_gnomad2_query)), aa_list_baezo_order)
-heatmap(np.array(outside_flank_gnomad3_variants), "gnomAD v2 disease variants in multipass outside flanks", aa_list_baezo_order, "Greens", None)
-
-#Inside flanks
-inside_disease_query=Variant.objects.filter(residue__flank_residue__feature_location="Inside flank", residue__protein__total_tmh_number__gte=2, residue__flank_residue__flank__tmh__meta_tmh=True, disease_status='d', variant_source="ClinVar").values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(inside_disease_query), "disease variants in the multipass inside flank")
-inside_flank_disease_variants = heatmap_array(remove_duplicate_variants(list(inside_disease_query)), aa_list_baezo_order)
-heatmap(np.array(inside_flank_disease_variants), "ClinVar disease variants in multipass inside flanks", aa_list_baezo_order, "Reds", None)
-
-
-inside_gnomad3_query=Variant.objects.filter(residue__flank_residue__feature_location="Inside flank", residue__protein__total_tmh_number__gte=2, residue__flank_residue__flank__tmh__meta_tmh=True, variant_source="gnomAD3").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(inside_gnomad3_query), "gnomad v3 variants in the multipass inside flank")
-inside_flank_gnomad3_variants = heatmap_array(remove_duplicate_variants(list(inside_gnomad3_query)), aa_list_baezo_order)
-heatmap(np.array(inside_flank_gnomad3_variants), "gnomAD v3 disease variants in multipass inside flanks", aa_list_baezo_order, "Greens", None)
-
-
-inside_gnomad2_query=Variant.objects.filter(residue__flank_residue__feature_location="Inside flank", residue__protein__total_tmh_number__gte=2, residue__flank_residue__flank__tmh__meta_tmh=True, variant_source="gnomAD2").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(inside_gnomad2_query), "gnomad v2 variants in the multipass inside flank")
-inside_flank_gnomad2_variants = heatmap_array(remove_duplicate_variants(list(inside_gnomad2_query)), aa_list_baezo_order)
-heatmap(np.array(inside_flank_gnomad2_variants), "gnomAD v2 disease variants in multipass inside flanks", aa_list_baezo_order, "Greens", None)
-
-
-#TMH
-tmh_disease_query=Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__protein__total_tmh_number__gte=2, residue__tmh_residue__tmh_id__meta_tmh=True, disease_status='d', variant_source="ClinVar").values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(tmh_disease_query), "disease variants in the multipasstmh")
-tmh_disease_variants = heatmap_array(remove_duplicate_variants(list(tmh_disease_query)), aa_list_baezo_order)
-heatmap(np.array(tmh_disease_variants), "ClinVar disease variants in multipass TMHs", aa_list_baezo_order, "Reds", None)
-
-tmh_benign_query=Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__protein__total_tmh_number__gte=2, residue__tmh_residue__tmh_id__meta_tmh=True, disease_status='n', variant_source="ClinVar").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(tmh_benign_query), "clinvar benign variants in the multipasstmh")
-tmh_benign_variants = heatmap_array(remove_duplicate_variants(list(tmh_benign_query)), aa_list_baezo_order)
-heatmap(np.array(tmh_benign_variants), "ClinVar benign variants in multipass TMHs", aa_list_baezo_order, "Blues", None)
-
-tmh_gnomad3_query=Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__protein__total_tmh_number__gte=2, residue__tmh_residue__tmh_id__meta_tmh=True, variant_source="gnomAD3").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(tmh_gnomad3_query), "gnomad v3 variants in multipass tmh")
-tmh_gnomad3_variants = heatmap_array(remove_duplicate_variants(list(tmh_gnomad3_query)), aa_list_baezo_order)
-heatmap(np.array(tmh_gnomad3_variants), "gnomAD v3 disease variants in multipass TMHs", aa_list_baezo_order, "Greens", None)
-
-tmh_gnomad2_query=Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__protein__total_tmh_number__gte=2, residue__tmh_residue__tmh_id__meta_tmh=True, variant_source="gnomAD2").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(tmh_gnomad2_query), "gnomad v2 variants in multipass tmh")
-tmh_gnomad2_variants = heatmap_array(remove_duplicate_variants(list(tmh_gnomad2_query)), aa_list_baezo_order)
-heatmap(np.array(tmh_gnomad2_variants), "gnomAD v2 disease variants in multipass TMHs", aa_list_baezo_order, "Greens", None)
-
-
-
-
-### SINGLEPASS STARTS HERE ###
-
-#Outside flank
-single_outside_disease_query=Variant.objects.filter(residue__flank_residue__feature_location="Outside flank", residue__protein__total_tmh_number=1, residue__flank_residue__flank__tmh__meta_tmh=True, disease_status='d', variant_source="ClinVar").values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(single_outside_disease_query), "disease variants in the singlepass outside flank")
-single_outside_flank_disease_variants = heatmap_array(remove_duplicate_variants(list(single_outside_disease_query)), aa_list_baezo_order)
-heatmap(np.array(single_outside_flank_disease_variants), "ClinVar disease variants in singlepass outside flanks", aa_list_baezo_order, "Reds", None)
-
-
-single_outside_gnomad3_query=Variant.objects.filter(residue__flank_residue__feature_location="Outside flank", residue__protein__total_tmh_number=1, residue__flank_residue__flank__tmh__meta_tmh=True,  variant_source="gnomAD3").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(single_outside_gnomad3_query), "gnomad v3 variants in the singlepass outside flank")
-single_outside_flank_gnomad3_variants = heatmap_array(remove_duplicate_variants(list(single_outside_gnomad3_query)), aa_list_baezo_order)
-heatmap(np.array(single_outside_flank_gnomad3_variants), "gnomAD v3 disease variants in singlepass outside flanks", aa_list_baezo_order, "Greens", None)
-
-single_outside_gnomad2_query=Variant.objects.filter(residue__flank_residue__feature_location="Outside flank", residue__protein__total_tmh_number=1, residue__flank_residue__flank__tmh__meta_tmh=True,  variant_source="gnomAD2").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(single_outside_gnomad2_query), "gnomad v2 variants in the singlepass outside flank")
-single_outside_flank_gnomad2_variants = heatmap_array(remove_duplicate_variants(list(single_outside_gnomad2_query)), aa_list_baezo_order)
-heatmap(np.array(single_outside_flank_gnomad2_variants), "gnomAD v2 disease variants in singlepass outside flanks", aa_list_baezo_order, "Greens", None)
-
-#Inside flank
-single_inside_disease_query=Variant.objects.filter(residue__flank_residue__feature_location="Inside flank", residue__protein__total_tmh_number=1, residue__flank_residue__flank__tmh__meta_tmh=True, disease_status='d', variant_source="ClinVar").values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(single_inside_disease_query), "disease variants in the singlepass inside flank")
-single_inside_flank_disease_variants = heatmap_array(remove_duplicate_variants(list(single_inside_disease_query)), aa_list_baezo_order)
-heatmap(np.array(single_inside_flank_disease_variants), "ClinVar disease variants in singlepass inside flanks", aa_list_baezo_order, "Reds", None)
-
-
-single_inside_gnomad3_query=Variant.objects.filter(residue__flank_residue__feature_location="Inside flank", residue__protein__total_tmh_number=1, residue__flank_residue__flank__tmh__meta_tmh=True, variant_source="gnomAD3").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(single_inside_gnomad3_query), "gnomad v3 variants in the singlepass inside flank")
-single_inside_flank_gnomad3_variants = heatmap_array(remove_duplicate_variants(list(single_inside_gnomad3_query)), aa_list_baezo_order)
-heatmap(np.array(single_outside_flank_gnomad3_variants), "gnomAD v3 disease variants in singlepass inside flanks", aa_list_baezo_order, "Greens", None)
-
-single_inside_gnomad2_query=Variant.objects.filter(residue__flank_residue__feature_location="Inside flank", residue__protein__total_tmh_number=1, residue__flank_residue__flank__tmh__meta_tmh=True, variant_source="gnomAD2").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(single_inside_gnomad2_query), "gnomad v2 variants in the singlepass inside flank")
-single_inside_flank_gnomad2_variants = heatmap_array(remove_duplicate_variants(list(single_inside_gnomad2_query)), aa_list_baezo_order)
-heatmap(np.array(single_outside_flank_gnomad2_variants), "gnomAD v2 disease variants in singlepass inside flanks", aa_list_baezo_order, "Greens", None)
-
-#TMHs
-single_tmh_disease_query=Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__protein__total_tmh_number=1, residue__tmh_residue__tmh_id__meta_tmh=True, disease_status='d', variant_source="ClinVar").values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(single_tmh_disease_query), "disease variants in the singlepass TMHs")
-single_tmh_disease_variants = heatmap_array(remove_duplicate_variants(list(single_tmh_disease_query)), aa_list_baezo_order)
-heatmap(np.array(single_tmh_disease_variants), "ClinVar disease variants in singlepass TMHs", aa_list_baezo_order, "Reds", None)
-
-single_tmh_gnomad3_query=Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__protein__total_tmh_number=1, residue__tmh_residue__tmh_id__meta_tmh=True, variant_source="gnomAD3").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(single_tmh_gnomad3_query), "gnomad v3 variants in singlepass tmhs")
-single_tmh_gnomad3_variants = heatmap_array(remove_duplicate_variants(list(single_tmh_gnomad3_query)), aa_list_baezo_order)
-heatmap(np.array(single_tmh_gnomad3_variants), "gnomAD v3 disease variants in singlepass TMHs", aa_list_baezo_order, "Greens", None)
-
-single_tmh_gnomad2_query=Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__protein__total_tmh_number=1, residue__tmh_residue__tmh_id__meta_tmh=True, variant_source="gnomAD2").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(single_tmh_gnomad2_query), "gnomad v2 variants in singlepass tmhs")
-single_tmh_gnomad2_variants = heatmap_array(remove_duplicate_variants(list(single_tmh_gnomad2_query)), aa_list_baezo_order)
-heatmap(np.array(single_tmh_gnomad2_variants), "gnomAD v3 disease variants in singlepass TMHs", aa_list_baezo_order, "Greens", None)
-
-
-
-### Alternative stuff starts here ###
-# Non-TMH helices
-# I came across some TMHs labelled incorrectly as helices. They mayhave snuck into the database, so to ensure they are not counted as variants, meta-tmh exclude is needed.
-helix_disease_query=Variant.objects.filter(residue__non_tmh_helix_residue__nont_tmh_helix_id__helix_start__gte=0, disease_status='d', variant_source="ClinVar").exclude(residue__tmh_residue__tmh_id__meta_tmh=True).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(helix_disease_query), "disease variants in the non-TMH helix")
-helix_disease_variants = heatmap_array(remove_duplicate_variants(list(helix_disease_query)), aa_list_baezo_order)
-heatmap(np.array(helix_disease_variants), "ClinVar disease variants in helices", aa_list_baezo_order, "Reds", None)
-
-helix_gnomad3_query=Variant.objects.filter(residue__non_tmh_helix_residue__nont_tmh_helix_id__helix_start__gte=0, variant_source="gnomAD3").exclude(aa_mut=F("aa_wt")).exclude(residue__tmh_residue__tmh_id__meta_tmh=True).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(helix_gnomad3_query), "gnomad v3 variants in the non-TMH helix")
-helix_gnomad3_variants = heatmap_array(remove_duplicate_variants(list(helix_gnomad3_query)), aa_list_baezo_order)
-heatmap(np.array(helix_gnomad3_variants), "gnomAD v3 disease variants in helices", aa_list_baezo_order, "Greens", None)
-
-helix_gnomad2_query=Variant.objects.filter(residue__non_tmh_helix_residue__nont_tmh_helix_id__helix_start__gte=0, variant_source="gnomAD2").exclude(aa_mut=F("aa_wt")).exclude(residue__tmh_residue__tmh_id__meta_tmh=True).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(helix_gnomad2_query), "gnomad v2 variants in the non-TMH helix")
-helix_gnomad2_variants = heatmap_array(remove_duplicate_variants(list(helix_gnomad2_query)), aa_list_baezo_order)
-heatmap(np.array(helix_gnomad2_variants), "gnomAD v2 disease variants in helices", aa_list_baezo_order, "Greens", None)
-
-
-# Signal peptides
-sp_disease_query=Variant.objects.filter(residue__signal_residue__the_signal_peptide__signal_start__gte=0, disease_status='d', variant_source="ClinVar").values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(sp_disease_query), "disease variants in the signal peptides")
-sp_disease_variants = heatmap_array(remove_duplicate_variants(list(sp_disease_query)), aa_list_baezo_order)
-heatmap(np.array(sp_disease_variants), "ClinVar disease variants in signal_peptides", aa_list_baezo_order, "Reds", None)
-
-sp_benign_query=Variant.objects.filter(residue__signal_residue__the_signal_peptide__signal_start__gte=0, disease_status='n', variant_source="ClinVar").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(sp_benign_query), "beign variants in the signal peptides")
-sp_benign_variants = heatmap_array(remove_duplicate_variants(list(sp_benign_query)), aa_list_baezo_order)
-heatmap(np.array(sp_benign_variants), "ClinVar benign variants in signal_peptides", aa_list_baezo_order, "Blues", None)
-
-
-sp_gnomad3_query=Variant.objects.filter(residue__signal_residue__the_signal_peptide__signal_start__gte=0, variant_source="gnomAD3").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(sp_gnomad3_query), "gnomad v3 variants in the signal peptides")
-sp_gnomad3_variants = heatmap_array(remove_duplicate_variants(list(sp_gnomad3_query)), aa_list_baezo_order)
-heatmap(np.array(sp_gnomad3_variants), "gnomAD v3 disease variants in signal_peptides", aa_list_baezo_order, "Reds", None)
-
-
-
-### Families and more specific queries ###
-
-# Pore residues
-pore_disease_query=Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__structural_residue__pore_residue=True, residue__tmh_residue__tmh_id__meta_tmh=True, disease_status='d', variant_source="ClinVar").values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(pore_disease_query), "disease variants in the tmh pore residues")
-pore_disease_variants = heatmap_array(remove_duplicate_variants(list(pore_disease_query)), aa_list_baezo_order)
-heatmap(np.array(pore_disease_variants), "ClinVar disease variants in pore residue TMHs", aa_list_baezo_order, "Reds", None)
-
-pore_benign_query=Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__structural_residue__pore_residue=True, residue__tmh_residue__tmh_id__meta_tmh=True, disease_status='n', variant_source="ClinVar").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(pore_benign_query), "benign variants in the tmh pore residues")
-pore_benign_variants = heatmap_array(remove_duplicate_variants(list(pore_benign_query)), aa_list_baezo_order)
-heatmap(np.array(pore_benign_variants), "ClinVar benign variants in pore residue TMHs", aa_list_baezo_order, "Blues", None)
-
-pore_gnomad3_query=Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__structural_residue__pore_residue=True, residue__tmh_residue__tmh_id__meta_tmh=True, variant_source="gnomAD3").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(pore_gnomad3_query), "gnomad v3 variants in the TMH pore residues")
-pore_gnomad3_variants = heatmap_array(remove_duplicate_variants(list(pore_gnomad3_query)), aa_list_baezo_order)
-heatmap(np.array(pore_gnomad3_variants), "gnomAD v3 disease variants in tmh pore residues", aa_list_baezo_order, "Greens", None)
-
-pore_gnomad2_query=Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__structural_residue__pore_residue=True, residue__tmh_residue__tmh_id__meta_tmh=True, variant_source="gnomAD2").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(pore_gnomad2_query), "gnomad v2 variants in the helix")
-pore_gnomad2_variants = heatmap_array(remove_duplicate_variants(list(pore_gnomad2_query)), aa_list_baezo_order)
-heatmap(np.array(pore_gnomad2_variants), "gnomAD v2 disease variants in tmh pore residues", aa_list_baezo_order, "Greens", None)
-
-
-# GPCRs
-#disease_mp_tmh_variants = list(Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__protein__keywords__keyword="G-protein coupled receptor").filter(disease_status='d').exclude(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
-#disease_mp_tmh_variants_dict = substitution_dictionary(disease_mp_tmh_variants)
-#heatmap(sub_dict_to_heatmap(disease_mp_tmh_variants_dict) ,title, aa_list_baezo_order, "coolwarm", None)
-#
-#title = "Disease propensity in GPCRs"
-#gnomad_mp_tmh_variants = list(Variant.objects.exclude(aa_mut=F("aa_wt")).filter(residue__tmh_residue__feature_location="TMH", residue__protein__keywords__keyword="G-protein coupled receptor").filter(variant_source='gnomAD').exclude(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
-#gnomad_mp_tmh_variants_dict = substitution_dictionary(gnomad_mp_tmh_variants)
-#print(title, "disease:", len(disease_mp_tmh_variants), "gnomAD:", len(gnomad_mp_tmh_variants))
-#mp_disease_propensity = subs_normalise_by_dic(disease_mp_tmh_variants_dict, gnomad_mp_tmh_variants_dict)
-#mp_disease_propensity_array=sub_dict_to_heatmap(mp_disease_propensity)
-
-
-heatmap_normalised_by_heatmap("ClinVar disease normalised by gnomad v3 meta-tmh multipass Outside flank", outside_flank_disease_variants, outside_flank_gnomad3_variants)
-heatmap_normalised_by_heatmap("ClinVar disease normalised by gnomad v3 meta-tmh multipass Inside flank", inside_flank_disease_variants, inside_flank_gnomad3_variants)
-heatmap_normalised_by_heatmap("ClinVar disease normalised by gnomad v3 meta-tmh multipass TMH", tmh_disease_variants, tmh_gnomad3_variants)
-heatmap_normalised_by_heatmap("ClinVar disease normalised by ClinVar benign meta-tmh multipass TMH", tmh_disease_variants, tmh_benign_variants)
-
-heatmap_normalised_by_heatmap("ClinVar disease normalised by gnomad v3 meta-tmh singlepass Outside flank", single_outside_flank_disease_variants, single_outside_flank_gnomad3_variants)
-heatmap_normalised_by_heatmap("ClinVar disease normalised by gnomad v3 meta-tmh singlepass Inside flank", single_inside_flank_disease_variants, single_inside_flank_gnomad3_variants)
-heatmap_normalised_by_heatmap("ClinVar disease normalised by gnomad v3 meta-tmh singlepass TMH",single_tmh_disease_variants, single_tmh_gnomad3_variants)
-
-heatmap_normalised_by_heatmap("ClinVar disease normalised by gnomad v3 non-TMH Helix", helix_disease_variants, helix_gnomad3_variants)
-heatmap_normalised_by_heatmap("ClinVar disease normalised by gnomad v3 Signal Peptides", sp_disease_variants, sp_gnomad3_variants)
-heatmap_normalised_by_heatmap("ClinVar disease normalised by ClinVar benign Signal Peptides", sp_disease_variants, sp_benign_variants)
-heatmap_normalised_by_heatmap("ClinVar disease normalised by ClinVar benign Pore residues", pore_disease_variants, pore_benign_variants)
-
-
-# QUICK!!!
-pore_disease_query = Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__structural_residue__pore_residue=True, residue__tmh_residue__tmh_id__meta_tmh=True,
-                                            disease_status='d').distinct("pk").values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(pore_disease_query), "disease variants in the tmh pore residues")
-pore_disease_variants = heatmap_array(remove_duplicate_variants(
-    list(pore_disease_query)), aa_list_baezo_order)
-heatmap(np.array(pore_disease_variants),
-        "ClinVar disease variants in pore residue TMHs", aa_list_baezo_order, "Reds", None)
-
-pore_gnomad2_query = Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__structural_residue__pore_residue=True, residue__tmh_residue__tmh_id__meta_tmh=True,
-                                            variant_source="gnomAD2").distinct("pk").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(pore_gnomad2_query), "gnomad v2 variants in the pore residue")
-pore_gnomad2_variants = heatmap_array(remove_duplicate_variants(
-    list(pore_gnomad2_query)), aa_list_baezo_order)
-heatmap(np.array(pore_gnomad2_variants),
-        "gnomAD v2 disease variants in tmh pore residues", aa_list_baezo_order, "Greens", None)
-
-heatmap_normalised_by_heatmap(
-    "Disease variants normalised by gnomAD version 2 residues in the pore", pore_disease_variants, pore_gnomad2_variants)
-
-
-tmh_disease_query = Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__protein__total_tmh_number__gte=1, residue__tmh_residue__tmh_id__meta_tmh=True,
-                                           disease_status='d').distinct("pk").values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(tmh_disease_query), "disease variants in the tmhs")
-tmh_disease_variants = heatmap_array(remove_duplicate_variants(
-    list(tmh_disease_query)), aa_list_baezo_order)
-heatmap(np.array(tmh_disease_variants),
-        "ClinVar disease variants in multipass TMHs", aa_list_baezo_order, "Reds", None)
-
-tmh_gnomad2_query = Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__protein__total_tmh_number__gte=1, residue__tmh_residue__tmh_id__meta_tmh=True,
-                                           variant_source='gnomAD2').distinct("pk").values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
-print(len(tmh_gnomad2_query), "disease variants in the tmhs")
-tmh_gnomad2_variants = heatmap_array(remove_duplicate_variants(
-    list(tmh_gnomad2_query)), aa_list_baezo_order)
-heatmap(np.array(tmh_gnomad2_variants),
-        "ClinVar disease variants in multipass TMHs", aa_list_baezo_order, "Greens", None)
-
-heatmap_normalised_by_heatmap(
-    "Disease variants normalised by gnomAD version 2 residues in TMHs", tmh_disease_variants, tmh_gnomad2_variants)
-'''
+# ### Multipass starts here ###
+# 
+# #Outside flanks
+# outside_disease_query=Variant.objects.filter(residue__flank_residue__feature_location="Outside flank", residue__protein__total_tmh_number__gte=2, residue__flank_residue__flank__tmh__meta_tmh=True, disease_status='d', variant_source="ClinVar").values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# outside_disease_query_res=Residue.objects.filter(flank_residue__feature_location="Outside flank", protein__total_tmh_number__gte=2, flank_residue__flank__tmh__meta_tmh=True)
+# print(len(outside_disease_query), "disease variants in the multipass outside flank of", outside_disease_query_res.count(), "residues.")
+# outside_flank_disease_variants = heatmap_array(remove_duplicate_variants(list(outside_disease_query)), aa_list_baezo_order)
+# heatmap(np.array(outside_flank_disease_variants), "ClinVar disease variants in multipass outside flanks", aa_list_baezo_order, "Reds", None)
+# 
+# 
+# outside_gnomad3_query=Variant.objects.filter(residue__flank_residue__feature_location="Outside flank", residue__protein__total_tmh_number__gte=2, residue__flank_residue__flank__tmh__meta_tmh=True,  variant_source="gnomAD3").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(outside_gnomad3_query), "gnomad v3 variants in the multipass outside flank")
+# outside_flank_gnomad3_variants = heatmap_array(remove_duplicate_variants(list(outside_gnomad3_query)), aa_list_baezo_order)
+# heatmap(np.array(outside_flank_gnomad3_variants), "gnomAD v3 disease variants in multipass outside flanks", aa_list_baezo_order, "Greens", None)
+# 
+# 
+# outside_gnomad2_query=Variant.objects.filter(residue__flank_residue__feature_location="Outside flank", residue__protein__total_tmh_number__gte=2, residue__flank_residue__flank__tmh__meta_tmh=True,  variant_source="gnomAD2").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(outside_gnomad2_query), "gnomad v2 variants in the multipass outside flank")
+# outside_flank_gnomad3_variants = heatmap_array(remove_duplicate_variants(list(outside_gnomad2_query)), aa_list_baezo_order)
+# heatmap(np.array(outside_flank_gnomad3_variants), "gnomAD v2 disease variants in multipass outside flanks", aa_list_baezo_order, "Greens", None)
+# 
+# #Inside flanks
+# inside_disease_query=Variant.objects.filter(residue__flank_residue__feature_location="Inside flank", residue__protein__total_tmh_number__gte=2, residue__flank_residue__flank__tmh__meta_tmh=True, disease_status='d', variant_source="ClinVar").values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(inside_disease_query), "disease variants in the multipass inside flank")
+# inside_flank_disease_variants = heatmap_array(remove_duplicate_variants(list(inside_disease_query)), aa_list_baezo_order)
+# heatmap(np.array(inside_flank_disease_variants), "ClinVar disease variants in multipass inside flanks", aa_list_baezo_order, "Reds", None)
+# 
+# 
+# inside_gnomad3_query=Variant.objects.filter(residue__flank_residue__feature_location="Inside flank", residue__protein__total_tmh_number__gte=2, residue__flank_residue__flank__tmh__meta_tmh=True, variant_source="gnomAD3").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(inside_gnomad3_query), "gnomad v3 variants in the multipass inside flank")
+# inside_flank_gnomad3_variants = heatmap_array(remove_duplicate_variants(list(inside_gnomad3_query)), aa_list_baezo_order)
+# heatmap(np.array(inside_flank_gnomad3_variants), "gnomAD v3 disease variants in multipass inside flanks", aa_list_baezo_order, "Greens", None)
+# 
+# 
+# inside_gnomad2_query=Variant.objects.filter(residue__flank_residue__feature_location="Inside flank", residue__protein__total_tmh_number__gte=2, residue__flank_residue__flank__tmh__meta_tmh=True, variant_source="gnomAD2").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(inside_gnomad2_query), "gnomad v2 variants in the multipass inside flank")
+# inside_flank_gnomad2_variants = heatmap_array(remove_duplicate_variants(list(inside_gnomad2_query)), aa_list_baezo_order)
+# heatmap(np.array(inside_flank_gnomad2_variants), "gnomAD v2 disease variants in multipass inside flanks", aa_list_baezo_order, "Greens", None)
+# 
+# 
+# #TMH
+# tmh_disease_query=Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__protein__total_tmh_number__gte=2, residue__tmh_residue__tmh_id__meta_tmh=True, disease_status='d', variant_source="ClinVar").values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(tmh_disease_query), "disease variants in the multipasstmh")
+# tmh_disease_variants = heatmap_array(remove_duplicate_variants(list(tmh_disease_query)), aa_list_baezo_order)
+# heatmap(np.array(tmh_disease_variants), "ClinVar disease variants in multipass TMHs", aa_list_baezo_order, "Reds", None)
+# 
+# tmh_benign_query=Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__protein__total_tmh_number__gte=2, residue__tmh_residue__tmh_id__meta_tmh=True, disease_status='n', variant_source="ClinVar").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(tmh_benign_query), "clinvar benign variants in the multipasstmh")
+# tmh_benign_variants = heatmap_array(remove_duplicate_variants(list(tmh_benign_query)), aa_list_baezo_order)
+# heatmap(np.array(tmh_benign_variants), "ClinVar benign variants in multipass TMHs", aa_list_baezo_order, "Blues", None)
+# 
+# tmh_gnomad3_query=Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__protein__total_tmh_number__gte=2, residue__tmh_residue__tmh_id__meta_tmh=True, variant_source="gnomAD3").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(tmh_gnomad3_query), "gnomad v3 variants in multipass tmh")
+# tmh_gnomad3_variants = heatmap_array(remove_duplicate_variants(list(tmh_gnomad3_query)), aa_list_baezo_order)
+# heatmap(np.array(tmh_gnomad3_variants), "gnomAD v3 disease variants in multipass TMHs", aa_list_baezo_order, "Greens", None)
+# 
+# tmh_gnomad2_query=Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__protein__total_tmh_number__gte=2, residue__tmh_residue__tmh_id__meta_tmh=True, variant_source="gnomAD2").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(tmh_gnomad2_query), "gnomad v2 variants in multipass tmh")
+# tmh_gnomad2_variants = heatmap_array(remove_duplicate_variants(list(tmh_gnomad2_query)), aa_list_baezo_order)
+# heatmap(np.array(tmh_gnomad2_variants), "gnomAD v2 disease variants in multipass TMHs", aa_list_baezo_order, "Greens", None)
+# 
+# 
+# 
+# 
+# ### SINGLEPASS STARTS HERE ###
+# 
+# #Outside flank
+# single_outside_disease_query=Variant.objects.filter(residue__flank_residue__feature_location="Outside flank", residue__protein__total_tmh_number=1, residue__flank_residue__flank__tmh__meta_tmh=True, disease_status='d', variant_source="ClinVar").values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(single_outside_disease_query), "disease variants in the singlepass outside flank")
+# single_outside_flank_disease_variants = heatmap_array(remove_duplicate_variants(list(single_outside_disease_query)), aa_list_baezo_order)
+# heatmap(np.array(single_outside_flank_disease_variants), "ClinVar disease variants in singlepass outside flanks", aa_list_baezo_order, "Reds", None)
+# 
+# 
+# single_outside_gnomad3_query=Variant.objects.filter(residue__flank_residue__feature_location="Outside flank", residue__protein__total_tmh_number=1, residue__flank_residue__flank__tmh__meta_tmh=True,  variant_source="gnomAD3").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(single_outside_gnomad3_query), "gnomad v3 variants in the singlepass outside flank")
+# single_outside_flank_gnomad3_variants = heatmap_array(remove_duplicate_variants(list(single_outside_gnomad3_query)), aa_list_baezo_order)
+# heatmap(np.array(single_outside_flank_gnomad3_variants), "gnomAD v3 disease variants in singlepass outside flanks", aa_list_baezo_order, "Greens", None)
+# 
+# single_outside_gnomad2_query=Variant.objects.filter(residue__flank_residue__feature_location="Outside flank", residue__protein__total_tmh_number=1, residue__flank_residue__flank__tmh__meta_tmh=True,  variant_source="gnomAD2").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(single_outside_gnomad2_query), "gnomad v2 variants in the singlepass outside flank")
+# single_outside_flank_gnomad2_variants = heatmap_array(remove_duplicate_variants(list(single_outside_gnomad2_query)), aa_list_baezo_order)
+# heatmap(np.array(single_outside_flank_gnomad2_variants), "gnomAD v2 disease variants in singlepass outside flanks", aa_list_baezo_order, "Greens", None)
+# 
+# #Inside flank
+# single_inside_disease_query=Variant.objects.filter(residue__flank_residue__feature_location="Inside flank", residue__protein__total_tmh_number=1, residue__flank_residue__flank__tmh__meta_tmh=True, disease_status='d', variant_source="ClinVar").values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(single_inside_disease_query), "disease variants in the singlepass inside flank")
+# single_inside_flank_disease_variants = heatmap_array(remove_duplicate_variants(list(single_inside_disease_query)), aa_list_baezo_order)
+# heatmap(np.array(single_inside_flank_disease_variants), "ClinVar disease variants in singlepass inside flanks", aa_list_baezo_order, "Reds", None)
+# 
+# 
+# single_inside_gnomad3_query=Variant.objects.filter(residue__flank_residue__feature_location="Inside flank", residue__protein__total_tmh_number=1, residue__flank_residue__flank__tmh__meta_tmh=True, variant_source="gnomAD3").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(single_inside_gnomad3_query), "gnomad v3 variants in the singlepass inside flank")
+# single_inside_flank_gnomad3_variants = heatmap_array(remove_duplicate_variants(list(single_inside_gnomad3_query)), aa_list_baezo_order)
+# heatmap(np.array(single_outside_flank_gnomad3_variants), "gnomAD v3 disease variants in singlepass inside flanks", aa_list_baezo_order, "Greens", None)
+# 
+# single_inside_gnomad2_query=Variant.objects.filter(residue__flank_residue__feature_location="Inside flank", residue__protein__total_tmh_number=1, residue__flank_residue__flank__tmh__meta_tmh=True, variant_source="gnomAD2").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(single_inside_gnomad2_query), "gnomad v2 variants in the singlepass inside flank")
+# single_inside_flank_gnomad2_variants = heatmap_array(remove_duplicate_variants(list(single_inside_gnomad2_query)), aa_list_baezo_order)
+# heatmap(np.array(single_outside_flank_gnomad2_variants), "gnomAD v2 disease variants in singlepass inside flanks", aa_list_baezo_order, "Greens", None)
+# 
+# #TMHs
+# single_tmh_disease_query=Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__protein__total_tmh_number=1, residue__tmh_residue__tmh_id__meta_tmh=True, disease_status='d', variant_source="ClinVar").values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(single_tmh_disease_query), "disease variants in the singlepass TMHs")
+# single_tmh_disease_variants = heatmap_array(remove_duplicate_variants(list(single_tmh_disease_query)), aa_list_baezo_order)
+# heatmap(np.array(single_tmh_disease_variants), "ClinVar disease variants in singlepass TMHs", aa_list_baezo_order, "Reds", None)
+# 
+# single_tmh_gnomad3_query=Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__protein__total_tmh_number=1, residue__tmh_residue__tmh_id__meta_tmh=True, variant_source="gnomAD3").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(single_tmh_gnomad3_query), "gnomad v3 variants in singlepass tmhs")
+# single_tmh_gnomad3_variants = heatmap_array(remove_duplicate_variants(list(single_tmh_gnomad3_query)), aa_list_baezo_order)
+# heatmap(np.array(single_tmh_gnomad3_variants), "gnomAD v3 disease variants in singlepass TMHs", aa_list_baezo_order, "Greens", None)
+# 
+# single_tmh_gnomad2_query=Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__protein__total_tmh_number=1, residue__tmh_residue__tmh_id__meta_tmh=True, variant_source="gnomAD2").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(single_tmh_gnomad2_query), "gnomad v2 variants in singlepass tmhs")
+# single_tmh_gnomad2_variants = heatmap_array(remove_duplicate_variants(list(single_tmh_gnomad2_query)), aa_list_baezo_order)
+# heatmap(np.array(single_tmh_gnomad2_variants), "gnomAD v3 disease variants in singlepass TMHs", aa_list_baezo_order, "Greens", None)
+# 
+# 
+# 
+# ### Alternative stuff starts here ###
+# # Non-TMH helices
+# # I came across some TMHs labelled incorrectly as helices. They mayhave snuck into the database, so to ensure they are not counted as variants, meta-tmh exclude is needed.
+# helix_disease_query=Variant.objects.filter(residue__non_tmh_helix_residue__nont_tmh_helix_id__helix_start__gte=0, disease_status='d', variant_source="ClinVar").exclude(residue__tmh_residue__tmh_id__meta_tmh=True).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(helix_disease_query), "disease variants in the non-TMH helix")
+# helix_disease_variants = heatmap_array(remove_duplicate_variants(list(helix_disease_query)), aa_list_baezo_order)
+# heatmap(np.array(helix_disease_variants), "ClinVar disease variants in helices", aa_list_baezo_order, "Reds", None)
+# 
+# helix_gnomad3_query=Variant.objects.filter(residue__non_tmh_helix_residue__nont_tmh_helix_id__helix_start__gte=0, variant_source="gnomAD3").exclude(aa_mut=F("aa_wt")).exclude(residue__tmh_residue__tmh_id__meta_tmh=True).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(helix_gnomad3_query), "gnomad v3 variants in the non-TMH helix")
+# helix_gnomad3_variants = heatmap_array(remove_duplicate_variants(list(helix_gnomad3_query)), aa_list_baezo_order)
+# heatmap(np.array(helix_gnomad3_variants), "gnomAD v3 disease variants in helices", aa_list_baezo_order, "Greens", None)
+# 
+# helix_gnomad2_query=Variant.objects.filter(residue__non_tmh_helix_residue__nont_tmh_helix_id__helix_start__gte=0, variant_source="gnomAD2").exclude(aa_mut=F("aa_wt")).exclude(residue__tmh_residue__tmh_id__meta_tmh=True).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(helix_gnomad2_query), "gnomad v2 variants in the non-TMH helix")
+# helix_gnomad2_variants = heatmap_array(remove_duplicate_variants(list(helix_gnomad2_query)), aa_list_baezo_order)
+# heatmap(np.array(helix_gnomad2_variants), "gnomAD v2 disease variants in helices", aa_list_baezo_order, "Greens", None)
+# 
+# 
+# # Signal peptides
+# sp_disease_query=Variant.objects.filter(residue__signal_residue__the_signal_peptide__signal_start__gte=0, disease_status='d', variant_source="ClinVar").values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(sp_disease_query), "disease variants in the signal peptides")
+# sp_disease_variants = heatmap_array(remove_duplicate_variants(list(sp_disease_query)), aa_list_baezo_order)
+# heatmap(np.array(sp_disease_variants), "ClinVar disease variants in signal_peptides", aa_list_baezo_order, "Reds", None)
+# 
+# sp_benign_query=Variant.objects.filter(residue__signal_residue__the_signal_peptide__signal_start__gte=0, disease_status='n', variant_source="ClinVar").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(sp_benign_query), "beign variants in the signal peptides")
+# sp_benign_variants = heatmap_array(remove_duplicate_variants(list(sp_benign_query)), aa_list_baezo_order)
+# heatmap(np.array(sp_benign_variants), "ClinVar benign variants in signal_peptides", aa_list_baezo_order, "Blues", None)
+# 
+# 
+# sp_gnomad3_query=Variant.objects.filter(residue__signal_residue__the_signal_peptide__signal_start__gte=0, variant_source="gnomAD3").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(sp_gnomad3_query), "gnomad v3 variants in the signal peptides")
+# sp_gnomad3_variants = heatmap_array(remove_duplicate_variants(list(sp_gnomad3_query)), aa_list_baezo_order)
+# heatmap(np.array(sp_gnomad3_variants), "gnomAD v3 disease variants in signal_peptides", aa_list_baezo_order, "Reds", None)
+# 
+# 
+# 
+# ### Families and more specific queries ###
+# 
+# # Pore residues
+# pore_disease_query=Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__structural_residue__pore_residue=True, residue__tmh_residue__tmh_id__meta_tmh=True, disease_status='d', variant_source="ClinVar").values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(pore_disease_query), "disease variants in the tmh pore residues")
+# pore_disease_variants = heatmap_array(remove_duplicate_variants(list(pore_disease_query)), aa_list_baezo_order)
+# heatmap(np.array(pore_disease_variants), "ClinVar disease variants in pore residue TMHs", aa_list_baezo_order, "Reds", None)
+# 
+# pore_benign_query=Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__structural_residue__pore_residue=True, residue__tmh_residue__tmh_id__meta_tmh=True, disease_status='n', variant_source="ClinVar").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(pore_benign_query), "benign variants in the tmh pore residues")
+# pore_benign_variants = heatmap_array(remove_duplicate_variants(list(pore_benign_query)), aa_list_baezo_order)
+# heatmap(np.array(pore_benign_variants), "ClinVar benign variants in pore residue TMHs", aa_list_baezo_order, "Blues", None)
+# 
+# pore_gnomad3_query=Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__structural_residue__pore_residue=True, residue__tmh_residue__tmh_id__meta_tmh=True, variant_source="gnomAD3").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(pore_gnomad3_query), "gnomad v3 variants in the TMH pore residues")
+# pore_gnomad3_variants = heatmap_array(remove_duplicate_variants(list(pore_gnomad3_query)), aa_list_baezo_order)
+# heatmap(np.array(pore_gnomad3_variants), "gnomAD v3 disease variants in tmh pore residues", aa_list_baezo_order, "Greens", None)
+# 
+# pore_gnomad2_query=Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__structural_residue__pore_residue=True, residue__tmh_residue__tmh_id__meta_tmh=True, variant_source="gnomAD2").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(pore_gnomad2_query), "gnomad v2 variants in the helix")
+# pore_gnomad2_variants = heatmap_array(remove_duplicate_variants(list(pore_gnomad2_query)), aa_list_baezo_order)
+# heatmap(np.array(pore_gnomad2_variants), "gnomAD v2 disease variants in tmh pore residues", aa_list_baezo_order, "Greens", None)
+# 
+# 
+# # GPCRs
+# #disease_mp_tmh_variants = list(Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__protein__keywords__keyword="G-protein coupled receptor").filter(disease_status='d').exclude(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
+# #disease_mp_tmh_variants_dict = substitution_dictionary(disease_mp_tmh_variants)
+# #heatmap(sub_dict_to_heatmap(disease_mp_tmh_variants_dict) ,title, aa_list_baezo_order, "coolwarm", None)
+# #
+# #title = "Disease propensity in GPCRs"
+# #gnomad_mp_tmh_variants = list(Variant.objects.exclude(aa_mut=F("aa_wt")).filter(residue__tmh_residue__feature_location="TMH", residue__protein__keywords__keyword="G-protein coupled receptor").filter(variant_source='gnomAD').exclude(residue__protein__total_tmh_number=1).values_list("aa_wt", "aa_mut"))
+# #gnomad_mp_tmh_variants_dict = substitution_dictionary(gnomad_mp_tmh_variants)
+# #print(title, "disease:", len(disease_mp_tmh_variants), "gnomAD:", len(gnomad_mp_tmh_variants))
+# #mp_disease_propensity = subs_normalise_by_dic(disease_mp_tmh_variants_dict, gnomad_mp_tmh_variants_dict)
+# #mp_disease_propensity_array=sub_dict_to_heatmap(mp_disease_propensity)
+# 
+# 
+# heatmap_normalised_by_heatmap("ClinVar disease normalised by gnomad v3 meta-tmh multipass Outside flank", outside_flank_disease_variants, outside_flank_gnomad3_variants)
+# heatmap_normalised_by_heatmap("ClinVar disease normalised by gnomad v3 meta-tmh multipass Inside flank", inside_flank_disease_variants, inside_flank_gnomad3_variants)
+# heatmap_normalised_by_heatmap("ClinVar disease normalised by gnomad v3 meta-tmh multipass TMH", tmh_disease_variants, tmh_gnomad3_variants)
+# heatmap_normalised_by_heatmap("ClinVar disease normalised by ClinVar benign meta-tmh multipass TMH", tmh_disease_variants, tmh_benign_variants)
+# 
+# heatmap_normalised_by_heatmap("ClinVar disease normalised by gnomad v3 meta-tmh singlepass Outside flank", single_outside_flank_disease_variants, single_outside_flank_gnomad3_variants)
+# heatmap_normalised_by_heatmap("ClinVar disease normalised by gnomad v3 meta-tmh singlepass Inside flank", single_inside_flank_disease_variants, single_inside_flank_gnomad3_variants)
+# heatmap_normalised_by_heatmap("ClinVar disease normalised by gnomad v3 meta-tmh singlepass TMH",single_tmh_disease_variants, single_tmh_gnomad3_variants)
+# 
+# heatmap_normalised_by_heatmap("ClinVar disease normalised by gnomad v3 non-TMH Helix", helix_disease_variants, helix_gnomad3_variants)
+# heatmap_normalised_by_heatmap("ClinVar disease normalised by gnomad v3 Signal Peptides", sp_disease_variants, sp_gnomad3_variants)
+# heatmap_normalised_by_heatmap("ClinVar disease normalised by ClinVar benign Signal Peptides", sp_disease_variants, sp_benign_variants)
+# heatmap_normalised_by_heatmap("ClinVar disease normalised by ClinVar benign Pore residues", pore_disease_variants, pore_benign_variants)
+# 
+# 
+# # QUICK!!!
+# pore_disease_query = Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__structural_residue__pore_residue=True, residue__tmh_residue__tmh_id__meta_tmh=True,
+#                                             disease_status='d').distinct("pk").values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(pore_disease_query), "disease variants in the tmh pore residues")
+# pore_disease_variants = heatmap_array(remove_duplicate_variants(
+#     list(pore_disease_query)), aa_list_baezo_order)
+# heatmap(np.array(pore_disease_variants),
+#         "ClinVar disease variants in pore residue TMHs", aa_list_baezo_order, "Reds", None)
+# 
+# pore_gnomad2_query = Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__structural_residue__pore_residue=True, residue__tmh_residue__tmh_id__meta_tmh=True,
+#                                             variant_source="gnomAD2").distinct("pk").exclude(aa_mut=F("aa_wt")).values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(pore_gnomad2_query), "gnomad v2 variants in the pore residue")
+# pore_gnomad2_variants = heatmap_array(remove_duplicate_variants(
+#     list(pore_gnomad2_query)), aa_list_baezo_order)
+# heatmap(np.array(pore_gnomad2_variants),
+#         "gnomAD v2 disease variants in tmh pore residues", aa_list_baezo_order, "Greens", None)
+# 
+# heatmap_normalised_by_heatmap(
+#     "Disease variants normalised by gnomAD version 2 residues in the pore", pore_disease_variants, pore_gnomad2_variants)
+# 
+# 
+# tmh_disease_query = Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__protein__total_tmh_number__gte=1, residue__tmh_residue__tmh_id__meta_tmh=True,
+#                                            disease_status='d').distinct("pk").values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(tmh_disease_query), "disease variants in the tmhs")
+# tmh_disease_variants = heatmap_array(remove_duplicate_variants(
+#     list(tmh_disease_query)), aa_list_baezo_order)
+# heatmap(np.array(tmh_disease_variants),
+#         "ClinVar disease variants in multipass TMHs", aa_list_baezo_order, "Reds", None)
+# 
+# tmh_gnomad2_query = Variant.objects.filter(residue__tmh_residue__feature_location="TMH", residue__protein__total_tmh_number__gte=1, residue__tmh_residue__tmh_id__meta_tmh=True,
+#                                            variant_source='gnomAD2').distinct("pk").values_list("aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id")
+# print(len(tmh_gnomad2_query), "disease variants in the tmhs")
+# tmh_gnomad2_variants = heatmap_array(remove_duplicate_variants(
+#     list(tmh_gnomad2_query)), aa_list_baezo_order)
+# heatmap(np.array(tmh_gnomad2_variants),
+#         "ClinVar disease variants in multipass TMHs", aa_list_baezo_order, "Greens", None)
+# 
+# heatmap_normalised_by_heatmap(
+#     "Disease variants normalised by gnomAD version 2 residues in TMHs", tmh_disease_variants, tmh_gnomad2_variants)

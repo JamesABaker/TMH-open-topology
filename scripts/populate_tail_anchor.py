@@ -26,26 +26,6 @@ from django.utils import timezone
 from requests import get
 
 from scripts.populate_general_functions import *
-from tmh_db.models import Database_Metadata
-from tmh_db.models import Funfam
-from tmh_db.models import Funfam_residue
-from tmh_db.models import Funfamstatus
-from tmh_db.models import Go
-from tmh_db.models import Keyword
-from tmh_db.models import Protein
-from tmh_db.models import Residue
-from tmh_db.models import Structural_residue
-from tmh_db.models import Structure
-from tmh_db.models import Subcellular_location
-from tmh_db.models import Tmh
-from tmh_db.models import Tmh_deltag
-from tmh_db.models import Tmh_hydrophobicity
-from tmh_db.models import Tmh_residue
-from tmh_db.models import Tmh_tmsoc
-from tmh_db.models import Uniref
-from tmh_db.models import Variant
-# env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
-
 
 def get_ta():
     with open("scripts/external_datasets/ta_reference_list.csv") as f:
