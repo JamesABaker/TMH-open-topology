@@ -1001,14 +1001,14 @@ def tmh_input(input_query):
 
 
 
-    mptopo_url="https://blanco.biomol.uci.edu/mpstruc/mptopo/mptopoAlphaHlxTblXml"
-    mptopo_file="scripts/external_datasets/mptopo_alpha.xml"
+    # mptopo_url="https://blanco.biomol.uci.edu/mpstruc/mptopo/mptopoAlphaHlxTblXml"
+    # mptopo_file="scripts/external_datasets/mptopo_alpha.xml"
 
-    try:
-        mptopo = ET.parse(mptopo_file)
-    except FileNotFoundError:
-        download(mptopo_url, mptopo_file)
-        mptopo = ET.parse(mptopo_file)
+    # try:
+    #     mptopo = ET.parse(mptopo_file)
+    # except FileNotFoundError:
+    #     download(mptopo_url, mptopo_file)
+    #     mptopo = ET.parse(mptopo_file)
 
 
 
@@ -1017,9 +1017,9 @@ def tmh_input(input_query):
         print("\nExtracting TMH boundaries for", a_query, ",",query_number + 1, "of", len(input_query), "records.")
         # #print(clean_query(a_query))
         ### OPM needs adding to here also. ###
-        mptopo_check(a_query, mptopo)
-        #uniprot_tm_check(a_query)
-        #topdb_check(a_query, topdb)
+        #mptopo_check(a_query, mptopo)
+        uniprot_tm_check(a_query)
+        topdb_check(a_query, topdb)
 
 
 def run():
