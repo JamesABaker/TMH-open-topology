@@ -4,6 +4,7 @@ import os
 import re
 import shutil
 import time
+import fileinput
 import urllib
 from datetime import date
 from datetime import datetime
@@ -63,70 +64,88 @@ def uniprot_to_funfams(a_query):
 
 
 def funfam_to_stockholm(uniprot_id, superfamily_number, funfam_number):
-		'''
-		Takes the funfams and superfamilies and returns the stockholm alignment.
-		'''
-		#protein = Protein.objects.get(uniprot_id=a_query)
-		stockholm_url = f"http://www.cathdb.info/version/v4_2_0/superfamily/{superfamily_number}/funfam/{funfam_number}/files/stockholm"
-		stockholm_file = f'scripts/external_datasets/funfam_bin/stockholm/{superfamily_number}/{funfam_number}.sth'
-		cath_superfamily_folder=f'scripts/external_datasets/funfam_bin/stockholm/{superfamily_number}'
-		if check_local_file(stockholm_file) is False:
-			if not os.path.exists(cath_superfamily_folder):
-				os.makedirs(cath_superfamily_folder)
-				download(stockholm_url, stockholm_file, pause=pause_time)
-			else:
-				download(stockholm_url, stockholm_file, pause=pause_time)
-		return(stockholm_file)
+	'''
+	Takes the funfams and superfamilies and returns the stockholm alignment.
+	'''
+	#protein = Protein.objects.get(uniprot_id=a_query)
+	stockholm_url = f"http://www.cathdb.info/version/v4_2_0/superfamily/{superfamily_number}/funfam/{funfam_number}/files/stockholm"
+	stockholm_file = f'scripts/external_datasets/funfam_bin/stockholm/{superfamily_number}/{funfam_number}.sth'
+	cath_superfamily_folder=f'scripts/external_datasets/funfam_bin/stockholm/{superfamily_number}'
+	if check_local_file(stockholm_file) is False:
+		if not os.path.exists(cath_superfamily_folder):
+			os.makedirs(cath_superfamily_folder)
+			download(stockholm_url, stockholm_file, pause=pause_time)
+		else:
+			download(stockholm_url, stockholm_file, pause=pause_time)
+	return(stockholm_file)
 
+def cath_sth_fix(file_location):
+	'''
+	Offers a workaround for https://github.com/biopython/biopython/issues/2982#issuecomment-646475455
+	'''
+	with fileinput.FileInput(file_location, inplace=True, backup='.bak') as file:
+		text_to_search="OS \n"
+		replacement_text="OS .\n"
+		for line in file:
+			print(line.replace(text_to_search, replacement_text), end='')
+	return()
 
 def stockholm_to_database(uniprot_id, superfamily_record, funfam, stockholm_file_location):
-		'''
-		Parses a stockholm alignment and links residues and proteins to the funfam
-		id in the VarTMH database.
-		It adds the protein to the funfam, and the residue to the funfam_residue.
-		'''
-		print(uniprot_id, stockholm_file_location)
-		align = AlignIO.read(stockholm_file_location, "stockholm")
-		for record in align:
-			alignment_record=(record)
-			alignment_name=str(record.name)
-			#this is a mixture of the uniprot id and of the start and end positions.
-			alignment_sequence=str(record.seq)
-			alignment_scorecons=str(align.column_annotations["GC:scorecons"])
-			# There is a lot of missing and weird annotation in non-human species,
-			# so here we just save some time and check that it is human before continuing.
-			if str(alignment_name)==str(uniprot_id) and str(alignment_record.annotations['organism']) == 'Homo sapiens':
-				try:
+	'''
+	Parses a stockholm alignment and links residues and proteins to the funfam
+	id in the VarTMH database.
+	It adds the protein to the funfam, and the residue to the funfam_residue.
+	'''
+	print(uniprot_id, stockholm_file_location)
+	cath_sth_fix(stockholm_file_location)
+	align = AlignIO.read(stockholm_file_location, "stockholm")
+	for record in align:
+		alignment_record=(record)
+		alignment_name=str(record.name)
+		#this is a mixture of the uniprot id and of the start and end positions.
+		alignment_sequence=str(record.seq)
+		alignment_scorecons=str(align.column_annotations["GC:scorecons"])
+		# There is a lot of missing and weird annotation in non-human species,
+		# so here we just save some time and check that it is human before continuing.
+		if str(alignment_name)==str(uniprot_id) and str(alignment_record.annotations['organism']) == 'Homo sapiens':
+			try:
 
-					alignment_record_start=(alignment_record.annotations['start'])
-					alignment_record_stop=(alignment_record.annotations['end'])
-					# Now we have everything we need to start adding the record to the database.
-					# The funfam may or may not already exit, but the residue should not be touched.
+				alignment_record_start=(alignment_record.annotations['start'])
+				alignment_record_stop=(alignment_record.annotations['end'])
+				# Now we have everything we need to start adding the record to the database.
+				# The funfam may or may not already exit, but the residue should not be touched.
+				try:
 					record_for_database, created = Funfam.objects.update_or_create(
 						funfam_id = funfam,
 						superfamily = superfamily_record			
 						)	
-					funfam_in_database=Funfam.objects.get(funfam_id=funfam)
-					# This does not currently deal with discontiguous domains.
-					for position, site in enumerate(alignment_sequence):
-						sc_score=alignment_scorecons[position]
-						ali_position=position+1
-						# This counts the dashes (-) that come before the site position.
-						uniprot_position=alignment_record_start+position+1-alignment_sequence.count("-", 0, position)
-						# print(f'Uniprot position: {uniprot_position}, ali site{ali_position}, and ali aa {alignment_sequence[position]}, scorecons {sc_score}')
+				except:
+					pass	
+				funfam_in_database=Funfam.objects.get(funfam_id=funfam)
+				# This does not currently deal with discontiguous domains.
+				for position, site in enumerate(alignment_sequence):
+					print(site)
+					sc_score=alignment_scorecons[position]
+					# This counts the dashes (-) that come before the site position.
+					uniprot_position=alignment_record_start+position-alignment_sequence.count("-", 0, position)
+					# print(f'Uniprot position: {uniprot_position}, ali site{ali_position}, and ali aa {alignment_sequence[position]}, scorecons {sc_score}')
+					try:
+						funfam_site_for_database=FunfamResidue.objects.get(funfam=funfam_in_database, funfam_position=position)
+					except: 
 						funfam_site_for_database, create = FunfamResidue.objects.update_or_create(
-							funfam=funfam_in_database,
-							scorecons=sc_score,
-							funfam_position=ali_position,
-							)	
-						database_protein=Protein.objects.get(uniprot_id=uniprot_id)
+								funfam=funfam_in_database,
+								scorecons=sc_score,
+								funfam_position=position
+								)	
+					database_protein=Protein.objects.get(uniprot_id=uniprot_id)
+					print(database_protein.uniprot_id, uniprot_position)
+					if site != "-":	
 						protein_position=Residue.objects.get(protein=database_protein, sequence_position=uniprot_position)
 						funfam_site_for_database.residue.add(protein_position)
-						
-						
-				except KeyError:
-					pass			
-		return()
+					
+			except KeyError:
+				pass			
+	return()
 
 
 def run():

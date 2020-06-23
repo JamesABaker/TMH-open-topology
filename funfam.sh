@@ -1,7 +1,6 @@
 #!/bin/sh
 echo "Submission success."
-echo "Running python..."
 echo "loading env..."
-conda activate vartmh
+#conda activate vartmh
 echo "populating funfams..."
-python3 manage.py runscript populate_funfams --traceback
+python manage.py runscript populate_funfams --traceback
