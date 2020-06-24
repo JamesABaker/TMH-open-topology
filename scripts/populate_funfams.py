@@ -140,8 +140,9 @@ def stockholm_to_database(uniprot_id, superfamily_record, funfam, stockholm_file
 					database_protein=Protein.objects.get(uniprot_id=uniprot_id)
 					print(database_protein.uniprot_id, uniprot_position)
 					if site != "-":	
-						protein_position=Residue.objects.get(protein=database_protein, sequence_position=uniprot_position)
-						funfam_site_for_database.residue.add(protein_position)
+						if len(Residue.objects.filter(protein=database_protein, sequence_position=uniprot_position, amino_acid_type=alignment_sequence[position])) > 0 :
+							protein_position=Residue.objects.get(protein=database_protein, sequence_position=uniprot_position, amino_acid_type=alignment_sequence[position])
+							funfam_site_for_database.residue.add(protein_position)
 					
 			except KeyError:
 				pass			
