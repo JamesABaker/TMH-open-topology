@@ -241,9 +241,9 @@ def varmap_process(varmap_list, source, varmap_index, *clinvar_summary):
 
         # Is the variant disease causing?
         # This only applies to clinvar
-        for list in clinvar_summary:
-            for summary_line in list: #No idea why this [0] is needed. A list in a list should be what it is, not a list in a list in a list.
-                # print(summary_line)
+        for a_list in clinvar_summary:
+            for summary_line in a_list: #No idea why this [0] is needed. A list in a list should be what it is, not a list in a list in a list.
+                print(summary_line)
                     #print("Is", int(i[-1]), "equal to", int(USER_ID), "?" )
 
                 if int(summary_line[0]) == int(user_id):  #  (variant id is last column in summary)
@@ -289,7 +289,7 @@ def run():
     # VarMap files can be big. Preprocessing them saves a lot of time
 
     varmap_files = {
-        "clinvar": "scripts/external_datasets/clinvar_varmap2019.tsv",
+        "clinvar": "scripts/external_datasets/clinvar_varmap_variants_05_06_2020.tsv",
     }
 
     #print(stripped_variant_list(varmap_files["clinvar"], input_query_set))
@@ -304,7 +304,7 @@ def run():
 
     clinvar_summary_lines = []
     print("Loading the variant summaries from ClinVar. This holds information on disease states in clinvar.")
-    with open("scripts/external_datasets/clinvar_submission_summary8_11_2019.tsv", encoding="ISO-8859-1") as inputfile:
+    with open("scripts/external_datasets/variant_summary_05_06_2020.txt", encoding="ISO-8859-1") as inputfile:
         for line_number, summary_variant in enumerate(inputfile):
             if line_number > 0:
                 summary_variant = summary_variant.strip().split('\t')
@@ -314,7 +314,7 @@ def run():
                     clinvar_summary_lines.append(summary_variant)
             else:
                 pass
-
+    print(clinvar_summary_lines)
 
 
     varmap_process(clinvar_results_list, "ClinVar", varmap_header_dict(varmap_files["clinvar"]), clinvar_summary_lines)

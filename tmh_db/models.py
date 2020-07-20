@@ -203,6 +203,10 @@ class Variant(models.Model):
     variant_source_id = models.TextField(default="No_ID", null=True)
     variant_map = models.TextField(null=True)
 
+class Disease(models.Model):
+    disease_name = models.TextField(unique=True)
+    implicated_variants = models.ManyToManyField(Variant)
+
 class Signal_peptide(models.Model):
     protein = models.ForeignKey(Protein, on_delete=models.CASCADE)
 

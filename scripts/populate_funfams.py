@@ -98,54 +98,57 @@ def stockholm_to_database(uniprot_id, superfamily_record, funfam, stockholm_file
 	'''
 	print(uniprot_id, stockholm_file_location)
 	cath_sth_fix(stockholm_file_location)
-	align = AlignIO.read(stockholm_file_location, "stockholm")
-	for record in align:
-		alignment_record=(record)
-		alignment_name=str(record.name)
-		#this is a mixture of the uniprot id and of the start and end positions.
-		alignment_sequence=str(record.seq)
-		alignment_scorecons=str(align.column_annotations["GC:scorecons"])
-		# There is a lot of missing and weird annotation in non-human species,
-		# so here we just save some time and check that it is human before continuing.
-		if str(alignment_name)==str(uniprot_id) and str(alignment_record.annotations['organism']) == 'Homo sapiens':
-			try:
-
-				alignment_record_start=(alignment_record.annotations['start'])
-				alignment_record_stop=(alignment_record.annotations['end'])
-				# Now we have everything we need to start adding the record to the database.
-				# The funfam may or may not already exit, but the residue should not be touched.
+	try:
+		align = AlignIO.read(stockholm_file_location, "stockholm")
+		for record in align:
+			alignment_record=(record)
+			alignment_name=str(record.name)
+			#this is a mixture of the uniprot id and of the start and end positions.
+			alignment_sequence=str(record.seq)
+			alignment_scorecons=str(align.column_annotations["GC:scorecons"])
+			# There is a lot of missing and weird annotation in non-human species,
+			# so here we just save some time and check that it is human before continuing.
+			if str(alignment_name)==str(uniprot_id) and str(alignment_record.annotations['organism']) == 'Homo sapiens':
 				try:
-					record_for_database, created = Funfam.objects.update_or_create(
-						funfam_id = funfam,
-						superfamily = superfamily_record			
-						)	
-				except:
-					pass	
-				funfam_in_database=Funfam.objects.get(funfam_id=funfam)
-				# This does not currently deal with discontiguous domains.
-				for position, site in enumerate(alignment_sequence):
-					print(site)
-					sc_score=alignment_scorecons[position]
-					# This counts the dashes (-) that come before the site position.
-					uniprot_position=alignment_record_start+position-alignment_sequence.count("-", 0, position)
-					# print(f'Uniprot position: {uniprot_position}, ali site{ali_position}, and ali aa {alignment_sequence[position]}, scorecons {sc_score}')
+
+					alignment_record_start=(alignment_record.annotations['start'])
+					alignment_record_stop=(alignment_record.annotations['end'])
+					# Now we have everything we need to start adding the record to the database.
+					# The funfam may or may not already exit, but the residue should not be touched.
 					try:
-						funfam_site_for_database=FunfamResidue.objects.get(funfam=funfam_in_database, funfam_position=position)
-					except: 
-						funfam_site_for_database, create = FunfamResidue.objects.update_or_create(
-								funfam=funfam_in_database,
-								scorecons=sc_score,
-								funfam_position=position
-								)	
-					database_protein=Protein.objects.get(uniprot_id=uniprot_id)
-					print(database_protein.uniprot_id, uniprot_position)
-					if site != "-":	
-						if len(Residue.objects.filter(protein=database_protein, sequence_position=uniprot_position, amino_acid_type=alignment_sequence[position])) > 0 :
-							protein_position=Residue.objects.get(protein=database_protein, sequence_position=uniprot_position, amino_acid_type=alignment_sequence[position])
-							funfam_site_for_database.residue.add(protein_position)
-					
-			except KeyError:
-				pass			
+						record_for_database, created = Funfam.objects.update_or_create(
+							funfam_id = funfam,
+							superfamily = superfamily_record			
+							)	
+					except:
+						pass	
+					funfam_in_database=Funfam.objects.get(funfam_id=funfam)
+					# This does not currently deal with discontiguous domains.
+					for position, site in enumerate(alignment_sequence):
+						print(site)
+						sc_score=alignment_scorecons[position]
+						# This counts the dashes (-) that come before the site position.
+						uniprot_position=alignment_record_start+position-alignment_sequence.count("-", 0, position)
+						# print(f'Uniprot position: {uniprot_position}, ali site{ali_position}, and ali aa {alignment_sequence[position]}, scorecons {sc_score}')
+						try:
+							funfam_site_for_database=FunfamResidue.objects.get(funfam=funfam_in_database, funfam_position=position)
+						except: 
+							funfam_site_for_database, create = FunfamResidue.objects.update_or_create(
+									funfam=funfam_in_database,
+									scorecons=sc_score,
+									funfam_position=position
+									)	
+						database_protein=Protein.objects.get(uniprot_id=uniprot_id)
+						print(database_protein.uniprot_id, uniprot_position)
+						if site != "-":	
+							if len(Residue.objects.filter(protein=database_protein, sequence_position=uniprot_position, amino_acid_type=alignment_sequence[position])) > 0 :
+								protein_position=Residue.objects.get(protein=database_protein, sequence_position=uniprot_position, amino_acid_type=alignment_sequence[position])
+								funfam_site_for_database.residue.add(protein_position)
+						
+				except KeyError:
+					pass			
+	except ValueError:
+		pass
 	return()
 
 
