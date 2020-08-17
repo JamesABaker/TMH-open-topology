@@ -50,7 +50,7 @@ def stripped_variant_list(varmap_file, input_query_set):
     return(varmap_results, varmap_results_set)
 
 
-def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, disease_comments, variant_source, variant_source_id):
+def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, disease_comments, variant_source, variant_source_id, diseases=[], germline=None):
     '''
     Adds the variant from various external databases and flat files to the database in a standardised way.
     '''
@@ -86,9 +86,17 @@ def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_
                     disease_comments=disease_comments,
                     variant_source=variant_source,
                     variant_source_id=variant_source_id,
+                    germline=germline,
                     defaults={
                     }
                 )
+                disease_variants=Variant.objects.filter(variant_source_id=variant_source_id, variant_source=variant_source).distinct('pk')
+                for var in disease_variants:
+                    for dis in diseases:
+                        record_for_database, created = Disease.objects.update_or_create(
+                            disease_name=dis)
+                        disease_type=Disease.objects.get(disease_name=dis) 
+                        disease_type.implicated_variants.add(var)
             else:
                 print("Mismatch between wild-type amino acids. UniProt:", str(residue_variant.amino_acid_type), str(variant_source), ":", str(
                     aa_wt), "for record", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
@@ -243,22 +251,26 @@ def varmap_process(varmap_list, source, varmap_index, *clinvar_summary):
         # This only applies to clinvar
         for a_list in clinvar_summary:
             for summary_line in a_list: #No idea why this [0] is needed. A list in a list should be what it is, not a list in a list in a list.
-                print(summary_line)
-                    #print("Is", int(i[-1]), "equal to", int(USER_ID), "?" )
 
                 if int(summary_line[0]) == int(user_id):  #  (variant id is last column in summary)
                     # print("clinvar summary and snipclip finally found a hit for variant ",int(var_record_id))
-
-                    disease_status = disease_class(summary_line[1])
+                    disease_status = disease_class(summary_line[6])
+                    print(summary_line[6],disease_status) 
                     disease_comments = summary_line[3]
+                    disease_list = list(summary_line[13].split(";"))
+                    if "germline" in summary_line[14]:
+                        germline_status=True
+                    else:
+                        germline_status=False
+
+
         if disease_status=="":
             print(user_id, "not in summary file.")
 
-        print(uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, variant_source, user_id)
-
+        #print(uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, variant_source, user_id)
 
         var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut,
-                        disease_status, disease_comments, variant_source, user_id)
+                        disease_status, disease_comments, variant_source, user_id, germline=germline_status, diseases=disease_list)
 
 
 def varmap_header_dict(varmap_file):
@@ -304,20 +316,19 @@ def run():
 
     clinvar_summary_lines = []
     print("Loading the variant summaries from ClinVar. This holds information on disease states in clinvar.")
-    with open("scripts/external_datasets/variant_summary_05_06_2020.txt", encoding="ISO-8859-1") as inputfile:
-        for line_number, summary_variant in enumerate(inputfile):
-            if line_number > 0:
-                summary_variant = summary_variant.strip().split('\t')
-                # print(str(summary_variant[-1]))
-                # This relies on the last column being the id column
-                if clean_query(str(summary_variant[0])) in clinvar_results_set:
-                    clinvar_summary_lines.append(summary_variant)
-            else:
-                pass
-    print(clinvar_summary_lines)
+    #with open("scripts/external_datasets/variant_summary_05_06_2020.txt", encoding="ISO-8859-1") as inputfile:
+    #    for line_number, summary_variant in enumerate(inputfile):
+    #        if line_number > 0:
+    #            summary_variant = summary_variant.strip().split('\t')
+    #            # print(str(summary_variant[-1]))
+    #            # This relies on the last column being the id column
+    #            if clean_query(str(summary_variant[0])) in clinvar_results_set:
+    #                clinvar_summary_lines.append(summary_variant)
+    #        else:
+    #            pass
 
 
-    varmap_process(clinvar_results_list, "ClinVar", varmap_header_dict(varmap_files["clinvar"]), clinvar_summary_lines)
+    #varmap_process(clinvar_results_list, "ClinVar", varmap_header_dict(varmap_files["clinvar"]), clinvar_summary_lines)
 
 
     ### Humsavar ###

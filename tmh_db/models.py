@@ -202,6 +202,7 @@ class Variant(models.Model):
     variant_source = models.TextField(default="Unknown", null=True)
     variant_source_id = models.TextField(default="No_ID", null=True)
     variant_map = models.TextField(null=True)
+    germline=models.BooleanField(null=True)
 
 class Disease(models.Model):
     disease_name = models.TextField(unique=True)
