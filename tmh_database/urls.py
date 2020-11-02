@@ -21,6 +21,8 @@ from tmh_db import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('protein/<str:protein_query_id>', views.get_protein),
+    path('funfam/<str:funfam_query_id>', views.get_funfam),
 ]
 
 
