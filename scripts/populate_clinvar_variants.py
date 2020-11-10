@@ -1,7 +1,8 @@
 from __future__ import division
-
+import random
 import os
 import time
+
 from datetime import date
 from datetime import datetime
 from datetime import timedelta
@@ -14,46 +15,23 @@ from django.utils import timezone
 
 from scripts.populate_general_functions import *
 # env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
-
+bulk_variants_to_add=[]
+bulk_diseases=[]
 
 def varmap_columns_and_keys(column_headers):
-    column_headers = column_headers.split('\t')
+    column_headers = column_headers.split()
     varmap_col_dictionary = {}
     for column_number, column_title in enumerate(column_headers):
         varmap_col_dictionary[column_title] = column_number
     # print(varmap_col_dictionary)
     return varmap_col_dictionary
 
-
-def stripped_variant_list(varmap_file, input_query_set):
-
-    varmap_results = []
-    varmap_results_set = set()
-
-    with open(varmap_file, encoding="ISO-8859-1") as inputfile:
-        for line_number, var_database_entry in enumerate(inputfile):
-
-            # This is the header line
-            if line_number == 0:
-                varmap_headers = varmap_columns_and_keys(var_database_entry)
-                uniprot_accession_index = varmap_headers["UNIPROT_ACCESSION"]
-                varmap_user_id_index = varmap_headers["USER_ID"]
-            else:
-                var_database_entry = var_database_entry.strip().split('\t')
-                uniprot_accesstion = str(var_database_entry[uniprot_accession_index])
-                varmap_user_id = str(var_database_entry[varmap_user_id_index])
-
-                if str(uniprot_accesstion) in input_query_set:
-                    #print("Storing variant", varmap_user_id, "for", uniprot_accesstion, "to memory.")
-                    varmap_results.append(var_database_entry)
-                    varmap_results_set.add(clean_query(str(varmap_user_id)))
-    return(varmap_results, varmap_results_set)
-
-
 def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, disease_comments, variant_source, variant_source_id, diseases=[], germline=None):
     '''
     Adds the variant from various external databases and flat files to the database in a standardised way.
     '''
+    global bulk_diseases
+    global bulk_variants_to_add
     if var_record_location == "-":
         print("Unkown sequence location. Possibly intron: ", uniprot_record, var_record_location,
               aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source, variant_source_id)
@@ -68,43 +46,69 @@ def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_
               var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source, variant_source_id)
     else:
 
-        protein = Protein.objects.get(uniprot_id=uniprot_record)
+        print(f'updating {uniprot_record}')
+        try:
+            protein = Protein.objects.get(uniprot_id=uniprot_record)
 
-        if int(var_record_location) <= len(str(protein.full_sequence)):
+            if int(var_record_location) <= len(str(protein.full_sequence)):
 
-            residue_variant = Residue.objects.get(
-                protein=protein, sequence_position=var_record_location)
-            if str(residue_variant.amino_acid_type) == str(aa_wt):
-                print("Adding ", uniprot_record, var_record_location, aa_wt, "->", aa_mut,
-                      disease_status, disease_comments, variant_source, "to database variant table.")
-                record_for_database, created = Variant.objects.update_or_create(
-                    residue=residue_variant,
-                    aa_wt=aa_wt,
-                    aa_mut=aa_mut,
+                residue_variant = Residue.objects.get(
+                    protein=protein, sequence_position=var_record_location)
+                if str(residue_variant.amino_acid_type) == str(aa_wt):
+                    print("Adding ", uniprot_record, var_record_location, aa_wt, "->", aa_mut,
+                          disease_status, disease_comments, variant_source, "to database variant table.")
+                    #record_for_database, created = Variant.objects.update_or_create(
+                    #    residue=residue_variant,
+                    #    aa_wt=aa_wt,
+                    #    aa_mut=aa_mut,
 
-                    disease_status=disease_status,
-                    disease_comments=disease_comments,
-                    variant_source=variant_source,
-                    variant_source_id=variant_source_id,
-                    germline=germline,
-                    defaults={
-                    }
-                )
-                disease_variants=Variant.objects.filter(variant_source_id=variant_source_id, variant_source=variant_source).distinct('pk')
-                for var in disease_variants:
-                    for dis in diseases:
-                        record_for_database, created = Disease.objects.update_or_create(
-                            disease_name=dis)
-                        disease_type=Disease.objects.get(disease_name=dis) 
-                        disease_type.implicated_variants.add(var)
+                    #    disease_status=disease_status,
+                    #    disease_comments=disease_comments,
+                    #    variant_source=variant_source,
+                    #    variant_source_id=variant_source_id,
+                    #    germline=germline,
+                    #    defaults={
+                    #    }
+                    #)
+                    bulk_variants_to_add.append(
+                        Variant(
+                            residue=residue_variant,
+                            aa_wt=aa_wt,
+                            aa_mut=aa_mut,
+
+                            disease_status=disease_status,
+                            disease_comments=disease_comments,
+                            variant_source=variant_source,
+                            variant_source_id=variant_source_id,
+                            germline=germline,
+                        )
+                        )
+
+                    '''
+                    disease_variants=Variant.objects.filter(variant_source_id=variant_source_id, variant_source=variant_source).distinct('pk')
+                
+                    for var in disease_variants:
+                        for dis in diseases:
+                            record_for_database, created = Disease.objects.update_or_create(
+                                disease_name=dis)
+                            disease_type=Disease.objects.get(disease_name=dis) 
+                            disease_type.implicated_variants.add(var)
+                    '''
+                else:
+                    print("Mismatch between wild-type amino acids. UniProt:", str(residue_variant.amino_acid_type), str(variant_source), ":", str(
+                        aa_wt), "for record", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
             else:
-                print("Mismatch between wild-type amino acids. UniProt:", str(residue_variant.amino_acid_type), str(variant_source), ":", str(
-                    aa_wt), "for record", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
-        else:
-            print("Variant position exceeds the length of the protein. Protein length:", len(str(protein.full_sequence)), "Variant position:",
-                  var_record_location, "for record", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
-
-
+                print("Variant position exceeds the length of the protein. Protein length:", len(str(protein.full_sequence)), "Variant position:",
+                      var_record_location, "for record", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
+        except(Protein.DoesNotExist):
+            print(f'{uniprot_record} was not found in database. Skipping entry.')
+        if len(bulk_variants_to_add)>1000:
+            Variant.objects.bulk_create(bulk_variants_to_add) 
+            bulk_variants_to_add=[]                     
+        '''
+        if len(bulk_diseases)>1000:
+            Disease.objects.bulk_create(bulk_diseases)
+        '''
 def disease_class(disease_type):
     '''
     Sorts:
@@ -129,7 +133,7 @@ def disease_class(disease_type):
     disease_type = str(disease_type.replace(" ", "_"))
     disease = ["Disease", "Likely_pathogenic","Pathogenic", "Pathogenic/Likely_pathogenic"]
     benign = ["Benign", "Benign/Likely_benign", "Likely_benign", ]
-    unknown = ["Unclassified", "Polymorphism", "Affects", "association", "Conflicting_interpretations_of_pathogenicity", "drug_response", "no_interpretation_for_the_single_variant", "not_provided",  "other", "protective", "risk_factor", "Uncertain_significance"]
+    unknown = ["no_assertion_criteria_provided", "Unclassified", "Polymorphism", "Affects", "association", "Conflicting_interpretations_of_pathogenicity", "drug_response", "no_interpretation_for_the_single_variant", "not_provided",  "other", "protective", "risk_factor", "Uncertain_significance"]
 
     if str(disease_type) in disease:
         pathogenicity = "d"
@@ -138,6 +142,7 @@ def disease_class(disease_type):
     elif str(disease_type) in unknown:
         pathogenicity = "u"
     else:
+        print(f'Unknown pathogenic status: {disease_type}')
         pathogenicity = "e"
     return(pathogenicity)
 
@@ -222,6 +227,7 @@ def humsavar_variant_check(humsavar_variant):
 
                                 # We want as much information to be passed onto the next table.
                                 disease_status = str(disease_class(
+
                                     humsavar_variant_disease_type))
                                 disease_comments = str(
                                     humsavar_variant_disease_type + ";" + humsavar_variant_comment)
@@ -231,12 +237,17 @@ def humsavar_variant_check(humsavar_variant):
                                                 aa_mut, disease_status, disease_comments, variant_source, variant_source_id)
 
 
-def varmap_process(varmap_list, source, varmap_index, *clinvar_summary):
+def varmap_process(varmap_list, source, varmap_index):
     for varmap_item in varmap_list:
+        varmap_item=varmap_item.strip().split('\t') 
         variant_source = source
+
         var_record_location = varmap_item[varmap_index["SEQ_NO"]]
         var_record_id = varmap_item[varmap_index["USER_ID"]]
         uniprot_record = varmap_item[varmap_index["UNIPROT_ACCESSION"]]
+        if "-" in uniprot_record:
+            uniprot_record=uniprot_record.split("-")
+            uniprot_record=uniprot_record[0]
         variant_review = "Unknown"
         aa_wt = varmap_item[varmap_index["UNIPROT_AA"]]
         if len(varmap_item[varmap_index["AA_CHANGE"]]) == 3 and "/" in varmap_item[varmap_index["AA_CHANGE"]]:
@@ -246,32 +257,50 @@ def varmap_process(varmap_list, source, varmap_index, *clinvar_summary):
         disease_status = ""
         disease_comments = ""
         user_id = varmap_item[varmap_index["USER_ID"]]
+        germline_status=None 
+        # Updated ClinVar format
+        parsed_id=varmap_clinvar_id_parse(user_id)
+        disease_status = disease_class(''.join(parsed_id["disease_status"]))
+        disease_list=parsed_id["diseases"]
 
-        # Is the variant disease causing?
-        # This only applies to clinvar
-        for a_list in clinvar_summary:
-            for summary_line in a_list: #No idea why this [0] is needed. A list in a list should be what it is, not a list in a list in a list.
-
-                if int(summary_line[0]) == int(user_id):  #  (variant id is last column in summary)
-                    # print("clinvar summary and snipclip finally found a hit for variant ",int(var_record_id))
-                    disease_status = disease_class(summary_line[6])
-                    print(summary_line[6],disease_status) 
-                    disease_comments = summary_line[3]
-                    disease_list = list(summary_line[13].split(";"))
-                    if "germline" in summary_line[14]:
-                        germline_status=True
-                    else:
-                        germline_status=False
-
-
-        if disease_status=="":
-            print(user_id, "not in summary file.")
 
         #print(uniprot_record, var_record_location, aa_wt, aa_mut, disease_status, variant_source, user_id)
 
         var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut,
                         disease_status, disease_comments, variant_source, user_id, germline=germline_status, diseases=disease_list)
 
+def varmap_clinvar_id_parse(varmap_id):
+    varmap_id_dict={}
+    varmap_id=varmap_id.split('yYy')
+    varmap_clinvar_order={
+        0:'qc',
+        1:'clinvar_id', 
+        2:'clinvar_allele_id',
+        3:'diseases', 
+        4:'disease_db_ids', 
+        5:'CLNHGVS', 
+        6: 'CLNREVSTAT', 
+        7:'disease_status', 
+        8:'CLNSIGCONF',
+        9:'CLNVC',
+        10:'CLNVCSO',
+        11:'CLNVI',
+        12:'DBVARID',
+        13:'GENEINFO',
+        14:'MC',
+        15:'ORIGIN',
+        16:'RS',
+        17:'SSR',       
+        19:'CLNDNINCL*',
+        20:'CLNDISDBINCL*',
+        21:'CLNSIGINCL*',
+        22:'CLNVC'}
+
+    for n, i in enumerate(varmap_id):
+        i=i.split('zZz')
+        if n in varmap_clinvar_order:
+            varmap_id_dict[varmap_clinvar_order[n]]="".join(i)
+    return(varmap_id_dict)
 
 def varmap_header_dict(varmap_file):
     with open(varmap_file, encoding="ISO-8859-1") as inputfile:
@@ -284,7 +313,6 @@ def varmap_header_dict(varmap_file):
 
 
 def run():
-
     input_query = input_query_get()
     # Also, parse the variant files which can be massive.
     # humsavar table
@@ -298,38 +326,23 @@ def run():
     input_query_set = inputs[1]
 
     ### VarMap ###
-    # VarMap files can be big. Preprocessing them saves a lot of time
 
     varmap_files = {
-        "clinvar": "scripts/external_datasets/clinvar_varmap_variants_05_06_2020.tsv",
+        "clinvar": "scripts/external_datasets/clinvar_restitched.tsv",
+        "clinvar_test": "scripts/external_datasets/test_clinvar.tsv",
     }
 
-    #print(stripped_variant_list(varmap_files["clinvar"], input_query_set))
-    #print(stripped_variant_list(varmap_files["gnomad"], input_query_set))
-
-    clinvar_for_processing = stripped_variant_list(
-        varmap_files["clinvar"], input_query_set)
-
-
-    clinvar_results_list = clinvar_for_processing[0]
-    clinvar_results_set = clinvar_for_processing[1]
-
-    clinvar_summary_lines = []
-    print("Loading the variant summaries from ClinVar. This holds information on disease states in clinvar.")
-    #with open("scripts/external_datasets/variant_summary_05_06_2020.txt", encoding="ISO-8859-1") as inputfile:
-    #    for line_number, summary_variant in enumerate(inputfile):
-    #        if line_number > 0:
-    #            summary_variant = summary_variant.strip().split('\t')
-    #            # print(str(summary_variant[-1]))
-    #            # This relies on the last column being the id column
-    #            if clean_query(str(summary_variant[0])) in clinvar_results_set:
-    #                clinvar_summary_lines.append(summary_variant)
-    #        else:
-    #            pass
-
-
-    #varmap_process(clinvar_results_list, "ClinVar", varmap_header_dict(varmap_files["clinvar"]), clinvar_summary_lines)
-
+    clinvar_results_list=[]
+    with open(varmap_files["clinvar"], encoding="ISO-8859-1") as inputfile:
+        for line_number, var_database_entry in enumerate(inputfile):
+            if line_number > 0:
+                clinvar_results_list.append(var_database_entry)
+    random.shuffle(clinvar_results_list)
+    print(varmap_header_dict(varmap_files["clinvar"]))
+    print(clinvar_results_list[0])
+    varmap_process(clinvar_results_list, "ClinVar", varmap_header_dict(varmap_files["clinvar"]))
+    Variant.objects.bulk_create(bulk_variants_to_add)
 
     ### Humsavar ###
     humsavar(input_query_set)
+

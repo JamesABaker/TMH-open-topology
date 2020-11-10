@@ -1,0 +1,5 @@
+
+You have 1 unapplied migration(s). Your project may not work properly until you apply the migrations for app(s): auth.
+Run 'python manage.py migrate' to apply them.
+No (valid) module for script 'query_funfams.py' found
+Try running with a higher verbosity level like: -v2 or -v3

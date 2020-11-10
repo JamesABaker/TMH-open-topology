@@ -25,6 +25,10 @@ class Protein(models.Model):
     updated_date = models.DateTimeField(default=timezone.now)
     tail_anchor = models.BooleanField(default=False)
     tail_anchor_evidence = models.TextField(null=True)
+    pLI_gn=models.FloatField(null=True, default=None)
+    oe_lof_upper_gn=models.FloatField(null=True, default=None)
+    mis_z_gn=models.FloatField(null=True, default=None)
+    oe_mis_upper_gn=models.FloatField(null=True, default=None)
 
 
 
@@ -203,6 +207,8 @@ class Variant(models.Model):
     variant_source_id = models.TextField(default="No_ID", null=True)
     variant_map = models.TextField(null=True)
     germline=models.BooleanField(null=True)
+    maf=models.FloatField(null=True, default=None)
+    qc=models.TextField(null=True, default=None)
 
 class Disease(models.Model):
     disease_name = models.TextField(unique=True)
