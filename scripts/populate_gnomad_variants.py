@@ -1,19 +1,5 @@
-from __future__ import division
-
-import os
-import time
-from datetime import date
-from datetime import datetime
-from datetime import timedelta
-
-import pytz
-from Bio import SeqIO
-from django.conf import settings
-from django.core.exceptions import ObjectDoesNotExist
-from django.db import models
-from django.utils import timezone
-
 from scripts.populate_general_functions import *
+
 # env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
 bulk_variants_to_add=[]
 
@@ -30,7 +16,7 @@ def varmap_columns_and_keys(column_headers):
 def gnomad_process(varmap_file, input_query_set, version_name):
 
     varmap_results = []
-
+    proteins=[]
     with open(varmap_file, encoding="ISO-8859-1") as inputfile:
         varmap_line = inputfile.readline()
         cnt = 0
@@ -46,8 +32,8 @@ def gnomad_process(varmap_file, input_query_set, version_name):
             else:
                 #
                 varmap_line = varmap_line.strip().split('\t')
-                uniprot_accession = str(varmap_line[uniprot_accession_index])
-                ##print("gnomAD in:", uniprot_accession)
+                uniprot_accession =clean_query( str(varmap_line[uniprot_accession_index]))
+                print("gnomAD in:", uniprot_accession)
                 if str(uniprot_accession) in input_query_set:
                     #varmap_results.append(varmap_line)
                     ##print("Line {}: {}".format(cnt, varmap_line))
@@ -56,7 +42,7 @@ def gnomad_process(varmap_file, input_query_set, version_name):
                     variant_source = version_name
                     var_record_location = varmap_line[varmap_headers["SEQ_NO"]]
                     var_record_id = varmap_line[varmap_headers["USER_ID"]]
-                    uniprot_record = varmap_line[varmap_headers["UNIPROT_ACCESSION"]]
+                    uniprot_record = clean_query(varmap_line[varmap_headers["UNIPROT_ACCESSION"]])
                     variant_review = "Unknown"
                     aa_wt = varmap_line[varmap_headers["UNIPROT_AA"]]
                     if len(varmap_line[varmap_headers["AA_CHANGE"]]) == 3 and "/" in varmap_line[varmap_headers["AA_CHANGE"]]:
@@ -78,7 +64,9 @@ def gnomad_process(varmap_file, input_query_set, version_name):
                     var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut,
                                     disease_status, disease_comments, variant_source, user_id, variant_maf=parsed_af, variant_qc=parsed_qc)
                     #print(cnt, ":")
+                    proteins.append(uniprot_record)
             varmap_line = inputfile.readline()
+    print(f'{len(proteins)} protein variants added, {len(set(proteins))} unique proteins')
     return()
 
 
