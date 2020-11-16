@@ -16,10 +16,7 @@ from django.utils import timezone
 from scripts.populate_general_functions import *
 # env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
 bulk_variants_to_add=[]
-<<<<<<< HEAD
 bulk_diseases=[]
-=======
->>>>>>> 7d0581ca1391f95dc71047acd29287fc53ec84f4
 
 def varmap_columns_and_keys(column_headers):
     column_headers = column_headers.split()
@@ -33,10 +30,7 @@ def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_
     '''
     Adds the variant from various external databases and flat files to the database in a standardised way.
     '''
-<<<<<<< HEAD
     global bulk_diseases
-=======
->>>>>>> 7d0581ca1391f95dc71047acd29287fc53ec84f4
     global bulk_variants_to_add
     if var_record_location == "-":
         print("Unkown sequence location. Possibly intron: ", uniprot_record, var_record_location,
@@ -90,7 +84,6 @@ def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_
                         )
                         )
 
-<<<<<<< HEAD
                     '''
                     disease_variants=Variant.objects.filter(variant_source_id=variant_source_id, variant_source=variant_source).distinct('pk')
                 
@@ -105,8 +98,6 @@ def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_
                             disease_type.implicated_variants.add(var)
 <<<<<<< HEAD
                     '''
-=======
->>>>>>> 7d0581ca1391f95dc71047acd29287fc53ec84f4
                 else:
                     print("Mismatch between wild-type amino acids. UniProt:", str(residue_variant.amino_acid_type), str(variant_source), ":", str(
                         aa_wt), "for record", uniprot_record, var_record_location, aa_wt, "->", aa_mut, disease_status, disease_comments, variant_source)
@@ -118,14 +109,11 @@ def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_
         if len(bulk_variants_to_add)>1000:
             Variant.objects.bulk_create(bulk_variants_to_add) 
             bulk_variants_to_add=[]                     
-<<<<<<< HEAD
         '''
         if len(bulk_diseases)>1000:
             Disease.objects.bulk_create(bulk_diseases)
         '''
-=======
 
->>>>>>> 7d0581ca1391f95dc71047acd29287fc53ec84f4
 def disease_class(disease_type):
     '''
     Sorts:
@@ -289,7 +277,6 @@ def varmap_process(varmap_list, source, varmap_index):
 def varmap_clinvar_id_parse(varmap_id):
     varmap_id_dict={}
     varmap_id=varmap_id.split('yYy')
-<<<<<<< HEAD
     varmap_clinvar_order={
         0:'qc',
         1:'clinvar_id', 
@@ -318,13 +305,6 @@ def varmap_clinvar_id_parse(varmap_id):
         i=i.split('zZz')
         if n in varmap_clinvar_order:
             varmap_id_dict[varmap_clinvar_order[n]]="".join(i)
-=======
-    varmap_clinvar_order={0:'qc', 3:'diseases', 7:'disease_status'}
-    for n, i in enumerate(varmap_id):
-        i=i.split('zZz')
-        if n in varmap_clinvar_order:
-            varmap_id_dict[varmap_clinvar_order[n]]=i
->>>>>>> 7d0581ca1391f95dc71047acd29287fc53ec84f4
     return(varmap_id_dict)
 
 def varmap_header_dict(varmap_file):
@@ -367,10 +347,6 @@ def run():
     print(clinvar_results_list[0])
     varmap_process(clinvar_results_list, "ClinVar", varmap_header_dict(varmap_files["clinvar"]))
     Variant.objects.bulk_create(bulk_variants_to_add)
-<<<<<<< HEAD
-=======
-
->>>>>>> 7d0581ca1391f95dc71047acd29287fc53ec84f4
 
     ### Humsavar ###
     humsavar(input_query_set)
