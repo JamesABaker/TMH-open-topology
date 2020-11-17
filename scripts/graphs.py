@@ -8,7 +8,6 @@ import numpy as np
 import scipy.stats as stats
 from requests import get
 
-from scripts.populate_general_functions import impossible_subs
 date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 
@@ -46,7 +45,7 @@ def histogram(performance, source, state, x_label, y_label):
 
 def impossible_cordinates(aa_order):
 
-    impossible_substitutions = impossible_subs()
+    impossible_substitutions = scripts.impossible_subs()
     impossible_aa = []
     impossible_x_coordinates = []
     impossible_y_coorindates = []

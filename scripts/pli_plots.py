@@ -26,13 +26,13 @@ def violin(list1=[], list1name="List 1", list2=[], list2name="List 2", title="Nu
     # uniform distribution 
     ax1.set_title(list1name) 
     ax1.set_ylabel(title) 
-    ax1.violinplot(list1) 
+    ax1.hist(list1) 
       
       
     # plotting violin plot for  
     # normal distribution 
     ax2.set_title(list2name)
-    ax2.violinplot(list2) 
+    ax2.hist(list2) 
       
     # Function to show the plot 
     plt.show() 

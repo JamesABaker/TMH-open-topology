@@ -1,19 +1,5 @@
-from __future__ import division
-import random
-import os
-import time
-
-from datetime import date
-from datetime import datetime
-from datetime import timedelta
-
-import pytz
-from Bio import SeqIO
-from django.conf import settings
-from django.db import models
-from django.utils import timezone
-
 from scripts.populate_general_functions import *
+
 # env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
 bulk_variants_to_add=[]
 bulk_diseases=[]
@@ -87,7 +73,6 @@ def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_
                     '''
                     disease_variants=Variant.objects.filter(variant_source_id=variant_source_id, variant_source=variant_source).distinct('pk')
                 
-=======
                     disease_variants=Variant.objects.filter(variant_source_id=variant_source_id, variant_source=variant_source).distinct('pk')
 >>>>>>> 7d0581ca1391f95dc71047acd29287fc53ec84f4
                     for var in disease_variants:
@@ -96,7 +81,6 @@ def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_
                                 disease_name=dis)
                             disease_type=Disease.objects.get(disease_name=dis) 
                             disease_type.implicated_variants.add(var)
-<<<<<<< HEAD
                     '''
                 else:
                     print("Mismatch between wild-type amino acids. UniProt:", str(residue_variant.amino_acid_type), str(variant_source), ":", str(
@@ -249,7 +233,7 @@ def varmap_process(varmap_list, source, varmap_index):
 
         var_record_location = varmap_item[varmap_index["SEQ_NO"]]
         var_record_id = varmap_item[varmap_index["USER_ID"]]
-        uniprot_record = varmap_item[varmap_index["UNIPROT_ACCESSION"]]
+        uniprot_record = clean_query(varmap_item[varmap_index["UNIPROT_ACCESSION"]])
         if "-" in uniprot_record:
             uniprot_record=uniprot_record.split("-")
             uniprot_record=uniprot_record[0]
@@ -342,7 +326,7 @@ def run():
         for line_number, var_database_entry in enumerate(inputfile):
             if line_number > 0:
                 clinvar_results_list.append(var_database_entry)
-    random.shuffle(clinvar_results_list)
+    #random.shuffle(clinvar_results_list)
     print(varmap_header_dict(varmap_files["clinvar"]))
     print(clinvar_results_list[0])
     varmap_process(clinvar_results_list, "ClinVar", varmap_header_dict(varmap_files["clinvar"]))

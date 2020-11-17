@@ -5,14 +5,12 @@ import numpy as np
 from requests import get
 from time import sleep
 from tmh_db.models import Disease, Database_Metadata, Flank, Flank_residue, Funfam, FunfamResidue, Go, Keyword, Non_tmh_helix, Non_tmh_helix_residue, Protein, Residue, Signal_peptide, Signal_residue, Structural_residue, Structure, SubcellularLocation, Tmh, Tmh_deltag, Tmh_hydrophobicity, Tmh_residue, Tmh_tmsoc, Uniref, Variant
-from datetime import date
-
+import time
 # These functions are used repeatedly throughout the population process.
 # To keep things consistent and easy to manage, they have all been bundled into one file.
 
 time_threshold = 7
-today = date.today()
-todaysdate = today.strftime("%d_%m_%Y")
+todaysdate =time.time() 
 
 test_query_list = ["Q5VTH2", "Q8NHU3", "P01850", "P22760", "P18507", "Q5K4L6",
                    "Q7Z5H4", "O14925", "Q9NR77", "P31644", "Q9NS61", "P02748", "A0A075B6J2"]
