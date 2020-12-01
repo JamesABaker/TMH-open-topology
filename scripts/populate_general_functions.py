@@ -99,7 +99,7 @@ def get_uniprot():
     # uniprot_list = 'https://www.uniprot.org/uniprot/?query=reviewed%3Ayes+AND+organism%3A"Homo+sapiens+(Human)+[9606]"+AND+annotation%3A(type%3Atransmem)&sort=score&columns=id,&format=tab'
 
     uniprot_list_file = "scripts/external_datasets/uniprot_bin/uniprot_list" + \
-        todaysdate + ".txt"
+        str(todaysdate) + ".txt"
     try:
         input_query = open_uniprot(uniprot_list_file)
     except:

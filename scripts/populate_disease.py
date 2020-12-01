@@ -139,6 +139,41 @@ def varmap_process(varmap_list, source, varmap_index):
         var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut,
                         disease_status, disease_comments, variant_source, user_id, germline=germline_status, diseases=disease_list)
 
+
+def varmap_clinvar_id_parse(varmap_id):
+    varmap_id_dict={}
+    varmap_id=varmap_id.split('yYy')
+    varmap_clinvar_order={
+        0:'qc',
+        1:'clinvar_id', 
+        2:'clinvar_allele_id',
+        3:'diseases', 
+        4:'disease_db_ids', 
+        5:'CLNHGVS', 
+        6: 'CLNREVSTAT', 
+        7:'disease_status', 
+        8:'CLNSIGCONF',
+        9:'CLNVC',
+        10:'CLNVCSO',
+        11:'CLNVI',
+        12:'DBVARID',
+        13:'GENEINFO',
+        14:'MC',
+        15:'ORIGIN',
+        16:'RS',
+        17:'SSR',       
+        19:'CLNDNINCL*',
+        20:'CLNDISDBINCL*',
+        21:'CLNSIGINCL*',
+        22:'CLNVC'}
+
+    for n, i in enumerate(varmap_id):
+        i=i.split('zZz')
+        if n in varmap_clinvar_order:
+            varmap_id_dict[varmap_clinvar_order[n]]="".join(i)
+    return(varmap_id_dict)
+
+
 def varmap_header_dict(varmap_file):
     with open(varmap_file, encoding="ISO-8859-1") as inputfile:
         for line_number, var_database_entry in enumerate(inputfile):
