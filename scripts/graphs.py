@@ -45,7 +45,7 @@ def histogram(performance, source, state, x_label, y_label):
 
 def impossible_cordinates(aa_order):
 
-    impossible_substitutions = scripts.impossible_subs()
+    impossible_substitutions = scripts.populate_general_functions.impossible_subs()
     impossible_aa = []
     impossible_x_coordinates = []
     impossible_y_coorindates = []

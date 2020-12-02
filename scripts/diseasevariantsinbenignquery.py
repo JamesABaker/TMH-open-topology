@@ -1,5 +1,5 @@
 # Shell Plus Model Imports
-#diseasevariantsinbenignquery
+# diseasevariantsinbenignquery
 from django.conf import settings
 from django.contrib.admin.models import LogEntry
 from django.contrib.auth import get_user_model
@@ -54,16 +54,19 @@ from tmh_db.models import Variant
 
 Variant.objects.all().prefetch_related("residue", "residue__protein")
 
-disease=Variant.objects.filter(disease_status="d", variant_source="ClinVar").values_list("residue__protein__uniprot_id", "residue__sequence_position", "aa_wt", "aa_mut")
-gnomad2=Variant.objects.filter(variant_source="gnomAD2").values_list("residue__protein__uniprot_id", "residue__sequence_position", "aa_wt", "aa_mut")
-gnomad3=Variant.objects.filter(variant_source="gnomAD3").values_list("residue__protein__uniprot_id", "residue__sequence_position", "aa_wt", "aa_mut")
+disease = Variant.objects.filter(disease_status="d", variant_source="ClinVar").values_list(
+    "residue__protein__uniprot_id", "residue__sequence_position", "aa_wt", "aa_mut")
+gnomad2 = Variant.objects.filter(variant_source="gnomAD2").values_list(
+    "residue__protein__uniprot_id", "residue__sequence_position", "aa_wt", "aa_mut")
+gnomad3 = Variant.objects.filter(variant_source="gnomAD3").values_list(
+    "residue__protein__uniprot_id", "residue__sequence_position", "aa_wt", "aa_mut")
 
 for i in disease:
     for x in gnomad2:
-        if i==x:
+        if i == x:
             print(i, "found in gnomAD2 and disease")
 
 for i in disease:
     for x in gnomad3:
-        if i==x:
+        if i == x:
             print(i, "found in gnomAD3 and disease")
