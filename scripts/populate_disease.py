@@ -58,7 +58,7 @@ def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_
                         variant_source_id=variant_source_id, variant_source=variant_source).distinct('pk')
                     for var in disease_variants:
                         for dis in diseases:
-                            record_for_database, created = Disease.objects.update_or_create(
+                            record_for_database, created = Disease.objects.get_or_create(
                                 disease_name=dis)
                             disease_type = Disease.objects.get(disease_name=dis)
                             disease_type.implicated_variants.add(var)
