@@ -81,13 +81,13 @@ def query_sets():
 
     ### Inside flanks ###
     insideflank_vars=Variant.objects.filter(disease_status='d', residue__flank_residue__flank__tmh__meta_tmh=True, residue__flank_residue__flank__inside_or_outside="I").distinct('pk')
-    insideflank_res=Residue.objects.filter(flank_residue__flank__tmh__meta_tmh=True, flank_residue__flank__inside_or_outside="Inside").distinct('pk')
+    insideflank_res=Residue.objects.filter(flank_residue__flank__tmh__meta_tmh=True, flank_residue__flank__inside_or_outside="I").distinct('pk')
     print("Inside flanks")
     enrichment_print(query_res=insideflank_res, query_vars=insideflank_vars, feature_type= "Inside flanks")
 
     ### Outside flanks ###
     outsideflank_vars=Variant.objects.filter(disease_status='d', residue__flank_residue__flank__tmh__meta_tmh=True, residue__flank_residue__flank__inside_or_outside="O").distinct('pk')
-    outsideflank_res=Residue.objects.filter(flank_residue__flank__tmh__meta_tmh=True, flank_residue__flank__inside_or_outside="Outside").distinct('pk')
+    outsideflank_res=Residue.objects.filter(flank_residue__flank__tmh__meta_tmh=True, flank_residue__flank__inside_or_outside="O").distinct('pk')
     print("Outside flanks")
     enrichment_print(query_res=outsideflank_res, query_vars=outsideflank_vars, feature_type= "Outside flanks")
 
