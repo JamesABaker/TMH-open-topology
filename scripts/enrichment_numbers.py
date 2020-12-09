@@ -94,27 +94,27 @@ def query_sets():
     ### Spontaneously inserting ###
 
     deltagspont_var=Variant.objects.filter(disease_status='d', residue__tmh_residue__tmh_id__meta_tmh=True, residue__tmh_residue__tmh_id__tmh_deltag__test_score__lte="-0.5").distinct('pk')
-    deltagspont_res=Residue.objects.filter(tmh_residue__tmh_id__meta_tmh=True, tmh_residue__tmh_id__tmh_deltag__test_score__lte="-0.1").distinct('pk')
+    deltagspont_res=Residue.objects.filter(tmh_residue__tmh_id__meta_tmh=True, tmh_residue__tmh_id__tmh_deltag__test_score__lte="-0.5").distinct('pk')
     print("Delta G predicted spontaneous insertion")
     enrichment_print(query_res=deltagspont_res, query_vars=deltagspont_var, feature_type= "Delta G predicted spontaneous insertion")
 
     ### Non-Spontaneously inserting ###
 
     deltagnonspont_var=Variant.objects.filter(disease_status='d', residue__tmh_residue__tmh_id__meta_tmh=True, residue__tmh_residue__tmh_id__tmh_deltag__test_score__gte="0.5").distinct('pk')
-    deltagnonspont_res=Residue.objects.filter(tmh_residue__tmh_id__meta_tmh=True, tmh_residue__tmh_id__tmh_deltag__test_score__gte="0.1").distinct('pk')
+    deltagnonspont_res=Residue.objects.filter(tmh_residue__tmh_id__meta_tmh=True, tmh_residue__tmh_id__tmh_deltag__test_score__gte="0.5").distinct('pk')
     print("Delta G predicted non-spontaneous insertion")
     enrichment_print(query_res=deltagnonspont_res, query_vars=deltagnonspont_var, feature_type= "Delta G predicted non-spontaneous insertion")
 
     ### TMSOC anchore ###
     tmsocsim_var=Variant.objects.filter(disease_status='d', residue__tmh_residue__tmh_id__meta_tmh=True,residue__tmh_residue__tmh_id__tmh_tmsoc__test_score__lte=-5).distinct('pk')
-    tmsocsim_res=Residue.objects.filter(tmh_residue__tmh_id__meta_tmh=True, tmh_residue__tmh_id__tmh_tmsoc__test_result="simple").distinct('pk')
+    tmsocsim_res=Residue.objects.filter(tmh_residue__tmh_id__meta_tmh=True, tmh_residue__tmh_id__tmh_tmsoc__test_score__lte=-5).distinct('pk')
     print("TMSOC simple")
     enrichment_print(query_res=tmsocsim_res, query_vars=tmsocsim_var, feature_type= "Tmsoc Simple Function")
 
     ### TMSOC function ###
 
     tmsocfun_var=Variant.objects.filter(disease_status='d', residue__tmh_residue__tmh_id__meta_tmh=True,residue__tmh_residue__tmh_id__tmh_tmsoc__test_score__gte=-2.5).distinct('pk')
-    tmsocfun_res=Residue.objects.filter(tmh_residue__tmh_id__meta_tmh=True, tmh_residue__tmh_id__tmh_tmsoc__test_result="complex").distinct('pk')
+    tmsocfun_res=Residue.objects.filter(tmh_residue__tmh_id__meta_tmh=True, tmh_residue__tmh_id__tmh_tmsoc__test_score__gte=-2.5).distinct('pk')
     print("TMSOC complex")
     enrichment_print(query_res=tmsocfun_res, query_vars=tmsocfun_var, feature_type= "Tmsoc Complex Function")
 

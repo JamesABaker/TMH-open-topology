@@ -22,7 +22,7 @@ scripts/external_scripts/tmsoc/inputseq.fasta
 # Text files and lists
 !scripts/external_datasets/exclusion_list.txt
 !version_key.txt
-!requirements.txt
+requirements.txt
 
 
 # Secrets secrets
