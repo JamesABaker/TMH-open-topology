@@ -302,7 +302,8 @@ def varmap_clinvar_id_parse(varmap_id):
 
     for n, i in enumerate(varmap_id):
         if varmap_clinvar_order[n] == "diseases":
-            i.replace("zZz_", "_")
+            i=i.replace("zZzzZz", "zZz")
+            i=i.replace("zZz_", "_")
         i = i.split("zZz")
         if n in varmap_clinvar_order:
             varmap_id_dict[varmap_clinvar_order[n]] = "".join(i)
