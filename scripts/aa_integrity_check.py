@@ -49,22 +49,38 @@ from tmh_db.models import Tmh_residue
 from tmh_db.models import Tmh_tmsoc
 from tmh_db.models import Uniref
 from tmh_db.models import Variant
+
+
 # Shell Plus Django Imports
 
+
 def structure_residue_uniprot_residue_check():
-    a=Structural_residue.objects.all().distinct('pk').values_list('structure__pdb_id','residue__protein__uniprot_id','structure_aa', 'residue__amino_acid_type')
-    test_pass=True
-    mismatches=[]
+    a = (
+        Structural_residue.objects.all()
+        .distinct("pk")
+        .values_list(
+            "structure__pdb_id",
+            "residue__protein__uniprot_id",
+            "structure_aa",
+            "residue__amino_acid_type",
+        )
+    )
+    test_pass = True
+    mismatches = []
     for i in a:
         if i[2] != i[3]:
-            test_pass=False
+            test_pass = False
             mismatches.append(i)
 
-    return(test_pass, mismatches)
+    return (test_pass, mismatches)
+
 
 def run():
-    residue_structure_mismatches=structure_residue_uniprot_residue_check()
+    residue_structure_mismatches = structure_residue_uniprot_residue_check()
     if residue_structure_mismatches[0] == True:
         print("All structures match their uniprot residue aa types.")
     elif residue_structure_mismatches[0] == False:
-        print(len(residue_structure_mismatches[1]), "structural residues did not match between their structure and their sequence.")
+        print(
+            len(residue_structure_mismatches[1]),
+            "structural residues did not match between their structure and their sequence.",
+        )

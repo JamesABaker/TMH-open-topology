@@ -50,16 +50,22 @@ from tmh_db.models import Tmh_residue
 from tmh_db.models import Tmh_tmsoc
 from tmh_db.models import Uniref
 from tmh_db.models import Variant
+
 # Shell Plus Django Imports
 
 Variant.objects.all().prefetch_related("residue", "residue__protein")
 
-disease = Variant.objects.filter(disease_status="d", variant_source="ClinVar").values_list(
-    "residue__protein__uniprot_id", "residue__sequence_position", "aa_wt", "aa_mut")
+disease = Variant.objects.filter(
+    disease_status="d", variant_source="ClinVar"
+).values_list(
+    "residue__protein__uniprot_id", "residue__sequence_position", "aa_wt", "aa_mut"
+)
 gnomad2 = Variant.objects.filter(variant_source="gnomAD2").values_list(
-    "residue__protein__uniprot_id", "residue__sequence_position", "aa_wt", "aa_mut")
+    "residue__protein__uniprot_id", "residue__sequence_position", "aa_wt", "aa_mut"
+)
 gnomad3 = Variant.objects.filter(variant_source="gnomAD3").values_list(
-    "residue__protein__uniprot_id", "residue__sequence_position", "aa_wt", "aa_mut")
+    "residue__protein__uniprot_id", "residue__sequence_position", "aa_wt", "aa_mut"
+)
 
 for i in disease:
     for x in gnomad2:
