@@ -49,12 +49,24 @@ from tmh_db.models import Tmh_residue
 from tmh_db.models import Tmh_tmsoc
 from tmh_db.models import Uniref
 from tmh_db.models import Variant
+
 # Shell Plus Django Imports
 
-a=Protein.objects.all().distinct("pk").values_list("uniprot_id", "full_sequence")
+a = Protein.objects.all().distinct("pk").values_list("uniprot_id", "full_sequence")
 for i in a:
-    a_uniprot_id=i[0]
-    sequence=len(i[1])
-    number_of_disease_variant=Variant.objects.filter(residue__protein__uniprot_id=a_uniprot_id, disease_status="d").distinct("pk").count()
-    number_of_benign_variant=Variant.objects.filter(residue__protein__uniprot_id=a_uniprot_id).exclude(disease_status="d").distinct("pk").count()
+    a_uniprot_id = i[0]
+    sequence = len(i[1])
+    number_of_disease_variant = (
+        Variant.objects.filter(
+            residue__protein__uniprot_id=a_uniprot_id, disease_status="d"
+        )
+        .distinct("pk")
+        .count()
+    )
+    number_of_benign_variant = (
+        Variant.objects.filter(residue__protein__uniprot_id=a_uniprot_id)
+        .exclude(disease_status="d")
+        .distinct("pk")
+        .count()
+    )
     print(a_uniprot_id, sequence, number_of_disease_variant, number_of_benign_variant)
