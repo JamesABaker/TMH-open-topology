@@ -72,14 +72,14 @@ def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_
 
                     '''
                     disease_variants=Variant.objects.filter(variant_source_id=variant_source_id, variant_source=variant_source).distinct('pk')
-                
+
                     disease_variants=Variant.objects.filter(variant_source_id=variant_source_id, variant_source=variant_source).distinct('pk')
 >>>>>>> 7d0581ca1391f95dc71047acd29287fc53ec84f4
                     for var in disease_variants:
                         for dis in diseases:
                             record_for_database, created = Disease.objects.update_or_create(
                                 disease_name=dis)
-                            disease_type=Disease.objects.get(disease_name=dis) 
+                            disease_type=Disease.objects.get(disease_name=dis)
                             disease_type.implicated_variants.add(var)
                     '''
                 else:
@@ -91,8 +91,8 @@ def var_to_database(uniprot_record, var_record_location, aa_wt, aa_mut, disease_
         except(Protein.DoesNotExist):
             print(f'{uniprot_record} was not found in database. Skipping entry.')
         if len(bulk_variants_to_add)>1000:
-            Variant.objects.bulk_create(bulk_variants_to_add) 
-            bulk_variants_to_add=[]                     
+            Variant.objects.bulk_create(bulk_variants_to_add)
+            bulk_variants_to_add=[]
         '''
         if len(bulk_diseases)>1000:
             Disease.objects.bulk_create(bulk_diseases)
@@ -228,7 +228,7 @@ def humsavar_variant_check(humsavar_variant):
 
 def varmap_process(varmap_list, source, varmap_index):
     for varmap_item in varmap_list:
-        varmap_item=varmap_item.strip().split('\t') 
+        varmap_item=varmap_item.strip().split('\t')
         variant_source = source
 
         var_record_location = varmap_item[varmap_index["SEQ_NO"]]
@@ -246,7 +246,7 @@ def varmap_process(varmap_list, source, varmap_index):
         disease_status = ""
         disease_comments = ""
         user_id = varmap_item[varmap_index["USER_ID"]]
-        germline_status=None 
+        germline_status=None
         # Updated ClinVar format
         parsed_id=varmap_clinvar_id_parse(user_id)
         disease_status = disease_class(''.join(parsed_id["disease_status"]))
@@ -263,13 +263,13 @@ def varmap_clinvar_id_parse(varmap_id):
     varmap_id=varmap_id.split('yYy')
     varmap_clinvar_order={
         0:'qc',
-        1:'clinvar_id', 
+        1:'clinvar_id',
         2:'clinvar_allele_id',
-        3:'diseases', 
-        4:'disease_db_ids', 
-        5:'CLNHGVS', 
-        6: 'CLNREVSTAT', 
-        7:'disease_status', 
+        3:'diseases',
+        4:'disease_db_ids',
+        5:'CLNHGVS',
+        6: 'CLNREVSTAT',
+        7:'disease_status',
         8:'CLNSIGCONF',
         9:'CLNVC',
         10:'CLNVCSO',
@@ -279,7 +279,7 @@ def varmap_clinvar_id_parse(varmap_id):
         14:'MC',
         15:'ORIGIN',
         16:'RS',
-        17:'SSR',       
+        17:'SSR',
         19:'CLNDNINCL*',
         20:'CLNDISDBINCL*',
         21:'CLNSIGINCL*',
@@ -303,7 +303,7 @@ def varmap_header_dict(varmap_file):
 
 def run():
     input_query = input_query_get()
-    # Also, parse the variant files which can be massive.
+# Also, parse the variant files which can be massive.
     # humsavar table
     print(input_query)
     print("Starting TMH database population script...")
@@ -334,4 +334,3 @@ def run():
 
     ### Humsavar ###
     humsavar(input_query_set)
-
