@@ -24,23 +24,6 @@ from django.utils import timezone
 
 from scripts.graphs import *
 from scripts.populate_general_functions import *
-from tmh_db.models import Binding_residue
-from tmh_db.models import Database_Metadata
-from tmh_db.models import Funfam_residue
-from tmh_db.models import Funfamstatus
-from tmh_db.models import Go
-from tmh_db.models import Keyword
-from tmh_db.models import Protein
-from tmh_db.models import Residue
-from tmh_db.models import Structural_residue
-from tmh_db.models import Structure
-from tmh_db.models import Tmh
-from tmh_db.models import Tmh_deltag
-from tmh_db.models import Tmh_hydrophobicity
-from tmh_db.models import Tmh_residue
-from tmh_db.models import Tmh_tmsoc
-from tmh_db.models import Variant
-
 # Shell Plus Django Imports
 
 residues = [

@@ -112,7 +112,7 @@ def subcellular_location(filename):
         protein = Protein.objects.get(uniprot_id=record.id)
         for i, f in enumerate(record.features):
             if f.type == "TOPO_DOM":
-                subcellular_location_for_database, created = Subcellular_location.objects.get_or_create(
+                subcellular_location_for_database, created = SubcellularLocation.objects.get_or_create(
                     location=f.qualifiers["description"].split(".")[0])
                 subcellular_location_for_database.proteins.add(protein)
 
