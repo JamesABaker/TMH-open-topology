@@ -80,7 +80,7 @@ def uniprot_table(query_id):
     if tm_protein is True:
         tmh_input([query_id])
 
-    
+
     for record in SeqIO.parse(filename, input_format):
     	non_tmh_helix_input(record)
 
@@ -230,7 +230,7 @@ def uniprot_tm_check(query_id):
 
                     # A list of common locations. These need sorting into inside/outside locations
                     io_dictionary_odd_even = uniprot_topo_check(record)
-
+                    print(tmh_number)
                     tmh_topology = io_dictionary_odd_even[odd_or_even(tmh_number)]
 
                     membrane_location = uniprot_membrane_location(record)

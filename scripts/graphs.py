@@ -8,6 +8,7 @@ import numpy as np
 import scipy.stats as stats
 from requests import get
 
+
 date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
@@ -45,10 +46,36 @@ def histogram(performance, source, state, x_label, y_label):
     plt.savefig(filename, bbox_inches="tight")
     plt.clf()
 
+def impossible_subs():
+    aa_impossible_subs_dict = {
+        "A": ["K", "R", "Q", "H", "N", "Y", "W", "C", "M", "F", "I", "L"],
+        "R": ["E", "D", "N", "Y", "V", "F", "A"],
+        "N": ["R", "E", "Q", "P", "W", "C", "M", "G", "V", "F", "A", "L"],
+        "D": ["K", "R", "Q", "P", "W", "C", "M", "T", "S", "F", "I", "L"],
+        "C": ["K", "E", "D", "Q", "H", "N", "P", "M", "T", "V", "A", "I", "L"],
+        "Q": ["D", "N", "Y", "W", "C", "M", "T", "S", "G", "V", "F", "A", "I"],
+        "E": ["R", "H", "N", "P", "Y", "W", "C", "M", "T", "S", "F", "I", "L"],
+        "G": ["K", "Q", "H", "N", "P", "Y", "M", "T", "F", "I", "L"],
+        "H": ["K", "E", "W", "C", "M", "T", "S", "G", "V", "F", "A", "I"],
+        "I": ["E", "D", "Q", "H", "P", "Y", "W", "C", "G", "A"],
+        "L": ["K", "E", "D", "N", "Y", "C", "T", "G", "A"],
+        "K": ["D", "H", "P", "Y", "W", "C", "S", "G", "V", "F", "A", "L"],
+        "M": ["E", "D", "Q", "H", "N", "P", "Y", "W", "C", "S", "G", "F", "A"],
+        "F": ["K", "R", "E", "D", "Q", "H", "N", "P", "W", "M", "T", "G", "A"],
+        "P": ["K", "E", "D", "N", "Y", "W", "C", "M", "G", "V", "F", "I"],
+        "S": ["K", "E", "D", "Q", "H", "M", "V"],
+        "T": ["E", "D", "Q", "H", "Y", "W", "C", "G", "V", "F", "L"],
+        "W": ["K", "E", "D", "Q", "H", "N", "P", "Y", "M", "T", "V", "F", "A", "I"],
+        "Y": ["K", "R", "E", "Q", "P", "W", "M", "T", "G", "V", "A", "I", "L"],
+        "V": ["K", "R", "Q", "H", "N", "P", "Y", "W", "C", "T", "S"],
+        "U": [],
+    }
+
+    return aa_impossible_subs_dict
 
 def impossible_cordinates(aa_order):
 
-    impossible_substitutions = scripts.populate_general_functions.impossible_subs()
+    impossible_substitutions = impossible_subs()
     impossible_aa = []
     impossible_x_coordinates = []
     impossible_y_coorindates = []

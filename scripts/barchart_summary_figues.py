@@ -1,28 +1,4 @@
-from scripts.populate_general_functions import aa_baezo_order
-from tmh_db.models import Database_Metadata
-from tmh_db.models import Flank
-from tmh_db.models import Flank_residue
-from tmh_db.models import Funfam
-from tmh_db.models import Funfam_residue
-from tmh_db.models import Funfamstatus
-from tmh_db.models import Go
-from tmh_db.models import Keyword
-from tmh_db.models import Non_tmh_helix
-from tmh_db.models import Non_tmh_helix_residue
-from tmh_db.models import Protein
-from tmh_db.models import Residue
-from tmh_db.models import Signal_peptide
-from tmh_db.models import Signal_residue
-from tmh_db.models import Structural_residue
-from tmh_db.models import Structure
-from tmh_db.models import Subcellular_location
-from tmh_db.models import Tmh
-from tmh_db.models import Tmh_deltag
-from tmh_db.models import Tmh_hydrophobicity
-from tmh_db.models import Tmh_residue
-from tmh_db.models import Tmh_tmsoc
-from tmh_db.models import Uniref
-from tmh_db.models import Variant
+from scripts.populate_general_functions import *
 import numpy as np
 import matplotlib.pyplot as plt
 from datetime import date
@@ -114,6 +90,7 @@ barchart(barchart_dictionary(multipass_residues), "Multipass TMH residues")
 # Helix
 helix_residues = (
     Residue.objects.filter(non_tmh_helix_residue__nont_tmh_helix_id__helix_start__gte=0)
+    .exclude(tmh_residue__tmh_id__meta_tmh=True)
     .distinct("pk")
     .values_list("amino_acid_type", flat=True)
 )

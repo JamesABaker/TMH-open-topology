@@ -19,24 +19,7 @@ from django.db.models import Sum
 from django.db.models import When
 
 from scripts.populate_general_functions import *
-from tmh_db.models import Binding_residue
-from tmh_db.models import Database_Metadata
-from tmh_db.models import Funfam_residue
-from tmh_db.models import Funfamstatus
-from tmh_db.models import Go
-from tmh_db.models import Keyword
-from tmh_db.models import Protein
-from tmh_db.models import Residue
-from tmh_db.models import Structural_residue
-from tmh_db.models import Structure
-from tmh_db.models import Subcellular_location
-from tmh_db.models import Tmh
-from tmh_db.models import Tmh_deltag
-from tmh_db.models import Tmh_hydrophobicity
-from tmh_db.models import Tmh_residue
-from tmh_db.models import Tmh_tmsoc
-from tmh_db.models import Uniref
-from tmh_db.models import Variant
+
 # env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install_vars psycopg2
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
@@ -71,23 +54,34 @@ def plot_violins(x, y, this_color):
 
 def get_variant_z_disease_tmh():
 #print(Variant.objects.filter(residue__protein__uniprot_id=aline).values_list("residue__sequence_position"))
-    return(list(Variant.objects.filter(disease_status='d', residue__tmh_residue__evidence=evidence_source).distinct('pk').values_list("residue__tmh_residue__amino_acid_location_in_to_out", "aa_wt", "aa_mut")))
+    vars=list(Variant.objects.filter(disease_status='d', variant_source="ClinVar", residue__tmh_residue__tmh_id__meta_tmh=True).distinct('pk').values_list("residue__tmh_residue__amino_acid_location_in_to_out", "aa_wt", "aa_mut"))
+    print(len(vars), "disease tmh vars")
+    return(vars)
 
 def get_variant_z_disease_flank():
 #print(Variant.objects.filter(residue__protein__uniprot_id=aline).values_list("residue__sequence_position"))
-    return(list(Variant.objects.filter(disease_status='d', residue__flank_residue__evidence=evidence_source).distinct('pk').values_list("residue__flank_residue__amino_acid_location_in_to_out", "aa_wt", "aa_mut")))
+
+    vars=list(Variant.objects.filter(disease_status='d', variant_source="ClinVar", residue__flank_residue__flank__tmh__meta_tmh=True).distinct('pk').values_list("residue__flank_residue__amino_acid_location_in_to_out", "aa_wt", "aa_mut"))
+    print(len(vars), "disease flank vars")
+    return(vars)
+
 
 def get_variant_z_benign_tmh():
 #print(Variant.objects.filter(residue__protein__uniprot_id=aline).values_list("residue__sequence_position"))
-    return(list(Variant.objects.filter(disease_status='n', residue__tmh_residue__evidence=evidence_source).exclude(aa_mut=F("aa_wt")).distinct('pk').values_list("residue__tmh_residue__amino_acid_location_in_to_out", "aa_wt", "aa_mut")))
-
+    vars=list(Variant.objects.filter( variant_source="gnomAD3", residue__tmh_residue__tmh_id__meta_tmh=True).exclude(aa_mut=F("aa_wt")).distinct('pk').values_list("residue__tmh_residue__amino_acid_location_in_to_out", "aa_wt", "aa_mut"))
+    print(len(vars), "benign tmh vars")
+    return(vars)
 def get_variant_z_benign_flank():
 #print(Variant.objects.filter(residue__protein__uniprot_id=aline).values_list("residue__sequence_position"))
-    return(list(Variant.objects.filter(disease_status='n', residue__flank_residue__evidence=evidence_source).exclude(aa_mut=F("aa_wt")).distinct('pk').values_list("residue__flank_residue__amino_acid_location_in_to_out", "aa_wt", "aa_mut")))
+
+    vars=list(Variant.objects.filter(variant_source="gnomAD3", residue__flank_residue__flank__tmh__meta_tmh=True).exclude(aa_mut=F("aa_wt")).distinct('pk').values_list("residue__flank_residue__amino_acid_location_in_to_out", "aa_wt", "aa_mut"))
+    print(len(vars), "benign flank vars")
+
+    return(vars)
 
 def delta_hydro(aa_wildtype, aa_varianttype):
     delta=abs(charge[aa_wildtype]-charge[aa_varianttype])
-    if aa_wildtype > aa_varianttype:
+    if charge[aa_wildtype] > charge[aa_varianttype]:
         delta=0-delta
 
     return(delta)
@@ -153,7 +147,7 @@ def disease_prop_normalise(disease_list, benign_list):
     for x_position_in_list, dy_values in enumerate(dy):
         x_position = dx[x_position_in_list]
         for number, an_x in enumerate(bx):
-            print(x_position, an_x)
+            #print(x_position, an_x)
             if an_x ==x_position:
                 benign_value=by[number].count(0)
 
@@ -162,6 +156,7 @@ def disease_prop_normalise(disease_list, benign_list):
         if disease_value>0 and benign_value>0:
             normalise_value=disease_value/benign_value
             #print(x_position, charge_change, area)
+            print(x_position,normalise_value)
             plt.scatter(x_position,normalise_value , c="gray", alpha=0.5)
 
     benign_value=0
@@ -171,7 +166,7 @@ def disease_prop_normalise(disease_list, benign_list):
         x_position = dx[x_position_in_list]
 
         for number, an_x in enumerate(bx):
-            print(x_position, an_x)
+            #print(x_position, an_x)
             if an_x ==x_position:
                 if number <= len(by[number]):
                     # How many are at the position minus how many at that position are 0
@@ -183,26 +178,27 @@ def disease_prop_normalise(disease_list, benign_list):
         if disease_value>0 and benign_value>0:
             normalise_value=disease_value/benign_value
             #print(x_position, charge_change, area)
+            print(x_position,normalise_value)
             plt.scatter(x_position,normalise_value , c="plum", alpha=0.5)
 
         ### Charge =2
-        for x_position_in_list, dy_values in enumerate(dy):
-            x_position = dx[x_position_in_list]
-
-            for number, an_x in enumerate(bx):
-                print(x_position, an_x)
-                if an_x ==x_position:
-                    if number <= len(by[number]):
-                        # How many are at the position minus how many at that position are 0
-                        benign_value=by[number].count(2)
-
-            # How many are at the position minus how many at that position are 0
-            disease_value=dy_values.count(2)
-
-            if disease_value>0 and benign_value>0:
-                normalise_value=disease_value/benign_value
-                #print(x_position, charge_change, area)
-                plt.scatter(x_position,normalise_value , c="indigo", alpha=0.5)
+        #for x_position_in_list, dy_values in enumerate(dy):
+        #    x_position = dx[x_position_in_list]
+#
+        #    for number, an_x in enumerate(bx):
+        #        print(x_position, an_x)
+        #        if an_x ==x_position:
+        #            if number <= len(by[number]):
+        #                # How many are at the position minus how many at that #position are 0
+        #                benign_value=by[number].count(2)
+#
+        #    # How many are at the position minus how many at that position are 0
+        #    disease_value=dy_values.count(2)
+#
+        #    if disease_value>0 and benign_value>0:
+        #        normalise_value=disease_value/benign_value
+        #        #print(x_position, charge_change, area)
+        #        plt.scatter(x_position,normalise_value , c="indigo", alpha=0.5)
 
 
 def clean_positions(position_list):
@@ -246,9 +242,6 @@ def run():
     clean_list=clean_list+flank_clean_list
     benign_hydrophobicity_list = hydro_list(clean_list)
     plot_sort_x_y(benign_hydrophobicity_list, "steelblue")
-
-
-
 
     # Save bitmap and vector images of figure, then flush figure.
     name="delta_charge_z_benign"
