@@ -136,6 +136,7 @@ def residue_table(query_id, sequence):
 
     for residue_number, a_residue in enumerate(sequence):
         if not (query_id, residue_number + 1) in existing:
+
             residues_to_create.append(
                 Residue(
                     protein=protein,
@@ -143,7 +144,8 @@ def residue_table(query_id, sequence):
                     amino_acid_type=a_residue,
                 )
             )
-    Residue.objects.bulk_create(residues_to_create)
+            pass #delete this
+    #Residue.objects.bulk_create(residues_to_create)
 
 
 def uniprot_tm_check(query_id):
@@ -177,7 +179,7 @@ def uniprot_tm_check(query_id):
         new_record = True
         tmd_count = 0
         for i, f in enumerate(record.features):
-            print(record.features)
+            #print(record.features)
             if f.type == feature_type:
 
                 if "UnknownPosition" in str(f.location.start) or "UnknownPosition" in str(f.location.end):
@@ -229,15 +231,17 @@ def uniprot_tm_check(query_id):
                         c_ter_seq = str(record.seq[(f.location.end):(len(record.seq))])
 
                     # A list of common locations. These need sorting into inside/outside locations
-                    print(record)
+                    #print(record)
                     io_dictionary_odd_even = uniprot_topo_check(record)
                     print(tmh_number)
-                    tmh_topology = io_dictionary_odd_even[odd_or_even(tmh_number)]
+                    print(io_dictionary_odd_even)
+                    if io_dictionary_odd_even is not None: # This exception was added due to some beta barrel proteins causing a Nonetype error. These can be safely excluded.
+                        tmh_topology = io_dictionary_odd_even[odd_or_even(tmh_number)]
 
-                    membrane_location = uniprot_membrane_location(record)
-                    tmh_info=[query_id, tmh_number, total_tmh_number, tmh_start, tmh_stop, tmh_topology, evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence_type, full_sequence, tm_type]
-                    #print(tmh_info)
-                    tmh_list.append(tmh_info)
+                        membrane_location = uniprot_membrane_location(record)
+                        tmh_info=[query_id, tmh_number, total_tmh_number, tmh_start, tmh_stop, tmh_topology, evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence_type, full_sequence, tm_type]
+                        print(tmh_info)
+                        tmh_list.append(tmh_info)
         tmh_list=integrity_check(tmh_list)
         tmh_list=clash_correction(tmh_list)
         tmh_to_database(tmh_list)
@@ -393,7 +397,7 @@ def uniprot_topo_check(record):
     # This function currently only deals with alpha helix
     for i, f in enumerate(record.features):
         # The descriptor can be Helix or Helical. I figure Hel is a nice shortcut.
-        if f.type == "TRANSMEM" and "Hel" in f.qualifiers["description"]:
+        if f.type == "TRANSMEM" in f.qualifiers["description"]: # and "Hel"??
             topology_list.append(["TM", location_to_number(f.location.start), location_to_number(f.location.end)])
         elif f.type == "TOPO_DOM":
             topology_list.append([uni_subcellular_location(
@@ -437,9 +441,10 @@ def uniprot_topo_check(record):
                             #print(ordered_list[n+1][0], ordered_list[n+1])
                             item_for_insert=io_flip(io)
                             updated_ordered_list.append([item_for_insert, int(ordered_list[n][2])+1, int(ordered_list[n+1][1])-1])
-    #print(record.id, updated_ordered_list)
+    print(record.id, updated_ordered_list)
     completed_ordered_io = odd_even_io(updated_ordered_list)
-    #print(ordered_list)
+    print(ordered_list)
+    print(completed_ordered_io)
     return(completed_ordered_io)
 
 
@@ -657,10 +662,10 @@ def add_c_flank(tmh_unique_id, c_ter_seq, tmh_topology, current_tmh):
 def add_a_tmh_to_database(query_id, tmh_number, tmh_total_number, tmh_start, tmh_stop, tmh_topology, evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence, full_sequence, tm_type):
 
     tmh_protein = Protein.objects.get(uniprot_id=query_id)
-    # print("Generating tmh id key from\nQuery id:", query_id, "\nTMH number:", tmh_number, "\nEvidence:", evidence)
+    print("Generating tmh id key from\nQuery id:", query_id, "\nTMH number:", tmh_number, "\nEvidence:", evidence)
     tmh_unique_id = str(query_id + "." + str(tmh_number) + "." + evidence)
 
-    #print(tmh_unique_id)
+    print(tmh_unique_id)
 
     # The TMH for the database
     record_for_database, created = Tmh.objects.update_or_create(
@@ -732,7 +737,7 @@ def add_a_tmh_to_database(query_id, tmh_number, tmh_total_number, tmh_start, tmh
             amino_acid_location_in_to_out = 0 - amino_acid_location_n_to_c
         elif "Unknown" in tmh_topology:
             amino_acid_location_in_to_out = None
-        #print(tmh_topology)
+        print(tmh_topology)
 
         # specific_residue = Residue.objects.get(
         #    unique_together=[tmh_protein, sequence_position])
@@ -806,7 +811,7 @@ def tmh_to_database(tmh_list):
     # Now we have a complete list of the TMHs.
 
     for tmh_number_iteration, a_tmh in enumerate(tmh_list):
-        #print("TMH info:", a_tmh)
+        print("TMH info:", a_tmh)
         query_id = a_tmh[0]
         tmh_number = a_tmh[1]
         tmh_total_number = a_tmh[2]
@@ -864,7 +869,7 @@ def tmsoc(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_stop):
             z_score = result[4]
             simple_twighlight_complex = result[5]
 
-            #print("Writing TMSOC results to database: ", z_score, simple_twighlight_complex)
+            print("Writing TMSOC results to database: ", z_score, simple_twighlight_complex)
 
             # Add to database
             # Fetch the tmh foreign key
@@ -895,7 +900,7 @@ def deltag(tmh_unique_id, tmh_sequence):
         deltag_result = deltag_result[1]
     except(IndexError):
         pass
-    #print("deltag=", deltag_result)
+    print("deltag=", deltag_result)
 
     tmh_protein = Tmh.objects.get(tmh_id=tmh_unique_id)
     # What are we recording
@@ -935,13 +940,13 @@ def hydrophobicity(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_st
     edge = 1
 
     tmh_sequence_analysis = ProteinAnalysis(str(tmh_sequence))
-    #print(len(tmh_sequence))
+    print(len(tmh_sequence))
     full_sequence_analysis = ProteinAnalysis(str(full_sequence))
 
     aromaticity = tmh_sequence_analysis.aromaticity()
-    #print("Aromaticity:", aromaticity)
+    print("Aromaticity:", aromaticity)
     flexibility = np.mean(tmh_sequence_analysis.flexibility())
-    #print("Flexibility:", flexibility)
+    print("Flexibility:", flexibility)
 
     ww = {'A': 0.33, 'R': 1.00, 'N': 0.43, 'D': 2.41, 'C': 0.22, 'Q': 0.19, 'E': 1.61, 'G': 1.14, 'H': -0.06, 'I': -0.81,
           'L': -0.69, 'K': 1.81, 'M': -0.44, 'F': -0.58, 'P': -0.31, 'S': 0.33, 'T': 0.11, 'W': -0.24, 'Y': 0.23, 'V': -0.53}
@@ -949,7 +954,7 @@ def hydrophobicity(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_st
     ww_window = window_slice(ww_window, window_length,
                              tmh_start, tmh_stop, len(full_sequence))
     ww_avg = np.mean(ww_window)
-    #print("White Wimley:", ww_avg)
+    print("White Wimley:", ww_avg)
 
     kyte = {'A': 1.8, 'R': -4.5, 'N': -3.5, 'D': -3.5, 'C': 2.5, 'Q': -3.5, 'E': -3.5, 'G': -0.4, 'H': -3.2, 'I': 4.5,
             'L': 3.8, 'K': -3.9, 'M': 1.9, 'F': 2.8, 'P': -1.6, 'S': -0.8, 'T': -0.7, 'W': -0.9, 'Y': -1.3, 'V': 4.2}
@@ -958,7 +963,7 @@ def hydrophobicity(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_st
     kyte_window = window_slice(
         kyte_window, window_length, tmh_start, tmh_stop, len(full_sequence))
     kyte_avg = np.mean(kyte_window)
-    #print("Kyte:", kyte_avg)
+    print("Kyte:", kyte_avg)
 
     # These numbers need chaning
     eisenberg = {'A': 0.620, 'R': -2.530, 'N': -0.780, 'D': -0.900, 'C': 0.290, 'Q': -0.850, 'E': -0.740, 'G': 0.480, 'H': -0.400,
@@ -968,11 +973,7 @@ def hydrophobicity(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_st
     eisenberg_window = window_slice(
         eisenberg_window, window_length, tmh_start, tmh_stop, len(full_sequence))
     eisenberg_avg = np.mean(eisenberg_window)
-    #print("Eisenberg:", eisenberg_avg)
-    # if len(kyte_window)== len(tmh_sequence):
-    #    print("YAY!")
-    # else:
-    #    print("DOH!")
+    print("Eisenberg:", eisenberg_avg)
     tmh_protein = Tmh.objects.get(tmh_id=tmh_unique_id)
     # What are we recording
     # Record to the database
@@ -992,7 +993,7 @@ def hydrophobicity(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_st
 
 
 def tmh_input(input_query):
-    #print("Extracting TMH bounadries from...")
+    print("Extracting TMH bounadries from...")
     # Parse the xml static files since this is the slowest part.
     # Ignore this for now -  we need to sort out uniprot before anything else!
     topdb_url = "http://topdb.enzim.hu/?m=download&file=topdb_all.xml"
