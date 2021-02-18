@@ -1,7 +1,7 @@
 from scripts.populate_general_functions import *
 from scipy import stats
-import numpy as np 
-import matplotlib.pyplot as plt 
+import numpy as np
+import matplotlib.pyplot as plt
 
 def statistics(list1=[], list2=[]):
     print(stats.ks_2samp(list1, list2))
@@ -12,43 +12,50 @@ def basic(numbers):
     print("Median", np.median(numbers))
     print("Standard deviation", np.std(numbers))
 
-def violin(list1=[], list1name="List 1", list2=[], list2name="List 2", title="Numbers"):
+def violin(list1=[], list1name="List 1", list2=[], list2name="List 2", list3=[], list3name="List 3", title="Numbers"):
 
+    a=list1
+    b=list2
+    c=list3
 
-    # creating figure and axes to 
-    # plot the image 
-    fig, (ax1, ax2) = plt.subplots(nrows = 1,  
-                                   ncols = 2, 
-                                   figsize =(9, 4), 
-                                   sharey = True) 
-      
-    # plotting violin plot for 
-    # uniform distribution 
-    ax1.set_title(list1name) 
-    ax1.set_ylabel(title) 
-    ax1.hist(list1) 
-      
-      
-    # plotting violin plot for  
-    # normal distribution 
-    ax2.set_title(list2name)
-    ax2.hist(list2) 
-      
-    # Function to show the plot 
-    plt.show() 
+    # creating figure and axes to
+    # plot the image
+    common_params = dict(bins=20,
+                         range=(0, 2),
+                         density=True)
+                         #label=[list1name, list2name,list3name])
+
+    plt.subplots_adjust(hspace=.7)
+    plt.subplot(311)
+    plt.title('Default')
+    plt.hist([a,b,c], stacked=True, color = ["blue", "red", "green"],  **common_params)
+    plt.subplot(312)
+    plt.title('Skinny shift - 3 at a time')
+    plt.hist((a, b, c), color = ["blue", "red", "green"], **common_params)
+    plt.subplot(313)
+    common_params['histtype'] = 'step'
+    plt.title('With steps')
+    plt.hist(a, color = "blue", **common_params)
+    plt.hist(b, color = "red", **common_params)
+    plt.hist(c, color = "green", **common_params)
+
+    plt.savefig(f'{title}.png')
+    plt.cla()
+    plt.clf()
+
 
 def pli_score_iterator(queryset):
     scorelist=[]
     for i in queryset:
         if i.pLI_gn != None:
-           scorelist.append(i.pLI_gn) 
+           scorelist.append(i.pLI_gn)
     return(scorelist)
 
 def missense_score_iterator(queryset):
     scorelist=[]
     for i in queryset:
         if i.oe_mis_upper_gn != None:
-           scorelist.append(i.oe_mis_upper_gn) 
+           scorelist.append(i.oe_mis_upper_gn)
     return(scorelist)
 
 def run():
@@ -57,23 +64,43 @@ def run():
     tmps=Protein.objects.filter(residue__tmh_residue__tmh_id__meta_tmh=True).distinct('uniprot_id')
     plistmh=pli_score_iterator(tmps)
     mistmp=missense_score_iterator(tmps)
+    #High Fraction TMP query
+    my_file = open('TMP_residues_to_TMH_gte_0.5.txt')
+    all_the_lines = my_file.readlines()
+    hf_tmp_ids = []
+    for i in all_the_lines:
+        hf_tmp_ids.append(clean_query(i))
+    print(hf_tmp_ids)
+    hf_tmp=Protein.objects.filter(residue__tmh_residue__tmh_id__meta_tmh=True, uniprot_id__in=hf_tmp_ids).distinct('uniprot_id')
+    plishftmp=pli_score_iterator(hf_tmp)
+    mishftmp=missense_score_iterator(hf_tmp)
     #Non TMP query
     nontmp=Protein.objects.exclude(residue__tmh_residue__tmh_id__meta_tmh=True).distinct('uniprot_id')
     plis=pli_score_iterator(nontmp)
     mis=missense_score_iterator(nontmp)
-    
+
     print("pLI")
+    print("All TMPS")
     statistics(plistmh, plis)
+    print("High TMH residue fraction TMPS")
+    statistics(plishftmp, plis)
     print("TMP numbers")
     basic(plistmh)
+    print("High fraction TMP numbers")
+    basic(plishftmp)
     print("Non-tmp numbers")
-    basic(plis)  
-    violin(list1=plistmh, list1name="TMPs", list2=plis, list2name="Non-TMPs", title="pLI scores")  
-    
+    basic(plis)
+    violin(list1=plistmh, list1name="TMPs", list2=plis, list2name="Non-TMPs", list3=plishftmp, list3name="High TMH fraction TMPs",title="pLI scores")
+
     print("\nMissense")
+    print("All TMPS")
     statistics(mistmp, mis)
+    print("High TMH residue fraction TMPS")
+    statistics(mishftmp, mis)
     print("TMP numbers")
     basic(mistmp)
+    print("High fraction TMP numbers")
+    basic(mishftmp)
     print("Non-tmp numbers")
-    basic(mis)  
-    violin(list1=mistmp, list1name="TMPs", list2=mis, list2name="Non-TMPs", title="Missense upper threshold scores")  
+    basic(mis)
+    violin(list1=mistmp, list1name="TMPs", list2=mis, list2name="Non-TMPs",list3=mishftmp, list3name="High TMH fraction TMPs", title="Missense upper threshold scores")

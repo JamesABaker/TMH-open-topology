@@ -177,7 +177,7 @@ def uniprot_tm_check(query_id):
         new_record = True
         tmd_count = 0
         for i, f in enumerate(record.features):
-
+            print(record.features)
             if f.type == feature_type:
 
                 if "UnknownPosition" in str(f.location.start) or "UnknownPosition" in str(f.location.end):
@@ -229,6 +229,7 @@ def uniprot_tm_check(query_id):
                         c_ter_seq = str(record.seq[(f.location.end):(len(record.seq))])
 
                     # A list of common locations. These need sorting into inside/outside locations
+                    print(record)
                     io_dictionary_odd_even = uniprot_topo_check(record)
                     print(tmh_number)
                     tmh_topology = io_dictionary_odd_even[odd_or_even(tmh_number)]
