@@ -12,6 +12,8 @@ from datetime import date
 from datetime import datetime
 from datetime import timedelta
 from subprocess import check_output
+from django.db.models import Prefetch
+
 
 import Bio
 import defusedxml.ElementTree as ET
@@ -26,22 +28,52 @@ from django.utils import timezone
 from requests import get
 
 from scripts.populate_general_functions import *
+
 # env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
 
-#print("Usage:\npython manage.py runscript populate --traceback")
+# print("Usage:\npython manage.py runscript populate --traceback")
 
 # How many days should be allowed to not enforce updates
 time_threshold = 7
 today = date.today()
 todaysdate = today.strftime("%d_%m_%Y")
-flank_length=10
+flank_length = 10
+
+
+# TOPDB parsing
+print("Parsing TOPDB file.")
+topdb_url = "http://topdb.enzim.hu/?m=download&file=topdb_all.xml"
+topdb_file = "scripts/external_datasets/topdb_all.xml"
+
+try:
+    topdb = ET.parse(topdb_file)
+except FileNotFoundError:
+    download(topdb_url, topdb_file)
+    topdb = ET.parse(topdb_file)
+
+# Residue bulk handling variables
+print("Fetching existing residues.")
+Residue.objects.all().prefetch_related("protein")
+residues_to_create = []
+existing = set(
+    Residue.objects.all().values_list("protein__uniprot_id", "sequence_position")
+)
+print("Fetching existing Non TMH helices")
+existingnontmhs = set(
+    Non_tmh_helix_residue.objects.values_list(
+        "nont_tmh_helix_id__protein__uniprot_id",
+        "amino_acid_type",
+        "residue__sequence_position",
+    )
+)
+
 
 def uniprot_table(query_id):
     filename = str(f"scripts/external_datasets/uniprot_bin/{query_id}.txt")
     input_format = "swiss"
     feature_type = "TRANSMEM"
     tm_protein = False
-    #print("Checking UniProt for TM annotation in", query_id, ".")
+    print("Checking UniProt for TM annotation in", query_id, ".")
     for record in SeqIO.parse(filename, input_format):
 
         list_of_tmhs = []
@@ -49,53 +81,56 @@ def uniprot_table(query_id):
         # features locations is a bit annoying as the start location needs +1 to match the sequence IO, but end is the correct sequence value.
         for i, f in enumerate(record.features):
             if f.type == feature_type:
-                if "UnknownPosition" in str(f.location.start) or "UnknownPosition" in str(f.location.end):
-                    #print(record.id, "Unknown position for TMH in record")
+                print("TM annotation found in", query_id, ".")
+
+                if "UnknownPosition" in str(
+                    f.location.start
+                ) or "UnknownPosition" in str(f.location.end):
+                    print(record.id, "Unknown position for TMH in record")
                     # This doesn't mean that there are coordinates, just that there is a TM somewhere in the protein.
                     tm_protein = True
                 else:
+                    print("Adding TMP locations to list.")
                     list_of_tmhs.append(int(f.location.start) + 1)
                     list_of_tmhs.append(int(f.location.end))
                     tmh_count = tmh_count + 1
                     tm_protein = True
         sequence = record.seq
 
-    record_for_database, created = Protein.objects.update_or_create(
-        uniprot_id=query_id)
+    record_for_database, created = Protein.objects.update_or_create(uniprot_id=query_id)
 
-    #print("TM annotation found in", query_id, ".")
     target_protein = Protein.objects.get(uniprot_id=query_id)
 
+    print("Adding protein tm data and full sequence to Protein table.")
     record_for_database, created = Protein.objects.update_or_create(
         uniprot_id=query_id,
         defaults={
             "total_tmh_number": tmh_count,
             "full_sequence": str(sequence),
-            "updated_date": timezone.now()
-        }
+            "updated_date": timezone.now(),
+        },
     )
-
+    print("Making residue table")
     residue_table(query_id, sequence)
 
+    print("Adding TMHs to database.")
     if tm_protein is True:
         tmh_input([query_id])
 
-
     for record in SeqIO.parse(filename, input_format):
-    	non_tmh_helix_input(record)
+        non_tmh_helix_input(record)
 
     binding_residues_to_table(filename)
     subcellular_location(filename)
 
-
     for record in SeqIO.parse(filename, input_format):
-    	for keyword in record.annotations["keywords"]:
+        for keyword in record.annotations["keywords"]:
             keyword_to_database(keyword, query_id)
 
     record = SwissProt.read(open(filename))
-    cross_reference = (record.cross_references)
+    cross_reference = record.cross_references
     for go_mapping in cross_reference:
-        if go_mapping[0] == 'GO':
+        if go_mapping[0] == "GO":
             go_to_database(go_mapping[1], query_id)
 
 
@@ -105,20 +140,27 @@ def binding_residues_to_table(filename):
         for i, f in enumerate(record.features):
             if f.type == "BINDING":
                 for position in range(f.location.start, f.location.end):
-                    specific_residue = Residue.objects.filter(protein=protein, sequence_position=int(position)).update(binding_residue=True, binding_comment=f.qualifiers)
+                    specific_residue = Residue.objects.filter(
+                        protein=protein, sequence_position=int(position)
+                    ).update(binding_residue=True, binding_comment=f.qualifiers)
+
 
 def subcellular_location(filename):
     for record in SeqIO.parse(filename, "swiss"):
         protein = Protein.objects.get(uniprot_id=record.id)
         for i, f in enumerate(record.features):
             if f.type == "TOPO_DOM":
-                subcellular_location_for_database, created = SubcellularLocation.objects.get_or_create(
-                    location=f.qualifiers["description"].split(".")[0])
+                (
+                    subcellular_location_for_database,
+                    created,
+                ) = SubcellularLocation.objects.get_or_create(
+                    location=f.qualifiers["description"].split(".")[0]
+                )
                 subcellular_location_for_database.proteins.add(protein)
 
 
 def go_to_database(go_id, uniprot_id):
-    #print("Mapping GO", go_id, "to", uniprot_id)
+    # print("Mapping GO", go_id, "to", uniprot_id)
     go_for_database, created = Go.objects.get_or_create(go_id=go_id)
     target_protein = Protein.objects.get(uniprot_id=uniprot_id)
     go_for_database.proteins.add(target_protein)
@@ -130,9 +172,6 @@ def residue_table(query_id, sequence):
     # Are there ever skips of unknow length? This could affect TMH number.
 
     # This method will not update. A separate out of date script should be used to check if this needs to be removed and updated.
-    existing = set(Residue.objects.values_list(
-        "protein__uniprot_id", "sequence_position"))
-    residues_to_create = []
 
     for residue_number, a_residue in enumerate(sequence):
         if not (query_id, residue_number + 1) in existing:
@@ -144,16 +183,14 @@ def residue_table(query_id, sequence):
                     amino_acid_type=a_residue,
                 )
             )
-            pass #delete this
-    #Residue.objects.bulk_create(residues_to_create)
 
 
 def uniprot_tm_check(query_id):
-    '''
+    """
     This fetches the uniprot id from either a local bin or the internet and
     checks the annotation for TRANSMEM regions.
-    '''
-    #print("Checking", query_id, "in UniProt.")
+    """
+    # print("Checking", query_id, "in UniProt.")
     evidence_type = str("UniProt")
     tmh_list = []
 
@@ -179,10 +216,12 @@ def uniprot_tm_check(query_id):
         new_record = True
         tmd_count = 0
         for i, f in enumerate(record.features):
-            #print(record.features)
+            # print(record.features)
             if f.type == feature_type:
 
-                if "UnknownPosition" in str(f.location.start) or "UnknownPosition" in str(f.location.end):
+                if "UnknownPosition" in str(
+                    f.location.start
+                ) or "UnknownPosition" in str(f.location.end):
                     # Let's count the tmhs even though they do not have a position and will not be in the database.
                     tmd_count = tmd_count + 1
                 else:
@@ -191,7 +230,7 @@ def uniprot_tm_check(query_id):
                     tmh_start = None
                     tmh_stop = None
                     tmh_topology = None
-                    #evidence_type = None
+                    # evidence_type = None
                     membrane_location = None
                     n_ter_seq = None
                     tmh_sequence = None
@@ -201,12 +240,23 @@ def uniprot_tm_check(query_id):
                     tmh_number = tmd_count
                     n_terminal_start = "none"
 
-                    if "Helical" in str(f.qualifiers["description"]):
-                        tm_type = "Helix"
-                    elif "Strand" in str(f.qualifiers["description"]):
-                        tm_type = "Beta"
-                    else:
-                        tm_type = "Unknown"
+                    try:
+                        if "Helical" in str(f.qualifiers["description"]):
+                            tm_type = "Helix"
+                        elif "Strand" in str(f.qualifiers["description"]):
+                            tm_type = "Beta"
+                        else:
+                            tm_type = "Unknown"
+                    except:
+                        print(
+                            f"Description not found in feature: {f}, switching to note delimiter"
+                        )
+                        if "Helical" in str(f.qualifiers["note"]):
+                            tm_type = "Helix"
+                        elif "Strand" in str(f.qualifiers["note"]):
+                            tm_type = "Beta"
+                        else:
+                            tm_type = "Unknown"
 
                     full_sequence = str(record.seq)
                     # This is the human readable value. It should not be used for slices
@@ -214,126 +264,180 @@ def uniprot_tm_check(query_id):
                     tmh_stop = int(f.location.end)
                     # Slices should not use +1 on start.
                     tmh_sequence = str(
-                        record.seq[(f.location.start):(f.location.end)])
+                        record.seq[(f.location.start) : (f.location.end)]
+                    )
 
                     ### N terminal clash ###
                     # print(list_of_tmhs)
 
-                    #Checks that the TMHs don't get mashed at the begining or end.
+                    # Checks that the TMHs don't get mashed at the begining or end.
                     if int(f.location.start) - flank_length <= 0:
-                        n_ter_seq = str(record.seq[0:(f.location.start)])
+                        n_ter_seq = str(record.seq[0 : (f.location.start)])
                     elif int(f.location.start) - flank_length > 0:
-                        n_ter_seq = str(record.seq[(f.location.start - flank_length):(f.location.start)])
+                        n_ter_seq = str(
+                            record.seq[
+                                (f.location.start - flank_length) : (f.location.start)
+                            ]
+                        )
 
-                    if int(f.location.end) + flank_length <= len(record.seq) :
-                        c_ter_seq = str(record.seq[(f.location.end):(f.location.end + flank_length)])
+                    if int(f.location.end) + flank_length <= len(record.seq):
+                        c_ter_seq = str(
+                            record.seq[
+                                (f.location.end) : (f.location.end + flank_length)
+                            ]
+                        )
                     elif int(f.location.end) + flank_length > len(record.seq):
-                        c_ter_seq = str(record.seq[(f.location.end):(len(record.seq))])
+                        c_ter_seq = str(
+                            record.seq[(f.location.end) : (len(record.seq))]
+                        )
 
                     # A list of common locations. These need sorting into inside/outside locations
-                    #print(record)
+                    # print(record)
                     io_dictionary_odd_even = uniprot_topo_check(record)
                     print(tmh_number)
                     print(io_dictionary_odd_even)
-                    if io_dictionary_odd_even is not None: # This exception was added due to some beta barrel proteins causing a Nonetype error. These can be safely excluded.
+                    if (
+                        io_dictionary_odd_even is not None
+                    ):  # This exception was added due to some beta barrel proteins causing a Nonetype error. These can be safely excluded.
                         tmh_topology = io_dictionary_odd_even[odd_or_even(tmh_number)]
 
                         membrane_location = uniprot_membrane_location(record)
-                        tmh_info=[query_id, tmh_number, total_tmh_number, tmh_start, tmh_stop, tmh_topology, evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence_type, full_sequence, tm_type]
+                        tmh_info = [
+                            query_id,
+                            tmh_number,
+                            total_tmh_number,
+                            tmh_start,
+                            tmh_stop,
+                            tmh_topology,
+                            evidence_type,
+                            membrane_location,
+                            n_ter_seq,
+                            tmh_sequence,
+                            c_ter_seq,
+                            evidence_type,
+                            full_sequence,
+                            tm_type,
+                        ]
                         print(tmh_info)
                         tmh_list.append(tmh_info)
-        tmh_list=integrity_check(tmh_list)
-        tmh_list=clash_correction(tmh_list)
+        tmh_list = integrity_check(tmh_list)
+        tmh_list = clash_correction(tmh_list)
         tmh_to_database(tmh_list)
-        return(tmh_list)
+        return tmh_list
 
 
 def total_tmh_uniprot(record):
-    '''
+    """
     How many TRANSMEM regions in the TMP. This can include Beta.
-    '''
+    """
     total_tmh = 0
     for i, f in enumerate(record.features):
         if f.type == "TRANSMEM":
             total_tmh = total_tmh + 1
-    return(total_tmh)
+    return total_tmh
 
 
 def odd_or_even(number):
-    '''
+    """
     Is a number odd or even? Takes a number and returns "even" or "odd".
-    '''
+    """
     if number % 2 == 0:
-        return("even")
+        return "even"
     elif number % 2 != 0:
-        return("odd")
-    return(None)
+        return "odd"
+    return None
 
 
 def uni_subcellular_location(feature_description):
-    '''
+    """
     Returns inside or outside from a record feature description in UniProt. This will need to be tweaked depending on what subcelullar organelles are present in Uniprot.
-    '''
+    """
 
-    locations = ["Chloroplast intermembrane", "Cytoplasmic", "Extracellular", "Intravacuolar", "Intravirion", "Lumenal", "Lumenal, thylakoid", "Lumenal, vesicle", "Mitochondrial intermembrane",
-                 "Mitochondrial matrix", "Periplasmic", "Peroxisomal", "Peroxisomal matrix", "Nuclear", "Perinuclear space", "Stromal", "Vacuolar", "Vesicular", "Virion surface"]
+    locations = [
+        "Chloroplast intermembrane",
+        "Cytoplasmic",
+        "Extracellular",
+        "Intravacuolar",
+        "Intravirion",
+        "Lumenal",
+        "Lumenal, thylakoid",
+        "Lumenal, vesicle",
+        "Mitochondrial intermembrane",
+        "Mitochondrial matrix",
+        "Periplasmic",
+        "Peroxisomal",
+        "Peroxisomal matrix",
+        "Nuclear",
+        "Perinuclear space",
+        "Stromal",
+        "Vacuolar",
+        "Vesicular",
+        "Virion surface",
+    ]
 
     inside_locations = set(["Cytoplasmic", "Mitochondrial matrix", "Nuclear"])
     outside_locations = set(
-        ["Extracellular", "Lumenal", "Periplasmic", "Mitochondrial intermembrane", "Perinuclear space", "Vesicular", "Peroxisomal"])
+        [
+            "Extracellular",
+            "Lumenal",
+            "Periplasmic",
+            "Mitochondrial intermembrane",
+            "Perinuclear space",
+            "Vesicular",
+            "Peroxisomal",
+        ]
+    )
     for i in inside_locations:
         if i in feature_description:
-            return("Inside")
+            return "Inside"
     for i in outside_locations:
         if i in feature_description:
-            return("Outside")
+            return "Outside"
 
 
 def io_flip(io_value):
-    '''
+    """
     Inverts inside to outside and vice versa. Also takes "Unknown" as a variable and returns unknown.
-    '''
+    """
 
     if io_value == "Inside":
-        return("Outside")
+        return "Outside"
     elif io_value == "Outside":
-        return("Inside")
+        return "Inside"
     elif io_value == "Unknown":
-        return("Unknown")
-    return(None)
+        return "Unknown"
+    return None
 
 
 def odd_even_io(ordered_topo_list):
-    '''
+    """
     Returns if odd or even has n-terminal-inside from an ordered topology list in the format:
     [['Outside', 0], ['TM', 51], ['Inside', 76], ['TM', 88], ['Outside', 114], ['TM', 124]]
-    '''
+    """
 
     io_dict = {"even": "Unknown", "odd": "Unknown"}
 
-    number_of_nontm_regions=0
+    number_of_nontm_regions = 0
     for n, i in enumerate(ordered_topo_list):
-        if i[0] == "Outside" or i[0] == 'Inside' or i[0] == 'None':
-            number_of_nontm_regions=number_of_nontm_regions+1
-        if i[0]=='Inside':
-            inside_oe=odd_or_even(number_of_nontm_regions)
-            outside_oe=odd_or_even(number_of_nontm_regions+1)
-            return({inside_oe: "Inside", outside_oe: "Outside"})
-        elif i[0] == 'Outside':
-            outside_oe=odd_or_even(number_of_nontm_regions)
-            inside_oe=odd_or_even(number_of_nontm_regions+1)
-            return({inside_oe: "Inside", outside_oe: "Outside"})
-    return(None)
-
-
-    return(io_dict)
+        if i[0] == "Outside" or i[0] == "Inside" or i[0] == "None":
+            number_of_nontm_regions = number_of_nontm_regions + 1
+        if i[0] == "Inside":
+            inside_oe = odd_or_even(number_of_nontm_regions)
+            outside_oe = odd_or_even(number_of_nontm_regions + 1)
+            return {inside_oe: "Inside", outside_oe: "Outside"}
+        elif i[0] == "Outside":
+            outside_oe = odd_or_even(number_of_nontm_regions)
+            inside_oe = odd_or_even(number_of_nontm_regions + 1)
+            return {inside_oe: "Inside", outside_oe: "Outside"}
+    return None
+    return io_dict
 
 
 def uniprot_membrane_location(record):
-    '''
+    """
     Gets the TOPO_DOMs from a uniprot txt file string and returns a human
     readable list of locations
-    '''
+    """
 
     topology_list = []
     for i, f in enumerate(record.features):
@@ -341,39 +445,43 @@ def uniprot_membrane_location(record):
             topology_list.append(f.qualifiers["description"].split(".")[0])
     locations = list(dict.fromkeys(topology_list))
 
-    return(clean_query(str(locations)))
+    return clean_query(str(locations))
+
 
 def non_tmh_helix_input(record_data):
-    record=record_data
-    protein=Protein.objects.get(uniprot_id=str(record.id))
+    record = record_data
+    protein = Protein.objects.get(uniprot_id=str(record.id))
     for i, f in enumerate(record.features):
         if f.type == "HELIX":
             # What are we recording
             # Record to the database
-            start=int(f.location.start)+1
-            stop=int(f.location.end)
+            start = int(f.location.start) + 1
+            stop = int(f.location.end)
             record_for_database, created = Non_tmh_helix.objects.update_or_create(
-                protein=protein,
-                helix_start=start,
-                helix_stop=stop
+                protein=protein, helix_start=start, helix_stop=stop
             )
-            helix_sequence=str(record.seq)[start-1:stop]
+            helix_sequence = str(record.seq)[start - 1 : stop]
 
             non_tmh_helix_residues_input(str(record.id), start, stop, helix_sequence)
 
+    return ()
 
-    return()
 
 def non_tmh_helix_residues_input(protein_id, start, stop, sequence):
 
-    helix_id=Non_tmh_helix.objects.get(protein__uniprot_id=protein_id, helix_start=start,helix_stop=stop)
+    helix_id = Non_tmh_helix.objects.get(
+        protein__uniprot_id=protein_id, helix_start=start, helix_stop=stop
+    )
 
-    non_tmh_helix_residues_to_create=[]
-    existing = set(Non_tmh_helix_residue.objects.values_list("nont_tmh_helix_id__protein__uniprot_id","amino_acid_type", "residue__sequence_position"))
+    non_tmh_helix_residues_to_create = []
 
     for residue_number, a_residue in enumerate(sequence):
-        this_residue=Residue.objects.get(amino_acid_type=a_residue, sequence_position=residue_number+start, protein__uniprot_id=protein_id)
-        if not (protein_id, a_residue, residue_number) in existing:
+        this_residue = Residue.objects.get(
+            amino_acid_type=a_residue,
+            sequence_position=residue_number + start,
+            protein__uniprot_id=protein_id,
+        )
+        if not (protein_id, a_residue, residue_number) in existingnontmhs:
             non_tmh_helix_residues_to_create.append(
                 Non_tmh_helix_residue(
                     nont_tmh_helix_id=helix_id,
@@ -384,11 +492,10 @@ def non_tmh_helix_residues_input(protein_id, start, stop, sequence):
     Non_tmh_helix_residue.objects.bulk_create(non_tmh_helix_residues_to_create)
 
 
-
 def location_to_number(exact_position):
     if "UnknownPosition" in str(exact_position):
-        return(0)
-    return(int(exact_position))
+        return 0
+    return int(exact_position)
 
 
 def uniprot_topo_check(record):
@@ -397,32 +504,57 @@ def uniprot_topo_check(record):
     # This function currently only deals with alpha helix
     for i, f in enumerate(record.features):
         # The descriptor can be Helix or Helical. I figure Hel is a nice shortcut.
-        if f.type == "TRANSMEM" in f.qualifiers["description"]: # and "Hel"??
-            topology_list.append(["TM", location_to_number(f.location.start), location_to_number(f.location.end)])
+        if f.type == "TRANSMEM" in f.qualifiers["description"]:  # and "Hel"??
+            topology_list.append(
+                [
+                    "TM",
+                    location_to_number(f.location.start),
+                    location_to_number(f.location.end),
+                ]
+            )
         elif f.type == "TOPO_DOM":
-            topology_list.append([uni_subcellular_location(
-                f.qualifiers["description"].split(".")[0]), location_to_number(f.location.start), location_to_number(f.location.end)])
+            print(f)
+            try:
+                topology_list.append(
+                    [
+                        uni_subcellular_location(
+                            f.qualifiers["description"].split(".")[0]
+                        ),
+                        location_to_number(f.location.start),
+                        location_to_number(f.location.end),
+                    ]
+                )
+            except:
+                topology_list.append(
+                    [
+                        uni_subcellular_location(f.qualifiers["note"].split(".")[0]),
+                        location_to_number(f.location.start),
+                        location_to_number(f.location.end),
+                    ]
+                )
         else:
             pass
 
     ordered_list = sorted(topology_list, key=lambda x: x[1])
     updated_ordered_list = []
-    io=None
-    if len(ordered_list)>1:
-        topology=False
+    io = None
+    if len(ordered_list) > 1:
+        topology = False
 
         for features in ordered_list:
             if features[0] != "TM":
-                topology=True
+                topology = True
         if topology is True:
-            #print(record.id, ordered_list)
+            # print(record.id, ordered_list)
             for n, i in enumerate(ordered_list):
 
-                if n+1 >= len(ordered_list):
+                if n + 1 >= len(ordered_list):
                     updated_ordered_list.append(i)
                     if i[0] == "TM":
-                        if i[2]<len(record.seq):
-                            updated_ordered_list.append([io_flip(io), int(i[2])+1, len(record.seq)])
+                        if i[2] < len(record.seq):
+                            updated_ordered_list.append(
+                                [io_flip(io), int(i[2]) + 1, len(record.seq)]
+                            )
                         else:
                             pass
                     else:
@@ -434,45 +566,55 @@ def uniprot_topo_check(record):
                         updated_ordered_list.append(i)
                     elif i[0] == "TM":
                         updated_ordered_list.append(i)
-                        if i[2]==len(record.seq):
+                        if i[2] == len(record.seq):
                             pass
                         # If the next value is a TM, we insert a pseudo topo_dom. This is the result of short loops.
-                        elif ordered_list[n+1][0] == "TM":
-                            #print(ordered_list[n+1][0], ordered_list[n+1])
-                            item_for_insert=io_flip(io)
-                            updated_ordered_list.append([item_for_insert, int(ordered_list[n][2])+1, int(ordered_list[n+1][1])-1])
+                        elif ordered_list[n + 1][0] == "TM":
+                            # print(ordered_list[n+1][0], ordered_list[n+1])
+                            item_for_insert = io_flip(io)
+                            updated_ordered_list.append(
+                                [
+                                    item_for_insert,
+                                    int(ordered_list[n][2]) + 1,
+                                    int(ordered_list[n + 1][1]) - 1,
+                                ]
+                            )
     print(record.id, updated_ordered_list)
     completed_ordered_io = odd_even_io(updated_ordered_list)
     print(ordered_list)
     print(completed_ordered_io)
-    return(completed_ordered_io)
+    return completed_ordered_io
 
 
 def integrity_check(tmh_list):
-    corrected_tmh_list=tmh_list
+    corrected_tmh_list = tmh_list
     for ref_tmh_order_number, ref_tmh_info in enumerate(tmh_list):
         if ref_tmh_info[2] != len(tmh_list):
-            #print("Disrepency between tmh number and number of TMHs retreived.")
-            corrected_tmh_list[ref_tmh_order_number][2]=len(tmh_list)
+            # print("Disrepency between tmh number and number of TMHs retreived.")
+            corrected_tmh_list[ref_tmh_order_number][2] = len(tmh_list)
         for comp_tmh_order_number, comp_tmh_info in enumerate(tmh_list):
             if ref_tmh_order_number == comp_tmh_order_number:
                 pass
             else:
-                if ref_tmh_info[1] > comp_tmh_info[1] and ref_tmh_info[3] < comp_tmh_info[3]:
-                    #print("Missmatch in TMH order. Check manually.")
+                if (
+                    ref_tmh_info[1] > comp_tmh_info[1]
+                    and ref_tmh_info[3] < comp_tmh_info[3]
+                ):
+                    # print("Missmatch in TMH order. Check manually.")
                     pass
-    return(corrected_tmh_list)
+    return corrected_tmh_list
+
 
 def topdb_check(query_id, topdb):
-    '''
+    """
     Checks the TOPDB xml file for transmem regions mapped to the UniProt search ID.
-    '''
+    """
     evidence_type = str("TOPDB")
 
-#    for item in root.findall("item"):
-#        ElementTree.dump(item)
+    #    for item in root.findall("item"):
+    #        ElementTree.dump(item)
 
-    for node in topdb.findall('.//TOPDB'):
+    for node in topdb.findall(".//TOPDB"):
         # Clears the sequence in case of a blank or dodgy record.
         sequence = None
         membrane_location = None
@@ -501,12 +643,13 @@ def topdb_check(query_id, topdb):
                         for ids in acs:
                             if str(ids.text) == query_id:
                                 uniprot_ref_sequence = Residue.objects.filter(
-                                    protein__uniprot_id=query_id).count()
+                                    protein__uniprot_id=query_id
+                                ).count()
                                 if len(sequence) == uniprot_ref_sequence:
 
                                     add_topdb = True
                                 elif len(sequence) != uniprot_ref_sequence:
-                                    #print("TOPD Uniprot length mismatch in", query_id, ". Aborting TOPDB TMH record")
+                                    # print("TOPD Uniprot length mismatch in", query_id, ". Aborting TOPDB TMH record")
                                     add_topdb = False
                                 # #print(sequence)
                                 if add_topdb is True:
@@ -517,72 +660,119 @@ def topdb_check(query_id, topdb):
                                             for item in topology:
                                                 if str(item.tag) == str("Regions"):
                                                     tmhs = item.getchildren()
-                                                    for feature_number, feature in enumerate(tmhs):
+                                                    for (
+                                                        feature_number,
+                                                        feature,
+                                                    ) in enumerate(tmhs):
                                                         tmh_details = feature.attrib
 
                                                         # get total number of tmhs
                                                         total_tmh_number = 0
-                                                        for a_feature_number, a_feature in enumerate(tmhs):
-                                                            if str(tmh_details["Loc"]) == str("Membrane"):
-                                                                total_tmh_number = total_tmh_number + 1
+                                                        for (
+                                                            a_feature_number,
+                                                            a_feature,
+                                                        ) in enumerate(tmhs):
+                                                            if str(
+                                                                tmh_details["Loc"]
+                                                            ) == str("Membrane"):
+                                                                total_tmh_number = (
+                                                                    total_tmh_number + 1
+                                                                )
                                                         tmh_number = 0
-                                                        if str(tmh_details["Loc"]) == str("Membrane"):
+                                                        if str(
+                                                            tmh_details["Loc"]
+                                                        ) == str("Membrane"):
 
                                                             tmh_number = tmh_number + 1
-                                                            tmh_start = int(tmh_details["Begin"])
-                                                            tmh_stop = int(tmh_details["End"])
-                                                            n_ter_seq = sequence[tmh_start - flank_length:tmh_start]
-                                                            tmh_sequence = sequence[tmh_start:tmh_stop]
-                                                            c_ter_seq = sequence[tmh_stop:tmh_stop + flank_length]
+                                                            tmh_start = int(
+                                                                tmh_details["Begin"]
+                                                            )
+                                                            tmh_stop = int(
+                                                                tmh_details["End"]
+                                                            )
+                                                            n_ter_seq = sequence[
+                                                                tmh_start
+                                                                - flank_length : tmh_start
+                                                            ]
+                                                            tmh_sequence = sequence[
+                                                                tmh_start:tmh_stop
+                                                            ]
+                                                            c_ter_seq = sequence[
+                                                                tmh_stop : tmh_stop
+                                                                + flank_length
+                                                            ]
 
                                                             # preparing any non established variables for standard tmh recording.
                                                             full_sequence = sequence
                                                             tm_type = "Helix"
-                                                            tmh_list.append([query_id, tmh_number, total_tmh_number, tmh_start + 1, tmh_stop, tmh_topology,
-                                                                             evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence_type, full_sequence, tm_type])
+                                                            tmh_list.append(
+                                                                [
+                                                                    query_id,
+                                                                    tmh_number,
+                                                                    total_tmh_number,
+                                                                    tmh_start + 1,
+                                                                    tmh_stop,
+                                                                    tmh_topology,
+                                                                    evidence_type,
+                                                                    membrane_location,
+                                                                    n_ter_seq,
+                                                                    tmh_sequence,
+                                                                    c_ter_seq,
+                                                                    evidence_type,
+                                                                    full_sequence,
+                                                                    tm_type,
+                                                                ]
+                                                            )
                                                         # Although it is about as elegant as a sledgehammer,
                                                         # this catches the previous non tmh environment.
-                                                        tmh_topology = tmh_details["Loc"]
-                                    tmh_list=integrity_check(tmh_list)
-                                    tmh_list=clash_correction(tmh_list)
+                                                        tmh_topology = tmh_details[
+                                                            "Loc"
+                                                        ]
+                                    tmh_list = integrity_check(tmh_list)
+                                    tmh_list = clash_correction(tmh_list)
                                     tmh_to_database(tmh_list)
-                                    return(tmh_list)
+                                    return tmh_list
 
-def amino_acid_location_n_to_c_position(tmh_residue_number, sequence_position, tmh_len, n_terminal_len):
 
-    amino_acid_location_n_to_c = int(tmh_residue_number-(n_terminal_len+(tmh_len/2)))
+def amino_acid_location_n_to_c_position(
+    tmh_residue_number, sequence_position, tmh_len, n_terminal_len
+):
 
-    return(amino_acid_location_n_to_c)
+    amino_acid_location_n_to_c = int(
+        tmh_residue_number - (n_terminal_len + (tmh_len / 2))
+    )
+
+    return amino_acid_location_n_to_c
 
 
 def Sort(sub_li):
-    '''
+    """
     # Python code to sort the tuples using second element
     # of sublist Inplace way to sort using sort()
-    '''
+    """
 
     # reverse = None (Sorts in Ascending order)
     # key is set to sort using second element of
     # sublist lambda has been used
-    sub_li.sort(key = lambda x: x[1])
-    return(sub_li)
+    sub_li.sort(key=lambda x: x[1])
+    return sub_li
 
 
 def clash_correction(tmh_list):
-    '''
+    """
     Takes a series of tmh_info lists (see below) and cuts any flanks that might overlap.
     The list is returned in the original format.
     0           1           2                   3       4           5           6               7                   8       9               10          11          12              13
     [query_id, tmh_number, total_tmh_number, tmh_start, tmh_stop, tmh_topology,evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence_type, full_sequence, tm_type]
-    '''
-    #Sort by TMH info incase any XML stuff comes back in the wrong order.
-    sorted_tmh_list=Sort(tmh_list)
-    #print("SORTED",len(sorted_tmh_list),sorted_tmh_list)
-    correct_tmh_list=[]
+    """
+    # Sort by TMH info incase any XML stuff comes back in the wrong order.
+    sorted_tmh_list = Sort(tmh_list)
+    # print("SORTED",len(sorted_tmh_list),sorted_tmh_list)
+    correct_tmh_list = []
     for ref_tmh_number, ref_tmh_info in enumerate(sorted_tmh_list):
         for comp_tmh_number, comp_tmh_info in enumerate(sorted_tmh_list):
             # Except single pass!
-            if ref_tmh_info[2] == 1 and len(sorted_tmh_list)==1:
+            if ref_tmh_info[2] == 1 and len(sorted_tmh_list) == 1:
                 correct_n_flank = ref_tmh_info[8]
                 correct_c_flank = ref_tmh_info[10]
 
@@ -590,29 +780,41 @@ def clash_correction(tmh_list):
                 pass
             else:
                 # reference TMH n flank is less than the c flank end residue of a comparison TMH with a lower TMH number
-                if int(ref_tmh_info[3]-len(ref_tmh_info[8])) < int(comp_tmh_info[4]+len(comp_tmh_info[10])) and ref_tmh_number>comp_tmh_number:
-                    correct_n_flank=ref_tmh_info[8][len(ref_tmh_info[8])-int(abs(ref_tmh_info[3]-comp_tmh_info[4])/2)::]
+                if (
+                    int(ref_tmh_info[3] - len(ref_tmh_info[8]))
+                    < int(comp_tmh_info[4] + len(comp_tmh_info[10]))
+                    and ref_tmh_number > comp_tmh_number
+                ):
+                    correct_n_flank = ref_tmh_info[8][
+                        len(ref_tmh_info[8])
+                        - int(abs(ref_tmh_info[3] - comp_tmh_info[4]) / 2) : :
+                    ]
                 else:
-                    correct_n_flank=ref_tmh_info[8]
+                    correct_n_flank = ref_tmh_info[8]
 
-                if int(ref_tmh_info[4]+len(ref_tmh_info[10])) > int(comp_tmh_info[3]-len(comp_tmh_info[8])) and ref_tmh_number<comp_tmh_number:
-                    #The C terminal flank is greater than the the comparison TMH
-                    correct_c_flank=ref_tmh_info[10][0:int(abs(ref_tmh_info[4]-comp_tmh_info[3])/2)]
+                if (
+                    int(ref_tmh_info[4] + len(ref_tmh_info[10]))
+                    > int(comp_tmh_info[3] - len(comp_tmh_info[8]))
+                    and ref_tmh_number < comp_tmh_number
+                ):
+                    # The C terminal flank is greater than the the comparison TMH
+                    correct_c_flank = ref_tmh_info[10][
+                        0 : int(abs(ref_tmh_info[4] - comp_tmh_info[3]) / 2)
+                    ]
                 else:
-                    correct_c_flank=ref_tmh_info[10]
+                    correct_c_flank = ref_tmh_info[10]
 
-        correct_tmh_info=ref_tmh_info
-        correct_tmh_info[8]=correct_n_flank
-        correct_tmh_info[10]=correct_c_flank
+        correct_tmh_info = ref_tmh_info
+        correct_tmh_info[8] = correct_n_flank
+        correct_tmh_info[10] = correct_c_flank
         correct_tmh_list.append(correct_tmh_info)
 
-    return(correct_tmh_list)
+    return correct_tmh_list
 
 
 def keyword_to_database(keyword, uniprot_id):
-    #print("Mapping keyword to", uniprot_id, ":", keyword)
-    keyword_for_database, created = Keyword.objects.get_or_create(
-        keyword=keyword)
+    # print("Mapping keyword to", uniprot_id, ":", keyword)
+    keyword_for_database, created = Keyword.objects.get_or_create(keyword=keyword)
     target_protein = Protein.objects.get(uniprot_id=uniprot_id)
     keyword_for_database.proteins.add(target_protein)
 
@@ -625,10 +827,7 @@ def add_n_flank(tmh_unique_id, n_ter_seq, tmh_topology, current_tmh):
     record_for_database, created = Flank.objects.update_or_create(
         tmh=current_tmh,
         n_or_c="N",
-        defaults={
-            "flank_sequence": n_ter_seq,
-            "inside_or_outside": tmh_topology[0]
-        }
+        defaults={"flank_sequence": n_ter_seq, "inside_or_outside": tmh_topology[0]},
     )
 
 
@@ -640,18 +839,19 @@ def add_c_flank(tmh_unique_id, c_ter_seq, tmh_topology, current_tmh):
         c_terminal_inside = "Inside"
     else:
         c_terminal_inside = tmh_topology
-        #print("N terminal was not inside or outside in", tmh_unique_id,"... setting C inside to whatever N inside is:", c_terminal_inside)
+        # print("N terminal was not inside or outside in", tmh_unique_id,"... setting C inside to whatever N inside is:", c_terminal_inside)
 
     record_for_database, created = Flank.objects.update_or_create(
         tmh=current_tmh,
         n_or_c="C",
         defaults={
             "flank_sequence": c_ter_seq,
-            "inside_or_outside": c_terminal_inside[0]
-        }
+            "inside_or_outside": c_terminal_inside[0],
+        },
     )
 
-#def flank_edge(n_or_c, position_from_n, flank):
+
+# def flank_edge(n_or_c, position_from_n, flank):
 #    if n_or_c="c":
 #        flank_edge_distance=position_from_n
 #    elif n_or_c = "n":
@@ -659,10 +859,32 @@ def add_c_flank(tmh_unique_id, c_ter_seq, tmh_topology, current_tmh):
 #    return(flank_edge_distance)
 
 
-def add_a_tmh_to_database(query_id, tmh_number, tmh_total_number, tmh_start, tmh_stop, tmh_topology, evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence, full_sequence, tm_type):
+def add_a_tmh_to_database(
+    query_id,
+    tmh_number,
+    tmh_total_number,
+    tmh_start,
+    tmh_stop,
+    tmh_topology,
+    evidence_type,
+    membrane_location,
+    n_ter_seq,
+    tmh_sequence,
+    c_ter_seq,
+    evidence,
+    full_sequence,
+    tm_type,
+):
 
     tmh_protein = Protein.objects.get(uniprot_id=query_id)
-    print("Generating tmh id key from\nQuery id:", query_id, "\nTMH number:", tmh_number, "\nEvidence:", evidence)
+    print(
+        "Generating tmh id key from\nQuery id:",
+        query_id,
+        "\nTMH number:",
+        tmh_number,
+        "\nEvidence:",
+        evidence,
+    )
     tmh_unique_id = str(query_id + "." + str(tmh_number) + "." + evidence)
 
     print(tmh_unique_id)
@@ -680,8 +902,8 @@ def add_a_tmh_to_database(query_id, tmh_number, tmh_total_number, tmh_start, tmh
             "tmh_number": tmh_number,
             "tmh_total_number": tmh_total_number,
             "n_terminal_inside": tmh_topology,
-            "tm_type": tm_type
-        }
+            "tm_type": tm_type,
+        },
     )
 
     # Now we run the calculations on anything that works at the TM level.
@@ -708,7 +930,7 @@ def add_a_tmh_to_database(query_id, tmh_number, tmh_total_number, tmh_start, tmh
         sequence_position = int(tmh_start - len(n_ter_seq)) + tmh_residue_number
 
         if sequence_position < tmh_start:  # This doesn't make sense
-            #"N flank"
+            # "N flank"
             if tmh_topology == "Inside":
                 feature_location = "Inside flank"
             elif tmh_topology == "Outside":
@@ -716,7 +938,7 @@ def add_a_tmh_to_database(query_id, tmh_number, tmh_total_number, tmh_start, tmh
             else:
                 feature_location = "Unknown"
         elif sequence_position > tmh_stop:
-            #"C flank"
+            # "C flank"
             if tmh_topology == "Inside":
                 feature_location = "Outside flank"
             elif tmh_topology == "Outside":
@@ -728,8 +950,12 @@ def add_a_tmh_to_database(query_id, tmh_number, tmh_total_number, tmh_start, tmh
 
         # What is the exact residue position.
 
-        amino_acid_location_n_to_c = amino_acid_location_n_to_c_position(tmh_residue_number, sequence_position, abs(tmh_start-tmh_stop), len(n_ter_seq))
-
+        amino_acid_location_n_to_c = amino_acid_location_n_to_c_position(
+            tmh_residue_number,
+            sequence_position,
+            abs(tmh_start - tmh_stop),
+            len(n_ter_seq),
+        )
 
         if "Inside" in tmh_topology:
             amino_acid_location_in_to_out = amino_acid_location_n_to_c
@@ -744,7 +970,8 @@ def add_a_tmh_to_database(query_id, tmh_number, tmh_total_number, tmh_start, tmh
         # print("Adding TM residue at position", sequence_position, "in ",  query_id, "from", tmh_unique_id)
 
         specific_residue = Residue.objects.get(
-            protein=tmh_protein, sequence_position=int(sequence_position))
+            protein=tmh_protein, sequence_position=int(sequence_position)
+        )
 
         if feature_location == "TMH":
             record_for_database, created = Tmh_residue.objects.update_or_create(
@@ -756,8 +983,8 @@ def add_a_tmh_to_database(query_id, tmh_number, tmh_total_number, tmh_start, tmh
                     "amino_acid_location_n_to_c": amino_acid_location_n_to_c,
                     "amino_acid_location_in_to_out": amino_acid_location_in_to_out,
                     # This is either TMH or flank. TMH, inside flank, outside flank.
-                    "feature_location":  feature_location
-                }
+                    "feature_location": feature_location,
+                },
             )
 
         elif feature_location == "Inside flank":
@@ -766,8 +993,7 @@ def add_a_tmh_to_database(query_id, tmh_number, tmh_total_number, tmh_start, tmh
                 flank_n_or_c = "N"
             elif tmh_topology in "Outside":
                 flank_n_or_c = "C"
-            this_flank = Flank.objects.get(
-                tmh=transmembrane_helix, n_or_c=flank_n_or_c)
+            this_flank = Flank.objects.get(tmh=transmembrane_helix, n_or_c=flank_n_or_c)
             record_for_database, created = Flank_residue.objects.update_or_create(
                 residue=specific_residue,
                 flank=this_flank,
@@ -777,8 +1003,9 @@ def add_a_tmh_to_database(query_id, tmh_number, tmh_total_number, tmh_start, tmh
                     "amino_acid_location_n_to_c": amino_acid_location_n_to_c,
                     "amino_acid_location_in_to_out": amino_acid_location_in_to_out,
                     # inside flank, outside flank. inside flank, outside flank are ONLY flanking TMHs.
-                    "feature_location": feature_location
-                })
+                    "feature_location": feature_location,
+                },
+            )
 
         elif feature_location == "Outside flank":
             flank_n_or_c = None
@@ -786,10 +1013,9 @@ def add_a_tmh_to_database(query_id, tmh_number, tmh_total_number, tmh_start, tmh
                 flank_n_or_c = "N"
             elif tmh_topology == "Outside":
                 flank_n_or_c = "C"
-            #flank_edge_dsitance = flank_edge(flank_n_or_c, )
-            #print(transmembrane_helix, flank_n_or_c)
-            this_flank = Flank.objects.get(
-                tmh=transmembrane_helix, n_or_c=flank_n_or_c)
+            # flank_edge_dsitance = flank_edge(flank_n_or_c, )
+            # print(transmembrane_helix, flank_n_or_c)
+            this_flank = Flank.objects.get(tmh=transmembrane_helix, n_or_c=flank_n_or_c)
             record_for_database, created = Flank_residue.objects.update_or_create(
                 residue=specific_residue,
                 flank=this_flank,
@@ -799,15 +1025,16 @@ def add_a_tmh_to_database(query_id, tmh_number, tmh_total_number, tmh_start, tmh
                     "amino_acid_location_n_to_c": amino_acid_location_n_to_c,
                     "amino_acid_location_in_to_out": amino_acid_location_in_to_out,
                     # inside flank, outside flank. inside flank, outside flank are ONLY flanking TMHs.
-                    "feature_location": feature_location
-                })
+                    "feature_location": feature_location,
+                },
+            )
 
 
 def tmh_to_database(tmh_list):
-    '''
+    """
     This takes the input standardised by the other functions of a TMH and adds them to the database.
     The function also has some integrity checks.
-    '''
+    """
     # Now we have a complete list of the TMHs.
 
     for tmh_number_iteration, a_tmh in enumerate(tmh_list):
@@ -828,14 +1055,28 @@ def tmh_to_database(tmh_list):
         full_sequence = a_tmh[12].replace("\n", "")
         tm_type = a_tmh[13].replace("\n", "")
 
-        add_a_tmh_to_database(query_id, tmh_number, tmh_total_number, tmh_start, tmh_stop, tmh_topology,
-                              evidence_type, membrane_location, n_ter_seq, tmh_sequence, c_ter_seq, evidence, full_sequence, tm_type)
+        add_a_tmh_to_database(
+            query_id,
+            tmh_number,
+            tmh_total_number,
+            tmh_start,
+            tmh_stop,
+            tmh_topology,
+            evidence_type,
+            membrane_location,
+            n_ter_seq,
+            tmh_sequence,
+            c_ter_seq,
+            evidence,
+            full_sequence,
+            tm_type,
+        )
 
 
 def tmsoc(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_stop):
 
-        # Writing input files for TMSOC
-    with open("scripts/external_scripts/tmsoc/inputseq.fasta", 'w') as temp_tmh_fasta:
+    # Writing input files for TMSOC
+    with open("scripts/external_scripts/tmsoc/inputseq.fasta", "w") as temp_tmh_fasta:
         temp_tmh_fasta.write(str(">" + tmh_unique_id + "\n"))
         sequence_counter = 0
 
@@ -850,26 +1091,36 @@ def tmsoc(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_stop):
 
     # Coordinates from the original TMSOC project look like
     # 37,63 74,96
-    with open("scripts/external_scripts/tmsoc/TMsegments.txt", 'w') as temp_tmh_seq:
+    with open("scripts/external_scripts/tmsoc/TMsegments.txt", "w") as temp_tmh_seq:
         temp_tmh_seq.write(str(tmh_start) + "," + str(tmh_stop) + " ")
 
     # Running TMSOC
 
-    tmsoc_result = check_output(["/usr/bin/perl", "scripts/external_scripts/tmsoc/TMSOC.pl", "scripts/external_scripts/tmsoc/inputseq.fasta",
-                                 "scripts/external_scripts/tmsoc/TMsegments.txt"])  # stdout=subprocess.PIPE)
+    tmsoc_result = check_output(
+        [
+            "/usr/bin/perl",
+            "scripts/external_scripts/tmsoc/TMSOC.pl",
+            "scripts/external_scripts/tmsoc/inputseq.fasta",
+            "scripts/external_scripts/tmsoc/TMsegments.txt",
+        ]
+    )  # stdout=subprocess.PIPE)
     tmsoc_result = tmsoc_result.decode("utf-8")
     tmsoc_result = tmsoc_result.split("\n")
     for line in tmsoc_result:
         if str(tmh_sequence + ";") in line:
             result = line.split(";")
-            #sequence = result[0]
+            # sequence = result[0]
             start_stop = result[1]
             score_one = result[2]
             score_two = result[3]
             z_score = result[4]
             simple_twighlight_complex = result[5]
 
-            print("Writing TMSOC results to database: ", z_score, simple_twighlight_complex)
+            print(
+                "Writing TMSOC results to database: ",
+                z_score,
+                simple_twighlight_complex,
+            )
 
             # Add to database
             # Fetch the tmh foreign key
@@ -881,24 +1132,29 @@ def tmsoc(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_stop):
                 defaults={
                     "test_type": "TMSOC",
                     "test_result": simple_twighlight_complex,
-                    "test_score": float(z_score)
-                }
+                    "test_score": float(z_score),
+                },
             )
 
 
 def deltag(tmh_unique_id, tmh_sequence):
-    with open("scripts/external_scripts/dgpred/inputseq.fasta", 'w') as temp_tmh_fasta:
+    with open("scripts/external_scripts/dgpred/inputseq.fasta", "w") as temp_tmh_fasta:
         temp_tmh_fasta.write(str(">" + tmh_unique_id + "\n" + tmh_sequence))
 
-    deltag_result = check_output(["/usr/bin/perl", "scripts/external_scripts/dgpred/myscanDG.pl",
-                                  "scripts/external_scripts/dgpred/inputseq.fasta"])  # stdout=subprocess.PIPE)
-    #print(deltag_result)
+    deltag_result = check_output(
+        [
+            "/usr/bin/perl",
+            "scripts/external_scripts/dgpred/myscanDG.pl",
+            "scripts/external_scripts/dgpred/inputseq.fasta",
+        ]
+    )  # stdout=subprocess.PIPE)
+    # print(deltag_result)
     deltag_result = deltag_result.decode("utf-8")
     deltag_result = deltag_result.split("\n")
     try:
         deltag_result = deltag_result[8].split(" ")
         deltag_result = deltag_result[1]
-    except(IndexError):
+    except (IndexError):
         pass
     print("deltag=", deltag_result)
 
@@ -907,32 +1163,34 @@ def deltag(tmh_unique_id, tmh_sequence):
     # Record to the database
     record_for_database, created = Tmh_deltag.objects.update_or_create(
         tmh=tmh_protein,
-        defaults={
-            "test_type": "Delta G",
-            "test_score": float(deltag_result)
-        }
+        defaults={"test_type": "Delta G", "test_score": float(deltag_result)},
     )
 
 
-def window_slice(list_for_slicing, window_length, start_slice, end_slice, full_sequence_length):
-    '''
+def window_slice(
+    list_for_slicing, window_length, start_slice, end_slice, full_sequence_length
+):
+    """
     This checks that the slice needed does not exceed the final residue.
-    '''
+    """
     # print(list_for_slicing, window_length,
     #      start_slice, end_slice, full_sequence_length)
     if int(window_length / 2) + start_slice >= full_sequence_length:
-        windowed_values = list_for_slicing[start_slice +
-                                           int(window_length / 2) - 1:]
+        windowed_values = list_for_slicing[start_slice + int(window_length / 2) - 1 :]
 
     elif int(window_length / 2) + end_slice >= full_sequence_length:
-        windowed_values = list_for_slicing[int(
-            len(list_for_slicing) - window_length / 2) - 1:]
+        windowed_values = list_for_slicing[
+            int(len(list_for_slicing) - window_length / 2) - 1 :
+        ]
 
     elif int(window_length / 2) + end_slice < full_sequence_length:
-        windowed_values = list_for_slicing[int(
-            start_slice + window_length / 2) - 1:int(end_slice + window_length / 2) - 1]
+        windowed_values = list_for_slicing[
+            int(start_slice + window_length / 2)
+            - 1 : int(end_slice + window_length / 2)
+            - 1
+        ]
     # print(windowed_values) # These values should be printed to a graph and stored in a file.
-    return(windowed_values)
+    return windowed_values
 
 
 def hydrophobicity(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_stop):
@@ -948,30 +1206,93 @@ def hydrophobicity(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_st
     flexibility = np.mean(tmh_sequence_analysis.flexibility())
     print("Flexibility:", flexibility)
 
-    ww = {'A': 0.33, 'R': 1.00, 'N': 0.43, 'D': 2.41, 'C': 0.22, 'Q': 0.19, 'E': 1.61, 'G': 1.14, 'H': -0.06, 'I': -0.81,
-          'L': -0.69, 'K': 1.81, 'M': -0.44, 'F': -0.58, 'P': -0.31, 'S': 0.33, 'T': 0.11, 'W': -0.24, 'Y': 0.23, 'V': -0.53}
+    ww = {
+        "A": 0.33,
+        "R": 1.00,
+        "N": 0.43,
+        "D": 2.41,
+        "C": 0.22,
+        "Q": 0.19,
+        "E": 1.61,
+        "G": 1.14,
+        "H": -0.06,
+        "I": -0.81,
+        "L": -0.69,
+        "K": 1.81,
+        "M": -0.44,
+        "F": -0.58,
+        "P": -0.31,
+        "S": 0.33,
+        "T": 0.11,
+        "W": -0.24,
+        "Y": 0.23,
+        "V": -0.53,
+    }
     ww_window = full_sequence_analysis.protein_scale(ww, window_length, edge)
-    ww_window = window_slice(ww_window, window_length,
-                             tmh_start, tmh_stop, len(full_sequence))
+    ww_window = window_slice(
+        ww_window, window_length, tmh_start, tmh_stop, len(full_sequence)
+    )
     ww_avg = np.mean(ww_window)
     print("White Wimley:", ww_avg)
 
-    kyte = {'A': 1.8, 'R': -4.5, 'N': -3.5, 'D': -3.5, 'C': 2.5, 'Q': -3.5, 'E': -3.5, 'G': -0.4, 'H': -3.2, 'I': 4.5,
-            'L': 3.8, 'K': -3.9, 'M': 1.9, 'F': 2.8, 'P': -1.6, 'S': -0.8, 'T': -0.7, 'W': -0.9, 'Y': -1.3, 'V': 4.2}
-    kyte_window = full_sequence_analysis.protein_scale(
-        kyte, window_length, edge)
+    kyte = {
+        "A": 1.8,
+        "R": -4.5,
+        "N": -3.5,
+        "D": -3.5,
+        "C": 2.5,
+        "Q": -3.5,
+        "E": -3.5,
+        "G": -0.4,
+        "H": -3.2,
+        "I": 4.5,
+        "L": 3.8,
+        "K": -3.9,
+        "M": 1.9,
+        "F": 2.8,
+        "P": -1.6,
+        "S": -0.8,
+        "T": -0.7,
+        "W": -0.9,
+        "Y": -1.3,
+        "V": 4.2,
+    }
+    kyte_window = full_sequence_analysis.protein_scale(kyte, window_length, edge)
     kyte_window = window_slice(
-        kyte_window, window_length, tmh_start, tmh_stop, len(full_sequence))
+        kyte_window, window_length, tmh_start, tmh_stop, len(full_sequence)
+    )
     kyte_avg = np.mean(kyte_window)
     print("Kyte:", kyte_avg)
 
     # These numbers need chaning
-    eisenberg = {'A': 0.620, 'R': -2.530, 'N': -0.780, 'D': -0.900, 'C': 0.290, 'Q': -0.850, 'E': -0.740, 'G': 0.480, 'H': -0.400,
-                 'I': 1.380, 'L': 1.060, 'K': -1.500, 'M': 0.640, 'F': 1.190, 'P': 0.120, 'S': -0.180, 'T': -0.050, 'W': 0.810, 'Y': 0.260, 'V': 1.080}
+    eisenberg = {
+        "A": 0.620,
+        "R": -2.530,
+        "N": -0.780,
+        "D": -0.900,
+        "C": 0.290,
+        "Q": -0.850,
+        "E": -0.740,
+        "G": 0.480,
+        "H": -0.400,
+        "I": 1.380,
+        "L": 1.060,
+        "K": -1.500,
+        "M": 0.640,
+        "F": 1.190,
+        "P": 0.120,
+        "S": -0.180,
+        "T": -0.050,
+        "W": 0.810,
+        "Y": 0.260,
+        "V": 1.080,
+    }
     eisenberg_window = full_sequence_analysis.protein_scale(
-        eisenberg, window_length, edge)
+        eisenberg, window_length, edge
+    )
     eisenberg_window = window_slice(
-        eisenberg_window, window_length, tmh_start, tmh_stop, len(full_sequence))
+        eisenberg_window, window_length, tmh_start, tmh_stop, len(full_sequence)
+    )
     eisenberg_avg = np.mean(eisenberg_window)
     print("Eisenberg:", eisenberg_avg)
     tmh_protein = Tmh.objects.get(tmh_id=tmh_unique_id)
@@ -988,7 +1309,7 @@ def hydrophobicity(tmh_unique_id, full_sequence, tmh_sequence, tmh_start, tmh_st
             "kyte_window": str(kyte_window),
             "ww_window": str(ww_window),
             "eisenberg_window": str(eisenberg_window),
-        }
+        },
     )
 
 
@@ -996,17 +1317,6 @@ def tmh_input(input_query):
     print("Extracting TMH bounadries from...")
     # Parse the xml static files since this is the slowest part.
     # Ignore this for now -  we need to sort out uniprot before anything else!
-    topdb_url = "http://topdb.enzim.hu/?m=download&file=topdb_all.xml"
-    topdb_file = 'scripts/external_datasets/topdb_all.xml'
-
-
-    try:
-        topdb = ET.parse(topdb_file)
-    except FileNotFoundError:
-        download(topdb_url, topdb_file)
-        topdb = ET.parse(topdb_file)
-
-
 
     # mptopo_url="https://blanco.biomol.uci.edu/mpstruc/mptopo/mptopoAlphaHlxTblXml"
     # mptopo_file="scripts/external_datasets/mptopo_alpha.xml"
@@ -1017,26 +1327,32 @@ def tmh_input(input_query):
     #     download(mptopo_url, mptopo_file)
     #     mptopo = ET.parse(mptopo_file)
 
-
-
     for query_number, a_query in enumerate(input_query):
         a_query = clean_query(a_query)
-        print("\nExtracting TMH boundaries for", a_query, ",",query_number + 1, "of", len(input_query), "records.")
+        print(
+            "\nExtracting TMH boundaries for",
+            a_query,
+            ",",
+            query_number + 1,
+            "of",
+            len(input_query),
+            "records.",
+        )
         # #print(clean_query(a_query))
         ### OPM needs adding to here also. ###
-        #mptopo_check(a_query, mptopo)
+        # mptopo_check(a_query, mptopo)
         uniprot_tm_check(a_query)
         topdb_check(a_query, topdb)
 
 
 def run():
-    '''
+    """
     This is what django runs. This is effectively the canonical script,
     even though django forces it to be in a function.
     This will go through several databases and extract the TMH boundaries from proteins,
     and then identify which variants are in those TMHs.
     $ python3 manage.py runscript populate --traceback
-    '''
+    """
 
     ### Canonical script starts here ###
 
@@ -1044,11 +1360,12 @@ def run():
 
     # Also, parse the variant files which can be massive.
     # humsavar table
-    #print(input_query)
-    #print("Starting TMH database population script...")
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tmh_database.settings')
+    # print(input_query)
+    # print("Starting TMH database population script...")
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "tmh_database.settings")
 
     ### Download uniprot files ###
+    print("Fetching uniprot list.")
     inputs = input_query_process(input_query)
     input_queries = inputs[0]
     input_query_set = inputs[1]
@@ -1056,11 +1373,12 @@ def run():
     ### If UniProt says it is a TMH, add it to the protein table ###
 
     for query_number, a_query in enumerate(input_query):
-        #print("Checking UniProt bin for", a_query)
+        print("Checking UniProt bin for", a_query)
         a_query = clean_query(a_query)
         uniprot_bin(a_query)
-        #print("Adding UniProt record", a_query, " to table,", query_number + 1, "of", len(input_query), "records...")
+        print("Adding UniProt record", a_query, " to table,", query_number + 1, "of", len(input_query), "records...")
         uniprot_table(a_query)
+    Residue.objects.bulk_create(residues_to_create)
 
     ### TMH Tables ###
     # tmh_input(input_query)
