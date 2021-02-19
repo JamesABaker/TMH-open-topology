@@ -52,20 +52,10 @@ except FileNotFoundError:
     topdb = ET.parse(topdb_file)
 
 # Residue bulk handling variables
-print("Fetching existing residues.")
+print("Prefetching existing residues.")
 Residue.objects.all().prefetch_related("protein")
-residues_to_create = []
-existing = set(
-    Residue.objects.all().values_list("protein__uniprot_id", "sequence_position")
-)
-print("Fetching existing Non TMH helices")
-existingnontmhs = set(
-    Non_tmh_helix_residue.objects.values_list(
-        "nont_tmh_helix_id__protein__uniprot_id",
-        "amino_acid_type",
-        "residue__sequence_position",
-    )
-)
+print("Cataloging already existing residues.")
+non_tmh_helix_residues_to_create = []
 
 
 def uniprot_table(query_id):
@@ -150,11 +140,16 @@ def subcellular_location(filename):
         protein = Protein.objects.get(uniprot_id=record.id)
         for i, f in enumerate(record.features):
             if f.type == "TOPO_DOM":
+                try:
+                    f.qualifiers["description"]
+                    qualifier_key="description"
+                except KeyError:
+                    qualifier_key="note"
                 (
                     subcellular_location_for_database,
                     created,
                 ) = SubcellularLocation.objects.get_or_create(
-                    location=f.qualifiers["description"].split(".")[0]
+                    location=f.qualifiers[qualifier_key].split(".")[0]
                 )
                 subcellular_location_for_database.proteins.add(protein)
 
@@ -170,9 +165,11 @@ def residue_table(query_id, sequence):
     protein = Protein.objects.get(uniprot_id=query_id)
     # Now we build the residue table.
     # Are there ever skips of unknow length? This could affect TMH number.
-
+    residues_to_create = []
     # This method will not update. A separate out of date script should be used to check if this needs to be removed and updated.
-
+    existing = set(
+        Residue.objects.filter(protein_id__uniprot_id=query_id).values_list("protein__uniprot_id", "sequence_position")
+    )
     for residue_number, a_residue in enumerate(sequence):
         if not (query_id, residue_number + 1) in existing:
 
@@ -183,6 +180,7 @@ def residue_table(query_id, sequence):
                     amino_acid_type=a_residue,
                 )
             )
+    Residue.objects.bulk_create(residues_to_create)
 
 
 def uniprot_tm_check(query_id):
@@ -442,7 +440,12 @@ def uniprot_membrane_location(record):
     topology_list = []
     for i, f in enumerate(record.features):
         if f.type == "TOPO_DOM":
-            topology_list.append(f.qualifiers["description"].split(".")[0])
+            try:
+                f.qualifiers["description"]
+                qualifier_key="description"
+            except KeyError:
+                qualifier_key="note"
+            topology_list.append(f.qualifiers[qualifier_key].split(".")[0])
     locations = list(dict.fromkeys(topology_list))
 
     return clean_query(str(locations))
@@ -473,8 +476,13 @@ def non_tmh_helix_residues_input(protein_id, start, stop, sequence):
         protein__uniprot_id=protein_id, helix_start=start, helix_stop=stop
     )
 
-    non_tmh_helix_residues_to_create = []
-
+    existingnontmhs = set(
+        Non_tmh_helix_residue.objects.filter(nont_tmh_helix_id__protein__uniprot_id=protein_id).values_list(
+            "nont_tmh_helix_id__protein__uniprot_id",
+            "amino_acid_type",
+            "residue__sequence_position",
+        )
+    )
     for residue_number, a_residue in enumerate(sequence):
         this_residue = Residue.objects.get(
             amino_acid_type=a_residue,
@@ -489,7 +497,6 @@ def non_tmh_helix_residues_input(protein_id, start, stop, sequence):
                     amino_acid_type=a_residue,
                 )
             )
-    Non_tmh_helix_residue.objects.bulk_create(non_tmh_helix_residues_to_create)
 
 
 def location_to_number(exact_position):
@@ -504,7 +511,13 @@ def uniprot_topo_check(record):
     # This function currently only deals with alpha helix
     for i, f in enumerate(record.features):
         # The descriptor can be Helix or Helical. I figure Hel is a nice shortcut.
-        if f.type == "TRANSMEM" in f.qualifiers["description"]:  # and "Hel"??
+        try:
+            f.qualifiers["description"]
+            qualifier_key="description"
+        except KeyError:
+            qualifier_key="note"
+
+        if f.type == "TRANSMEM" in f.qualifiers[qualifier_key]:  # and "Hel"??
             topology_list.append(
                 [
                     "TM",
@@ -514,24 +527,16 @@ def uniprot_topo_check(record):
             )
         elif f.type == "TOPO_DOM":
             print(f)
-            try:
-                topology_list.append(
-                    [
-                        uni_subcellular_location(
-                            f.qualifiers["description"].split(".")[0]
-                        ),
-                        location_to_number(f.location.start),
-                        location_to_number(f.location.end),
-                    ]
-                )
-            except:
-                topology_list.append(
-                    [
-                        uni_subcellular_location(f.qualifiers["note"].split(".")[0]),
-                        location_to_number(f.location.start),
-                        location_to_number(f.location.end),
-                    ]
-                )
+            topology_list.append(
+                [
+                    uni_subcellular_location(
+                        f.qualifiers[qualifier_key].split(".")[0]
+                    ),
+                    location_to_number(f.location.start),
+                    location_to_number(f.location.end),
+                ]
+            )
+
         else:
             pass
 
@@ -1378,7 +1383,8 @@ def run():
         uniprot_bin(a_query)
         print("Adding UniProt record", a_query, " to table,", query_number + 1, "of", len(input_query), "records...")
         uniprot_table(a_query)
-    Residue.objects.bulk_create(residues_to_create)
+    Non_tmh_helix_residue.objects.bulk_create(non_tmh_helix_residues_to_create)
+
 
     ### TMH Tables ###
     # tmh_input(input_query)
