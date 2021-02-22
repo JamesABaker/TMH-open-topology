@@ -190,9 +190,9 @@ def input_query_get():
     Returns a list of uniprot ids.
     """
     # In full scale mode it will take a long time which may not be suitable for development.
-    # input_query_list = get_uniprot()
+    input_query_list = get_uniprot()
     # Here we will just use a watered down list of tricky proteins. Uncomment this line for testing the whole list.
-    input_query_list = test_query_list
+    #input_query_list = test_query_list
     # This protein currently throws an error in biopython parsing.
     blacklist = []
     with open("scripts/external_datasets/exclusion_list.txt") as f:
