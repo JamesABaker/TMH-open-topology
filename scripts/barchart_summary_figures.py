@@ -109,6 +109,49 @@ pore_residues = (
 )
 barchart(barchart_dictionary(pore_residues), "Pore residues")
 
+# Simple
+simple_residues = (
+    Residue.objects.filter(
+        tmh_residue__tmh_id__meta_tmh=True, tmh_residue__tmh_id__tmh_tmsoc__test_score__lte="-3.45"
+    )
+    .distinct("pk")
+    .values_list("amino_acid_type", flat=True)
+)
+barchart(barchart_dictionary(simple_residues), "Simple TMH residues")
+
+# Complex
+complex_residues = (
+    Residue.objects.filter(
+        tmh_residue__tmh_id__meta_tmh=True,
+        tmh_residue__tmh_id__tmh_tmsoc__test_score__gte="0.44"
+    )
+    .distinct("pk")
+    .values_list("amino_acid_type", flat=True)
+)
+barchart(barchart_dictionary(complex_residues), "Complex TMH residues")
+
+# spont
+spont_residues = (
+    Residue.objects.filter(
+        tmh_residue__tmh_id__meta_tmh=True,
+        tmh_residue__tmh_id__tmh_deltag__test_score__lte="-0.018"
+    )
+    .distinct("pk")
+    .values_list("amino_acid_type", flat=True)
+)
+barchart(barchart_dictionary(spont_residues), "Spontaneous TMH residues")
+
+# Non spont
+non_spont_residues = (
+    Residue.objects.filter(
+        tmh_residue__tmh_id__meta_tmh=True,
+        tmh_residue__tmh_id__tmh_deltag__test_score__gte="2.601"
+    )
+    .distinct("pk")
+    .values_list("amino_acid_type", flat=True)
+)
+barchart(barchart_dictionary(non_spont_residues), "Non-spontaneous TMH residues")
+
 
 def run():
     print("complete")
