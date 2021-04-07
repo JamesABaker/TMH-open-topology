@@ -1,5 +1,6 @@
 import os
-
+from csv import DictReader
+from scripts.populate_general_functions import *
 
 def thickness(pdb_content=""):
     '''
@@ -16,15 +17,19 @@ def thickness(pdb_content=""):
         return(False)
 
 
-def membrane_check(z_positions=[], membrane_cutoff=None):
+def membrane_check(z_positions=[], membrane_cutoff=None, error=0):
     '''
     Checks if all the atoms, some of the atoms, or none of the atoms fall within the membrane cutoffs
     '''
     membrane = []
     non_membrane = []
+    interface = []
     for a_z in z_positions:
-        if abs(a_z) <= membrane_cutoff:
+        if abs(a_z) <= membrane_cutoff-error:
             membrane.append(a_z)
+        # This catches not membrane, but within the error of the membrane boundary.
+        elif abs(a_z) <= membrane_cutoff+error:
+            interface.append(a_z)
         else:
             non_membrane.append(a_z)
     if len(membrane) > 0 and len(non_membrane) == 0:
@@ -33,6 +38,25 @@ def membrane_check(z_positions=[], membrane_cutoff=None):
         return("globular")
     elif len(membrane) > 0 and len(non_membrane) > 0:
         return("interface")
+    elif len(interface) > 0:
+        return("interface")
+
+
+def find_error(pdb_id_clean=None):    # open file in read mode
+    '''
+    Scans a lookup CSV for error values of membrane thickness in OPM.
+    '''
+    with open('scripts/external_datasets/opm/proteins-2021-04-06.csv', 'r') as read_obj:
+        # pass the file object to DictReader() to get the DictReader object
+        csv_dict_reader = DictReader(read_obj)
+        # iterate over each line as a ordered dictionary
+        for row in csv_dict_reader:
+            if clean_query(str(row["pdbid"])) == clean_query(pdb_id_clean):
+                error = float(row["thicknesserror"])
+                print(error)
+                return(error)
+    print("Failed to find error, falling back on REMARK")
+    return(0)
 
 
 def parse(pdb_id="", pdb_filename=""):
@@ -45,7 +69,8 @@ def parse(pdb_id="", pdb_filename=""):
     # Start at one so the first residue atom is not immediately
     # considered as a residue.
     # This is a very not elegant way of doing this.
-    previous_residue_number=1
+    previous_residue_number = 1
+    membrane_error = find_error(pdb_id_clean=os.path.splitext(pdb_id)[0])
     for line in content:  # each line is an atom
         line_content = line.split()
         #print(line_content)
@@ -68,23 +93,24 @@ def parse(pdb_id="", pdb_filename=""):
 
                 # A bug in which PDB format cause columns to bleed into one another.
                 except(ValueError):
-                    print("Borked PDB columns. Could not identify z axis value.")
+                    print("Borked PDB columns; no clear z axis value.")
                     return(False)
                 if residue_number != previous_residue_number:
-                    position=membrane_check(z_positions=residue_atom_list, membrane_cutoff=bilayer_cutoff)
+                    position = membrane_check(
+                        z_positions=residue_atom_list,
+                        membrane_cutoff=bilayer_cutoff, error=membrane_error)
                     print(pdb_id, chain, residue_number, position)
                     residue_atom_list = []
                 previous_residue_number = residue_number
-
     return()
 
+def run():
+    directory = r'scripts/external_datasets/opm/'
+    for filename in os.listdir(directory):
+        if filename.endswith(".pdb"):
+            # print("Opening...")
+            # print(os.path.join(directory, filename))
+            parse(pdb_filename=os.path.join(directory, filename), pdb_id=filename)
 
-directory = r'scripts/external_datasets/opm/'
-for filename in os.listdir(directory):
-    if filename.endswith(".pdb"):
-        # print("Opening...")
-        # print(os.path.join(directory, filename))
-        parse(pdb_filename=os.path.join(directory, filename), pdb_id=filename)
-
-    else:
-        continue
+        else:
+            continue

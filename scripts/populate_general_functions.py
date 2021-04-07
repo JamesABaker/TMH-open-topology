@@ -250,7 +250,7 @@ def clean_query(query):
      dirty input like a user input.
     """
 
-    illegal_characters = ["!", "\n", " ", "@", "'", ")", ",", "(", "[", "]", " "]
+    illegal_characters = ["!", "\n", " ", "@", "'", ")", ",", "(", "[", "]", " ", "=", '"']
     for char in illegal_characters:
         query = query.replace(char, "")
     # This gets rid of the isoform dashes and defaults to canonical.
