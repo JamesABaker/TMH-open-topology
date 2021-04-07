@@ -71,7 +71,7 @@ def stats_heatmap(
             )
             value = pvalue
             new_heatmap[row_number][column_number] = value
-    # print(title,"\n",np.array(new_heatmap))
+    print(title,"\n",np.array(new_heatmap))
     heatmap(
         np.array(new_heatmap),
         title,
