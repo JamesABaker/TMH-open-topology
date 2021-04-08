@@ -256,7 +256,7 @@ def clean_query(query):
     # This gets rid of the isoform dashes and defaults to canonical.
     a_clean_query = query.split("-")[0]
 
-    print("Clean query result:", a_clean_query)
+    # print("Clean query result:", a_clean_query)
     return a_clean_query
 
 

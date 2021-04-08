@@ -1,6 +1,7 @@
 import os
 from csv import DictReader
-from scripts.populate_general_functions import *
+from scripts.populate_general_functions import clean_query
+
 
 def thickness(pdb_content=""):
     '''
@@ -10,8 +11,9 @@ def thickness(pdb_content=""):
     for line in pdb_content:
         if "REMARK" in line and "bilayer thickness" in line:
             bilayer_thickness.append(line.split()[-1])
-    if len(bilayer_thickness) == 1:
+    if len(bilayer_thickness) >= 1:
         return(float(bilayer_thickness[0]))
+
     else:
         print("Bilayer weirdness:", bilayer_thickness)
         return(False)
@@ -19,7 +21,8 @@ def thickness(pdb_content=""):
 
 def membrane_check(z_positions=[], membrane_cutoff=None, error=0):
     '''
-    Checks if all the atoms, some of the atoms, or none of the atoms fall within the membrane cutoffs
+    Checks if all the atoms, some of the atoms,
+    or none of the atoms fall within the membrane cutoffs
     '''
     membrane = []
     non_membrane = []
@@ -27,7 +30,8 @@ def membrane_check(z_positions=[], membrane_cutoff=None, error=0):
     for a_z in z_positions:
         if abs(a_z) <= membrane_cutoff-error:
             membrane.append(a_z)
-        # This catches not membrane, but within the error of the membrane boundary.
+        # This catches non membrane,
+        # but within the error of the membrane boundary.
         elif abs(a_z) <= membrane_cutoff+error:
             interface.append(a_z)
         else:
@@ -46,7 +50,8 @@ def find_error(pdb_id_clean=None):    # open file in read mode
     '''
     Scans a lookup CSV for error values of membrane thickness in OPM.
     '''
-    with open('scripts/external_datasets/opm/proteins-2021-04-06.csv', 'r') as read_obj:
+    opm_csv_filename = "scripts/external_datasets/opm/proteins-2021-04-06.csv"
+    with open(opm_csv_filename, 'r') as read_obj:
         # pass the file object to DictReader() to get the DictReader object
         csv_dict_reader = DictReader(read_obj)
         # iterate over each line as a ordered dictionary
@@ -73,8 +78,6 @@ def parse(pdb_id="", pdb_filename=""):
     membrane_error = find_error(pdb_id_clean=os.path.splitext(pdb_id)[0])
     for line in content:  # each line is an atom
         line_content = line.split()
-        #print(line_content)
-
         if line_content != []:  # annoying empty line exceptions.
             bilayer_cutoff = thickness(pdb_content=content)
             if bilayer_cutoff == False:
@@ -88,10 +91,11 @@ def parse(pdb_id="", pdb_filename=""):
                 #x = line_content[6]
                 #y = line_content[7]
                 try:
-                    z = float(line_content[8])  # this is the TMH description
+                    z = float(line_content[8])  # this is the relative TMH pos
                     residue_atom_list.append(z)
 
-                # A bug in which PDB format cause columns to bleed into one another.
+                # A bug in which PDB format causes
+                # columns to bleed into one another.
                 except(ValueError):
                     print("Borked PDB columns; no clear z axis value.")
                     return(False)
@@ -104,13 +108,15 @@ def parse(pdb_id="", pdb_filename=""):
                 previous_residue_number = residue_number
     return()
 
+
 def run():
     directory = r'scripts/external_datasets/opm/'
     for filename in os.listdir(directory):
         if filename.endswith(".pdb"):
             # print("Opening...")
             # print(os.path.join(directory, filename))
-            parse(pdb_filename=os.path.join(directory, filename), pdb_id=filename)
+            parse(pdb_filename=os.path.join(
+                directory, filename), pdb_id=filename)
 
         else:
             continue
