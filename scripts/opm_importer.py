@@ -80,7 +80,7 @@ def parse(pdb_id="", pdb_filename=""):
         line_content = line.split()
         if line_content != []:  # annoying empty line exceptions.
             bilayer_cutoff = thickness(pdb_content=content)
-            if bilayer_cutoff == False:
+            if bilayer_cutoff is False:
                 return(False)
             if line_content[0] == 'ATOM':
                 atom_number = line_content[1]
@@ -88,8 +88,8 @@ def parse(pdb_id="", pdb_filename=""):
                 aa_type = line_content[3]
                 chain = line_content[4]
                 residue_number = line_content[5]
-                #x = line_content[6]
-                #y = line_content[7]
+                # x = line_content[6]
+                # y = line_content[7]
                 try:
                     z = float(line_content[8])  # this is the relative TMH pos
                     residue_atom_list.append(z)

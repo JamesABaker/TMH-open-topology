@@ -46,6 +46,7 @@ def histogram(performance, source, state, x_label, y_label):
     plt.savefig(filename, bbox_inches="tight")
     plt.clf()
 
+
 def impossible_subs():
     aa_impossible_subs_dict = {
         "A": ["K", "R", "Q", "H", "N", "Y", "W", "C", "M", "F", "I", "L"],
@@ -72,6 +73,7 @@ def impossible_subs():
     }
 
     return aa_impossible_subs_dict
+
 
 def impossible_cordinates(aa_order):
 
@@ -293,7 +295,8 @@ def heatmap(
 
     for x_coordinate, x_amino_acid in enumerate(aa_order):
         for y_coordinate, y_amino_acid in enumerate(aa_order):
-            plt.Circle((x_coordinate, y_coordinate), 0.5, color="black", fill=False)
+            plt.Circle((x_coordinate, y_coordinate),
+                       0.5, color="black", fill=False)
 
     # plt.tight_layout()
     plt.savefig(filename)

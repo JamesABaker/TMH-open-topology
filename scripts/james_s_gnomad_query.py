@@ -15,25 +15,23 @@ from django.urls import reverse
 from django.db.models import Prefetch
 
 
-Variant.objects.all().prefetch_related("residue", "residue__funfamresidue", "residue__funfamresidue__funfam","residue__protein")
+Variant.objects.all().prefetch_related("residue", "residue__funfamresidue",
+                                       "residue__funfamresidue__funfam", "residue__protein")
 #variants=Variant.objects.filter(residue__protein__uniprot_id="Q8WZ75").distinct('pk')
-variants=Variant.objects.all().distinct('pk')
+variants = Variant.objects.all().distinct('pk')
 for n, var_object in enumerate(variants):
     #print(f"{n} of {variants.count()} variants")
-    origin_id=var_object.residue.protein.uniprot_id
-    origin_position=var_object.residue.sequence_position
-    variant_source=var_object.variant_source
-    variant_status=var_object.disease_status
-    variant_id=var_object.variant_source_id
-    funfam_info=[]
+    origin_id = var_object.residue.protein.uniprot_id
+    origin_position = var_object.residue.sequence_position
+    variant_source = var_object.variant_source
+    variant_status = var_object.disease_status
+    variant_id = var_object.variant_source_id
+    funfam_info = []
     for i in FunfamResidue.objects.filter(residue=var_object.residue):
-        funfam_id=i.funfam.funfam_id
-        superfam_id=i.funfam.superfamily
-        funfam_position=i.funfam_position
-        funfam_details=[funfam_id, superfam_id, funfam_position]
+        funfam_id = i.funfam.funfam_id
+        superfam_id = i.funfam.superfamily
+        funfam_position = i.funfam_position
+        funfam_details = [funfam_id, superfam_id, funfam_position]
         funfam_info.append(funfam_details)
-    
-    
+
     print(f"{origin_id}, {origin_position}, {variant_source}, {variant_status}, {variant_id}, {funfam_info}")
-
-
