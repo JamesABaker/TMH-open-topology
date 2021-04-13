@@ -3,7 +3,7 @@ import Bio
 from Bio.PDB import PDBParser
 from Bio.PDB import PDBIO
 from csv import DictReader
-from scripts.populate_general_functions import clean_query
+from scripts.populate_general_functions import clean_query, download
 from tmh_db.models import (
     Disease,
     Database_Metadata,
@@ -31,6 +31,7 @@ from tmh_db.models import (
     Variant,
 )
 
+list_of_vartmh_proteins=Structure.objects.all().values_list('pdb_id', flat=True).distinct()
 
 def thickness(pdb_content=""):
     '''
@@ -103,6 +104,17 @@ def prot_database_check(pdb_id_to_check=""):
     else:
         return(False)
 
+def local_memprot_tail(pdb_id=""):
+    memprotmd_url=f'http://memprotmd.bioch.ox.ac.uk/data/memprotmd/simulations/{pdb_id}_default_dppc/files/structures/group_tail.contacts.pdb'
+    memprot_file=f'scripts/external_datasets/memprotmd/{pdb_id}_tail.pdb'
+    download(memprotmd_url, memprot_file, pause=5)
+    return(str(memprot_file))
+
+def local_memprot_head(pdb_id=""):
+    memprotmd_url=f'http://memprotmd.bioch.ox.ac.uk/data/memprotmd/simulations/{pdb_id}_default_dppc/files/structures/group_head.contacts.pdb'
+    memprot_file=f'scripts/external_datasets/memprotmd/{pdb_id}_head.pdb'
+    download(memprotmd_url, memprot_file, pause=5)
+    return(str(memprot_file))
 
 def parse(pdb_id="", pdb_filename=""):
     '''
@@ -115,40 +127,45 @@ def parse(pdb_id="", pdb_filename=""):
     # considered as a residue.
 
     clean_id = os.path.splitext(pdb_id)[0]
+    if clean_id in list_of_vartmh_proteins:
 
-    bilayer_cutoff = thickness(pdb_content=content)
-    if bilayer_cutoff is False:
-        return(False)
-
-    if prot_database_check(clean_id) is True:
-        membrane_error = find_error(clean_id)
+        tail_file=local_memprot_tail(pdb_id=clean_id)
+        head_file=local_memprot_head(pdb_id=clean_id)
 
         parser = PDBParser()  # recruts the parsing class
-        structure = parser.get_structure(pdb_filename, pdb_filename)
-        for model in structure:   # X-Ray generally only have 1 model, while more in NMR
+        tail_structure = parser.get_structure(tail_file, tail_file)
+        head_structure = parser.get_structure(head_file, head_file)
+
+        for model in tail_structure:   # X-Ray generally only have 1 model, while more in NMR
             for chain in model:
                 chain_id = chain.get_id()
                 print(chain_id)
                 for residue in chain:
                     residue_number = residue.get_id()[1]
-
-                    #Lets ignore the DUM membrane placeholder HETATM
-                    if str(residue.get_resname()) != str("DUM"):
-                        for atom in residue:
-                            aa_type = residue.get_resname()
-
-                            #print(atom.get_coord())
-                            # this is the relative TMH pos
-                            z = float(atom.get_coord()[2])
-                            residue_atom_list.append(z)
-
-                        position = membrane_check(
-                                z_positions=residue_atom_list,
-                                membrane_cutoff=bilayer_cutoff, error=membrane_error)
-                        print(clean_id, chain_id, residue_number)
+                    bfactors=[]
+                    for atom in residue:
+                        if atom.bfactor > 0:
+                            bfactors.append(atom.bfactor)
+                    if len(bfactors) > 0:
                         Structural_residue.objects.filter(
-                            structure__pdb_id=clean_id, pdb_chain=chain_id, pdb_position=residue_number).update(opm_status=position)
-                        residue_atom_list = []
+                            structure__pdb_id=clean_id, pdb_chain=chain_id, pdb_position=residue_number).update(memprotmd_tail=True)
+
+
+        for model in head_structure:   # X-Ray generally only have 1 model, while more in NMR
+            for chain in model:
+                chain_id = chain.get_id()
+                print(chain_id)
+                for residue in chain:
+                    residue_number = residue.get_id()[1]
+                    bfactors=[]
+                    for atom in residue:
+                        if atom.bfactor > 0:
+                            bfactors.append(atom.bfactor)
+                    if len(bfactors) > 0:
+                        Structural_residue.objects.filter(
+                            structure__pdb_id=clean_id, pdb_chain=chain_id, pdb_position=residue_number).update(memprotmd_head=True)
+
+
     return()
 
 

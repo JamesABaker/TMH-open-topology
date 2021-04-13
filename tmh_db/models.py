@@ -44,7 +44,7 @@ class SubcellularLocation(models.Model):
 
 
 class Keyword(models.Model):
-    ''' UniProt Keywords''' 
+    ''' UniProt Keywords'''
     keyword = models.TextField(unique=True)
     proteins = models.ManyToManyField(Protein, related_name="keywords")
 
@@ -246,10 +246,11 @@ class Structural_residue(models.Model):
     author_position = models.IntegerField(null=True)
     structure_aa = models.CharField(max_length=1, default='X', null=True)
     uniprot_position = models.IntegerField()
-    memprotmd_headgroups = models.FloatField(null=True)
-    memprotmd_tail = models.FloatField(null=True)
+    memprotmd_head = models.BooleanField(null=True)
+    memprotmd_tail = models.BooleanField(null=True)
     #porewalker_score = models.FloatField(null=True, default=0)
     pore_residue = models.BooleanField(null=False, default=False)
+    opm_status = models.CharField(max_length=10, default='')
 
     class Meta:
         unique_together = ["structure", "pdb_position", "pdb_chain"]

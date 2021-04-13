@@ -9,7 +9,8 @@ def loss_enrichments(variant_queryset=None, residue_queryset=None):
     results = {}
     for aa in aa_baezo_order():
         variants = variant_queryset.filter(aa_wt=aa).distinct("pk").count()
-        residues = residue_queryset.filter(amino_acid_type=aa).distinct("pk").count()
+        residues = residue_queryset.filter(
+            amino_acid_type=aa).distinct("pk").count()
         enrichment = variants / residues
         results[aa] = {
             "residues": residues,
@@ -33,7 +34,8 @@ def gain_enrichments(variant_queryset=None, residue_queryset=None):
     results = {}
     for aa in aa_baezo_order():
         variants = variant_queryset.filter(aa_mut=aa).distinct("pk").count()
-        residues = residue_queryset.filter(amino_acid_type=aa).distinct("pk").count()
+        residues = residue_queryset.filter(
+            amino_acid_type=aa).distinct("pk").count()
         enrichment = variants / residues
         results[aa] = {
             "residues": residues,
@@ -104,10 +106,11 @@ def query_sets():
     tmh_vars = Variant.objects.filter(
         disease_status="d", residue__tmh_residue__tmh_id__meta_tmh=True
     ).distinct("pk")
-    tmh_res = Residue.objects.filter(tmh_residue__tmh_id__meta_tmh=True).distinct("pk")
+    tmh_res = Residue.objects.filter(
+        tmh_residue__tmh_id__meta_tmh=True).distinct("pk")
     print("TMHs")
-    enrichment_print(query_res=tmh_res, query_vars=tmh_vars, feature_type="TMH")
-
+    enrichment_print(query_res=tmh_res, query_vars=tmh_vars,
+                     feature_type="TMH")
 
     ### Pore TMHS ###
     pore_tmh_vars = Variant.objects.filter(
@@ -124,8 +127,8 @@ def query_sets():
         query_vars=pore_tmh_vars,
         feature_type="Pore TMH residues",
     )
-    print(stats.fisher_exact([[tmh_res.count(), tmh_vars.count()], [pore_tmh_res.count(), pore_tmh_vars.count()]]))
-
+    print(stats.fisher_exact([[tmh_res.count(), tmh_vars.count()], [
+          pore_tmh_res.count(), pore_tmh_vars.count()]]))
 
     ### Extended Pore TMHS ###
     ext_pore_tmh_vars = Variant.objects.filter(
@@ -157,7 +160,8 @@ def query_sets():
     enrichment_print(
         query_res=nontmh_res, query_vars=nontmh_vars, feature_type="non-TMH"
     )
-    print(stats.fisher_exact([[tmh_res.count(), tmh_vars.count()], [nontmh_res.count(), nontmh_vars.count()]]))
+    print(stats.fisher_exact([[tmh_res.count(), tmh_vars.count()], [
+          nontmh_res.count(), nontmh_vars.count()]]))
 
     ### Helix ###
     helixnontmh_vars = (
@@ -178,8 +182,8 @@ def query_sets():
         query_vars=helixnontmh_vars,
         feature_type="Helix non-TMH",
     )
-    print(stats.fisher_exact([[tmh_res.count(), tmh_vars.count()], [helixnontmh_res.count(), helixnontmh_vars.count()]]))
-
+    print(stats.fisher_exact([[tmh_res.count(), tmh_vars.count()], [
+          helixnontmh_res.count(), helixnontmh_vars.count()]]))
 
     ### Inside flanks ###
     insideflank_vars = Variant.objects.filter(
@@ -197,7 +201,6 @@ def query_sets():
         query_vars=insideflank_vars,
         feature_type="Inside flanks",
     )
-
 
     ### Outside flanks ###
     outsideflank_vars = Variant.objects.filter(
@@ -232,8 +235,8 @@ def query_sets():
         query_vars=allflank_vars,
         feature_type="All flanks",
     )
-    print(stats.fisher_exact([[tmh_res.count(), tmh_vars.count()], [allflank_res.count(), allflank_vars.count()]]))
-
+    print(stats.fisher_exact([[tmh_res.count(), tmh_vars.count()], [
+          allflank_res.count(), allflank_vars.count()]]))
 
     ### Spontaneously inserting ###
 
@@ -252,7 +255,8 @@ def query_sets():
         query_vars=deltagspont_var,
         feature_type="Delta G predicted spontaneous insertion",
     )
-    print(stats.fisher_exact([[tmh_res.count(), tmh_vars.count()], [deltagspont_res.count(), deltagspont_var.count()]]))
+    print(stats.fisher_exact([[tmh_res.count(), tmh_vars.count()], [
+          deltagspont_res.count(), deltagspont_var.count()]]))
 
     ### Non-Spontaneously inserting ###
 
@@ -271,8 +275,8 @@ def query_sets():
         query_vars=deltagnonspont_var,
         feature_type="Delta G predicted non-spontaneous insertion",
     )
-    print(stats.fisher_exact([[tmh_res.count(), tmh_vars.count()], [deltagnonspont_res.count(), deltagnonspont_var.count()]]))
-
+    print(stats.fisher_exact([[tmh_res.count(), tmh_vars.count()], [
+          deltagnonspont_res.count(), deltagnonspont_var.count()]]))
 
     ### TMSOC anchors ###
     tmsocsim_var = Variant.objects.filter(
@@ -290,8 +294,8 @@ def query_sets():
         query_vars=tmsocsim_var,
         feature_type="Tmsoc Simple Function",
     )
-    print(stats.fisher_exact([[tmh_res.count(), tmh_vars.count()], [tmsocsim_res.count(), tmsocsim_var.count()]]))
-
+    print(stats.fisher_exact([[tmh_res.count(), tmh_vars.count()], [
+          tmsocsim_res.count(), tmsocsim_var.count()]]))
 
     ### TMSOC function ###
 
@@ -310,8 +314,8 @@ def query_sets():
         query_vars=tmsocfun_var,
         feature_type="Tmsoc Complex Function",
     )
-    print(stats.fisher_exact([[tmh_res.count(), tmh_vars.count()], [tmsocfun_res.count(), tmsocfun_var.count()]]))
-
+    print(stats.fisher_exact([[tmh_res.count(), tmh_vars.count()], [
+          tmsocfun_res.count(), tmsocfun_var.count()]]))
 
 
 def run():
