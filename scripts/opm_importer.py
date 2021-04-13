@@ -1,6 +1,35 @@
 import os
+import Bio
+from Bio.PDB import PDBParser
+from Bio.PDB import PDBIO
 from csv import DictReader
 from scripts.populate_general_functions import clean_query
+from tmh_db.models import (
+    Disease,
+    Database_Metadata,
+    Flank,
+    Flank_residue,
+    Funfam,
+    FunfamResidue,
+    Go,
+    Keyword,
+    Non_tmh_helix,
+    Non_tmh_helix_residue,
+    Protein,
+    Residue,
+    Signal_peptide,
+    Signal_residue,
+    Structural_residue,
+    Structure,
+    SubcellularLocation,
+    Tmh,
+    Tmh_deltag,
+    Tmh_hydrophobicity,
+    Tmh_residue,
+    Tmh_tmsoc,
+    Uniref,
+    Variant,
+)
 
 
 def thickness(pdb_content=""):
@@ -64,48 +93,62 @@ def find_error(pdb_id_clean=None):    # open file in read mode
     return(0)
 
 
+def prot_database_check(pdb_id_to_check=""):
+    '''
+    Checks that the protein is in the database.
+    '''
+    matching_pdbs = Structure.objects.filter(pdb_id=pdb_id_to_check)
+    if len(matching_pdbs) > 0:
+        return(True)
+    else:
+        return(False)
+
+
 def parse(pdb_id="", pdb_filename=""):
     '''
     parses the opm pdb files into a list of membrane residues.
     '''
     with open(pdb_filename) as f:
         content = f.readlines()
-    residue_atom_list = []
+
     # Start at one so the first residue atom is not immediately
     # considered as a residue.
-    # This is a very not elegant way of doing this.
-    previous_residue_number = 1
-    membrane_error = find_error(pdb_id_clean=os.path.splitext(pdb_id)[0])
-    for line in content:  # each line is an atom
-        line_content = line.split()
-        if line_content != []:  # annoying empty line exceptions.
-            bilayer_cutoff = thickness(pdb_content=content)
-            if bilayer_cutoff is False:
-                return(False)
-            if line_content[0] == 'ATOM':
-                atom_number = line_content[1]
-                atom_type = line_content[2]
-                aa_type = line_content[3]
-                chain = line_content[4]
-                residue_number = line_content[5]
-                # x = line_content[6]
-                # y = line_content[7]
-                try:
-                    z = float(line_content[8])  # this is the relative TMH pos
-                    residue_atom_list.append(z)
 
-                # A bug in which PDB format causes
-                # columns to bleed into one another.
-                except(ValueError):
-                    print("Borked PDB columns; no clear z axis value.")
-                    return(False)
-                if residue_number != previous_residue_number:
-                    position = membrane_check(
-                        z_positions=residue_atom_list,
-                        membrane_cutoff=bilayer_cutoff, error=membrane_error)
-                    print(pdb_id, chain, residue_number, position)
-                    residue_atom_list = []
-                previous_residue_number = residue_number
+    clean_id = pdb_id_clean = os.path.splitext(pdb_id)[0]
+
+    bilayer_cutoff = thickness(pdb_content=content)
+    if bilayer_cutoff is False:
+        return(False)
+
+    if prot_database_check(clean_id) is True:
+        membrane_error = find_error(clean_id)
+
+        parser = PDBParser()  # recruts the parsing class
+        structure = parser.get_structure(pdb_filename, pdb_filename)
+        for model in structure:   # X-Ray generally only have 1 model, while more in NMR
+            for chain in model:
+                chain_id = chain.get_id()
+                print(chain_id)
+                for residue in chain:
+                    residue_number = residue.get_id()[1]
+                    
+                    #Lets ignore the DUM membrane placeholder HETATM
+                    if str(residue.get_resname()) != str("DUM"):
+                        for atom in residue:
+                            aa_type = residue.get_resname()
+
+                            #print(atom.get_coord())
+                            # this is the relative TMH pos
+                            z = float(atom.get_coord()[2])
+                            residue_atom_list.append(z)
+
+                        position = membrane_check(
+                                z_positions=residue_atom_list,
+                                membrane_cutoff=bilayer_cutoff, error=membrane_error)
+                        print(clean_id, chain_id, residue_number)
+                        Structural_residue.objects.filter(
+                            structure__pdb_id=clean_id, pdb_chain=chain_id, pdb_position=residue_number).update(opm_status=position)
+                        residue_atom_list = []
     return()
 
 
