@@ -71,7 +71,7 @@ def stats_heatmap(
             )
             value = pvalue
             new_heatmap[row_number][column_number] = value
-    print(title,"\n",np.array(new_heatmap))
+    #print(title, "\n", np.array(new_heatmap))
     heatmap(
         np.array(new_heatmap),
         title,
@@ -99,7 +99,8 @@ print(
 
 # multipass
 
-total_multipass=Tmh.objects.filter(tmh_residue__residue__protein__total_tmh_number__gt=1).distinct('pk').count()
+total_multipass = Tmh.objects.filter(
+    tmh_residue__residue__protein__total_tmh_number__gt=1).distinct('pk').count()
 
 multipass_residues = (
     Residue.objects.filter(
@@ -123,7 +124,8 @@ multi_tmh_disease_query = (
     )
 )
 multi_tmh_disease_variants = heatmap_array(
-    remove_duplicate_variants(list(multi_tmh_disease_query)), aa_list_baezo_order
+    remove_duplicate_variants(
+        list(multi_tmh_disease_query)), aa_list_baezo_order
 )
 
 multi_tmh_benign_query = (
@@ -140,7 +142,8 @@ multi_tmh_benign_query = (
     )
 )
 multi_tmh_benign_variants = heatmap_array(
-    remove_duplicate_variants(list(multi_tmh_benign_query)), aa_list_baezo_order
+    remove_duplicate_variants(
+        list(multi_tmh_benign_query)), aa_list_baezo_order
 )
 
 print(
@@ -156,7 +159,8 @@ heatmap_normalised_by_heatmap(
 
 # Single pass
 
-total_singlepass=Tmh.objects.filter(tmh_residue__residue__protein__total_tmh_number=1).distinct('pk').count()
+total_singlepass = Tmh.objects.filter(
+    tmh_residue__residue__protein__total_tmh_number=1).distinct('pk').count()
 
 singlepass_residues = (
     Residue.objects.filter(
@@ -180,7 +184,8 @@ single_tmh_disease_query = (
     )
 )
 single_tmh_disease_variants = heatmap_array(
-    remove_duplicate_variants(list(single_tmh_disease_query)), aa_list_baezo_order
+    remove_duplicate_variants(
+        list(single_tmh_disease_query)), aa_list_baezo_order
 )
 
 single_tmh_benign_query = (
@@ -197,7 +202,8 @@ single_tmh_benign_query = (
     )
 )
 single_tmh_benign_variants = heatmap_array(
-    remove_duplicate_variants(list(single_tmh_benign_query)), aa_list_baezo_order
+    remove_duplicate_variants(
+        list(single_tmh_benign_query)), aa_list_baezo_order
 )
 
 
@@ -235,7 +241,8 @@ stats_heatmap(
 
 # Inside flanks
 
-total_insideflank=Tmh.objects.filter(meta_tmh=True, tmh_residue__residue__flank_residue__feature_location="Inside flank").distinct("pk").count()
+total_insideflank = Tmh.objects.filter(
+    meta_tmh=True, tmh_residue__residue__flank_residue__feature_location="Inside flank").distinct("pk").count()
 
 inside_flank_residues = (
     Residue.objects.filter(
@@ -310,7 +317,8 @@ heatmap_normalised_by_heatmap(
 
 # Outside flanks
 
-total_outsideflank=Tmh.objects.filter(meta_tmh=True, tmh_residue__residue__flank_residue__feature_location="Outside flank").distinct("pk").count()
+total_outsideflank = Tmh.objects.filter(
+    meta_tmh=True, tmh_residue__residue__flank_residue__feature_location="Outside flank").distinct("pk").count()
 
 outside_flank_residues = (
     Residue.objects.filter(
@@ -386,10 +394,11 @@ heatmap_normalised_by_heatmap(
 
 # Helix
 
-total_nontmhhelix=Non_tmh_helix.objects.all().distinct('pk').count()
+total_nontmhhelix = Non_tmh_helix.objects.all().distinct('pk').count()
 
 helix_residues = (
-    Residue.objects.filter(non_tmh_helix_residue__nont_tmh_helix_id__helix_start__gte=0)
+    Residue.objects.filter(
+        non_tmh_helix_residue__nont_tmh_helix_id__helix_start__gte=0)
     .distinct("pk")
     .count()
 )
@@ -447,7 +456,7 @@ stats_heatmap(
 )
 
 print(
-    f"Non membrane helices, {total_nontmhhelix}, {len(helix_disease_query)}, {len(helix_benign_query)}, {helix_residues}, {prop_pvalue}, {enr_pvalue}"
+    f"Non memprotmdtail helices, {total_nontmhhelix}, {len(helix_disease_query)}, {len(helix_benign_query)}, {helix_residues}, {prop_pvalue}, {enr_pvalue}"
 )
 
 heatmap_normalised_by_heatmap(
@@ -458,7 +467,8 @@ heatmap_normalised_by_heatmap(
 
 # Pore
 
-total_pore_proteins=Protein.objects.filter(residue__structural_residue__pore_residue=True).distinct('pk').count()
+total_pore_proteins = Protein.objects.filter(
+    residue__structural_residue__pore_residue=True).distinct('pk').count()
 
 pore_residues = (
     Residue.objects.filter(
@@ -535,14 +545,260 @@ heatmap_normalised_by_heatmap(
     pore_benign_variants,
 )
 
+
+# Interface
+
+total_interface_proteins = Protein.objects.filter(
+    residue__structural_residue__opm_status="interface").distinct('pk').count()
+
+interface_residues = (
+    Residue.objects.filter(
+        tmh_residue__feature_location="TMH",
+        structural_residue__opm_status="interface",
+        tmh_residue__tmh_id__meta_tmh=True,
+    )
+    .distinct("pk")
+    .count()
+)
+
+interface_disease_query = (
+    Variant.objects.filter(
+        residue__tmh_residue__feature_location="TMH",
+        residue__structural_residue__opm_status="interface",
+        residue__tmh_residue__tmh_id__meta_tmh=True,
+        disease_status="d",
+    )
+    .distinct("pk")
+    .values_list(
+        "aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id"
+    )
+)
+interface_disease_variants = heatmap_array(
+    remove_duplicate_variants(
+        list(interface_disease_query)), aa_list_baezo_order
+)
+
+interface_benign_query = (
+    Variant.objects.filter(
+        residue__tmh_residue__feature_location="TMH",
+        residue__structural_residue__opm_status="interface",
+        residue__tmh_residue__tmh_id__meta_tmh=True,
+        variant_source="gnomAD3",
+    )
+    .exclude(aa_mut=F("aa_wt"))
+    .distinct("pk")
+    .values_list(
+        "aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id"
+    )
+)
+interface_benign_variants = heatmap_array(
+    remove_duplicate_variants(
+        list(interface_benign_query)), aa_list_baezo_order
+)
+
+
+oddsratio, prop_pvalue = stats.fisher_exact(
+    [
+        [len(interface_disease_query), len(multi_tmh_disease_query)],
+        [len(interface_benign_query), len(multi_tmh_benign_query)],
+    ]
+)
+oddsratio, enr_pvalue = stats.fisher_exact(
+    [
+        [len(interface_disease_query), len(multi_tmh_disease_query)],
+        [interface_residues, multipass_residues],
+    ]
+)
+stats_heatmap(
+    title="interface lining residues versus multi-pass",
+    diseaseset1=multi_tmh_disease_variants,
+    diseaseset2=interface_disease_variants,
+    benignset1=multi_tmh_benign_variants,
+    benignset2=interface_benign_variants,
+)
+
+
+print(
+    f"interface variants, {total_interface_proteins}, {len(interface_disease_query)}, {len(interface_benign_query)}, {interface_residues},  {prop_pvalue}, {enr_pvalue}"
+)
+
+heatmap_normalised_by_heatmap(
+    "ClinVar disease normalised by benign opm interface residues",
+    interface_disease_variants,
+    interface_benign_variants,)
+
+# opm_membrane
+
+total_membrane_proteins = Protein.objects.filter(
+    residue__structural_residue__opm_status="membrane").distinct('pk').count()
+
+membrane_residues = (
+    Residue.objects.filter(
+        tmh_residue__feature_location="TMH",
+        structural_residue__opm_status="membrane",
+        tmh_residue__tmh_id__meta_tmh=True,
+    )
+    .distinct("pk")
+    .count()
+)
+
+membrane_disease_query = (
+    Variant.objects.filter(
+        residue__tmh_residue__feature_location="TMH",
+        residue__structural_residue__opm_status="membrane",
+        residue__tmh_residue__tmh_id__meta_tmh=True,
+        disease_status="d",
+    )
+    .distinct("pk")
+    .values_list(
+        "aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id"
+    )
+)
+membrane_disease_variants = heatmap_array(
+    remove_duplicate_variants(
+        list(membrane_disease_query)), aa_list_baezo_order
+)
+
+membrane_benign_query = (
+    Variant.objects.filter(
+        residue__tmh_residue__feature_location="TMH",
+        residue__structural_residue__opm_status="membrane",
+        residue__tmh_residue__tmh_id__meta_tmh=True,
+        variant_source="gnomAD3",
+    )
+    .exclude(aa_mut=F("aa_wt"))
+    .distinct("pk")
+    .values_list(
+        "aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id"
+    )
+)
+
+membrane_benign_variants = heatmap_array(
+    remove_duplicate_variants(list(membrane_benign_query)), aa_list_baezo_order
+)
+
+
+oddsratio, prop_pvalue = stats.fisher_exact(
+    [
+        [len(membrane_disease_query), len(multi_tmh_disease_query)],
+        [len(membrane_benign_query), len(multi_tmh_benign_query)],
+    ]
+)
+oddsratio, enr_pvalue = stats.fisher_exact(
+    [
+        [len(membrane_disease_query), len(multi_tmh_disease_query)],
+        [membrane_residues, multipass_residues],
+    ]
+)
+stats_heatmap(
+    title="membrane lining residues versus multi-pass",
+    diseaseset1=multi_tmh_disease_variants,
+    diseaseset2=membrane_disease_variants,
+    benignset1=multi_tmh_benign_variants,
+    benignset2=membrane_benign_variants,
+)
+
+
+print(
+    f"membrane variants, {total_membrane_proteins}, {len(membrane_disease_query)}, {len(membrane_benign_query)}, {membrane_residues},  {prop_pvalue}, {enr_pvalue}"
+)
+
+heatmap_normalised_by_heatmap(
+    "ClinVar disease normalised by benign opm membrane residues",
+    membrane_disease_variants,
+    membrane_benign_variants,)
+
+# memprotmd_tail
+
+total_memprotmdtail_proteins = Protein.objects.filter(
+    residue__structural_residue__memprotmd_tail=True).distinct('pk').count()
+
+memprotmdtail_residues = (
+    Residue.objects.filter(
+        tmh_residue__feature_location="TMH",
+        structural_residue__memprotmd_tail=True,
+        tmh_residue__tmh_id__meta_tmh=True,
+    )
+    .distinct("pk")
+    .count()
+)
+
+memprotmdtail_disease_query = (
+    Variant.objects.filter(
+        residue__tmh_residue__feature_location="TMH",
+        residue__structural_residue__memprotmd_tail=True,
+        residue__tmh_residue__tmh_id__meta_tmh=True,
+        disease_status="d",
+    )
+    .distinct("pk")
+    .values_list(
+        "aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id"
+    )
+)
+memprotmdtail_disease_variants = heatmap_array(
+    remove_duplicate_variants(
+        list(memprotmdtail_disease_query)), aa_list_baezo_order
+)
+
+memprotmdtail_benign_query = (
+    Variant.objects.filter(
+        residue__tmh_residue__feature_location="TMH",
+        residue__structural_residue__memprotmd_tail=True,
+        residue__tmh_residue__tmh_id__meta_tmh=True,
+        variant_source="gnomAD3",
+    )
+    .exclude(aa_mut=F("aa_wt"))
+    .distinct("pk")
+    .values_list(
+        "aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id"
+    )
+)
+memprotmdtail_benign_variants = heatmap_array(
+    remove_duplicate_variants(
+        list(memprotmdtail_benign_query)), aa_list_baezo_order
+)
+
+
+oddsratio, prop_pvalue = stats.fisher_exact(
+    [
+        [len(memprotmdtail_disease_query), len(multi_tmh_disease_query)],
+        [len(memprotmdtail_benign_query), len(multi_tmh_benign_query)],
+    ]
+)
+oddsratio, enr_pvalue = stats.fisher_exact(
+    [
+        [len(memprotmdtail_disease_query), len(multi_tmh_disease_query)],
+        [memprotmdtail_residues, multipass_residues],
+    ]
+)
+stats_heatmap(
+    title="memprotmdtail lining residues versus multi-pass",
+    diseaseset1=multi_tmh_disease_variants,
+    diseaseset2=memprotmdtail_disease_variants,
+    benignset1=multi_tmh_benign_variants,
+    benignset2=memprotmdtail_benign_variants,
+)
+
+
+print(
+    f"memprotmdtail variants, {total_memprotmdtail_proteins}, {len(memprotmdtail_disease_query)}, {len(memprotmdtail_benign_query)}, {memprotmdtail_residues},  {prop_pvalue}, {enr_pvalue}"
+)
+
+heatmap_normalised_by_heatmap(
+    "ClinVar disease normalised by benign opm memprotmdtail residues",
+    memprotmdtail_disease_variants,
+    memprotmdtail_benign_variants,)
+
+
 # non spont
 
-total_nonspont=Tmh.objects.filter(meta_tmh=True, tmh_deltag__test_score__gte="2.601").distinct('pk').count()
+total_nonspont = Tmh.objects.filter(
+    meta_tmh=True, tmh_deltag__test_score__gte="3.763").distinct('pk').count()
 
 nonspont_residues = (
     Residue.objects.filter(
         tmh_residue__tmh_id__meta_tmh=True,
-        tmh_residue__tmh_id__tmh_deltag__test_score__gte="2.601",
+        tmh_residue__tmh_id__tmh_deltag__test_score__gte="3.763",
     )
     .distinct("pk")
     .count()
@@ -550,7 +806,7 @@ nonspont_residues = (
 
 nonspont_disease_query = (
     Variant.objects.filter(
-        residue__tmh_residue__tmh_id__tmh_deltag__test_score__gte="2.601",
+        residue__tmh_residue__tmh_id__tmh_deltag__test_score__gte="3.763",
         residue__tmh_residue__feature_location="TMH",
         residue__protein__total_tmh_number__gt=1,
         residue__tmh_residue__tmh_id__meta_tmh=True,
@@ -563,12 +819,13 @@ nonspont_disease_query = (
     )
 )
 nonspont_disease_variants = heatmap_array(
-    remove_duplicate_variants(list(nonspont_disease_query)), aa_list_baezo_order
+    remove_duplicate_variants(
+        list(nonspont_disease_query)), aa_list_baezo_order
 )
 
 nonspont_benign_query = (
     Variant.objects.filter(
-        residue__tmh_residue__tmh_id__tmh_deltag__test_score__gte="2.601",
+        residue__tmh_residue__tmh_id__tmh_deltag__test_score__gte="3.763",
         residue__tmh_residue__feature_location="TMH",
         residue__protein__total_tmh_number__gt=1,
         residue__tmh_residue__tmh_id__meta_tmh=True,
@@ -616,13 +873,14 @@ heatmap_normalised_by_heatmap(
 
 # spont
 
-total_nonspont=Tmh.objects.filter(meta_tmh=True, tmh_deltag__test_score__lte="-0.018").distinct('pk').count()
+total_nonspont = Tmh.objects.filter(
+    meta_tmh=True, tmh_deltag__test_score__lte="-1.01").distinct('pk').count()
 
 
 spont_residues = (
     Residue.objects.filter(
         tmh_residue__tmh_id__meta_tmh=True,
-        tmh_residue__tmh_id__tmh_deltag__test_score__lte="-0.018",
+        tmh_residue__tmh_id__tmh_deltag__test_score__lte="-1.01",
     )
     .distinct("pk")
     .count()
@@ -630,7 +888,7 @@ spont_residues = (
 
 spont_disease_query = (
     Variant.objects.filter(
-        residue__tmh_residue__tmh_id__tmh_deltag__test_score__lte="-0.018",
+        residue__tmh_residue__tmh_id__tmh_deltag__test_score__lte="-1.01",
         residue__tmh_residue__feature_location="TMH",
         residue__protein__total_tmh_number__gt=1,
         residue__tmh_residue__tmh_id__meta_tmh=True,
@@ -648,7 +906,7 @@ spont_disease_variants = heatmap_array(
 
 spont_benign_query = (
     Variant.objects.filter(
-        residue__tmh_residue__tmh_id__tmh_deltag__test_score__lte="-0.018",
+        residue__tmh_residue__tmh_id__tmh_deltag__test_score__lte="-1.01",
         residue__tmh_residue__feature_location="TMH",
         residue__protein__total_tmh_number__gt=1,
         residue__tmh_residue__tmh_id__meta_tmh=True,
@@ -696,13 +954,14 @@ heatmap_normalised_by_heatmap(
 
 # Simple
 
-total_simple=Tmh.objects.filter(meta_tmh=True, tmh_tmsoc__test_score__lte="-3.45").distinct('pk').count()
+total_simple = Tmh.objects.filter(
+    meta_tmh=True, tmh_tmsoc__test_score__lte="-7.45").distinct('pk').count()
 
 
 simple_residues = (
     Residue.objects.filter(
         tmh_residue__tmh_id__meta_tmh=True,
-        tmh_residue__tmh_id__tmh_tmsoc__test_score__lte="-3.45",
+        tmh_residue__tmh_id__tmh_tmsoc__test_score__lte="-7.45",
     )
     .distinct("pk")
     .count()
@@ -710,7 +969,7 @@ simple_residues = (
 
 simple_disease_query = (
     Variant.objects.filter(
-        residue__tmh_residue__tmh_id__tmh_tmsoc__test_score__lte="-3.45",
+        residue__tmh_residue__tmh_id__tmh_tmsoc__test_score__lte="-7.45",
         residue__tmh_residue__feature_location="TMH",
         residue__protein__total_tmh_number__gt=1,
         residue__tmh_residue__tmh_id__meta_tmh=True,
@@ -728,7 +987,7 @@ simple_disease_variants = heatmap_array(
 
 simple_benign_query = (
     Variant.objects.filter(
-        residue__tmh_residue__tmh_id__tmh_tmsoc__test_score__lte="-3.45",
+        residue__tmh_residue__tmh_id__tmh_tmsoc__test_score__lte="-7.45",
         residue__tmh_residue__feature_location="TMH",
         residue__protein__total_tmh_number__gt=1,
         residue__tmh_residue__tmh_id__meta_tmh=True,
@@ -775,7 +1034,8 @@ heatmap_normalised_by_heatmap(
 )
 
 # complex
-total_complex=Tmh.objects.filter(meta_tmh=True, tmh_tmsoc__test_score__gte="0.44").distinct('pk').count()
+total_complex = Tmh.objects.filter(
+    meta_tmh=True, tmh_tmsoc__test_score__gte="0.44").distinct('pk').count()
 
 
 complex_residues = (
@@ -930,6 +1190,175 @@ heatmap_normalised_by_heatmap(
     nontmh_benign_variants,
 )
 
+
+### unusual comp (complex and non-spont)
+
+total_unusual = Tmh.objects.filter(meta_tmh=True, tmh_tmsoc__test_score__gte="1",
+                                   tmh_deltag__test_score__gte="3.763").distinct('pk').count()
+
+
+unusual_residues = (
+    Residue.objects.filter(
+        tmh_residue__tmh_id__meta_tmh=True,
+        tmh_residue__tmh_id__tmh_tmsoc__test_score__gte="1.75",
+        tmh_residue__tmh_id__tmh_deltag__test_score__gte="3.763"
+    )
+    .distinct("pk")
+    .count()
+)
+
+unusual_disease_query = (
+    Variant.objects.filter(
+        residue__tmh_residue__tmh_id__tmh_tmsoc__test_score__gte="1.75",
+        residue__tmh_residue__tmh_id__tmh_deltag__test_score__gte="3.763",
+        residue__tmh_residue__feature_location="TMH",
+        residue__protein__total_tmh_number__gt=1,
+        residue__tmh_residue__tmh_id__meta_tmh=True,
+        disease_status="d",
+        variant_source="ClinVar",
+    )
+    .distinct("pk")
+    .values_list(
+        "aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id"
+    )
+)
+unusual_disease_variants = heatmap_array(
+    remove_duplicate_variants(list(unusual_disease_query)), aa_list_baezo_order
+)
+
+unusual_benign_query = (
+    Variant.objects.filter(
+        residue__tmh_residue__tmh_id__tmh_tmsoc__test_score__gte="1.75",
+        residue__tmh_residue__tmh_id__tmh_deltag__test_score__gte="3.763",
+        residue__tmh_residue__feature_location="TMH",
+        residue__protein__total_tmh_number__gt=1,
+        residue__tmh_residue__tmh_id__meta_tmh=True,
+        variant_source="gnomAD3",
+    )
+    .exclude(aa_mut=F("aa_wt"))
+    .distinct("pk")
+    .values_list(
+        "aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id"
+    )
+)
+unusual_benign_variants = heatmap_array(
+    remove_duplicate_variants(list(unusual_benign_query)), aa_list_baezo_order
+)
+
+oddsratio, prop_pvalue = stats.fisher_exact(
+    [
+        [len(unusual_disease_query), len(multi_tmh_disease_query)],
+        [len(unusual_benign_query), len(multi_tmh_benign_query)],
+    ]
+)
+oddsratio, enr_pvalue = stats.fisher_exact(
+    [
+        [len(unusual_disease_query), len(multi_tmh_disease_query)],
+        [unusual_residues, multipass_residues],
+    ]
+)
+stats_heatmap(
+    title="Simple helices versus multi-pass",
+    diseaseset1=multi_tmh_disease_variants,
+    diseaseset2=unusual_disease_variants,
+    benignset1=multi_tmh_benign_variants,
+    benignset2=unusual_benign_variants,
+)
+
+print(
+    f"unusual TMHs, {total_unusual}, {len(unusual_disease_query)}, {len(unusual_benign_query)}, {unusual_residues}, {prop_pvalue}, {enr_pvalue}"
+)
+
+heatmap_normalised_by_heatmap(
+    "ClinVar disease normalised by gnomAD meta-tmh unusual TMHs",
+    unusual_disease_variants,
+    unusual_benign_variants,
+)
+
+
+### anchors
+
+total_anchors = Tmh.objects.filter(
+    meta_tmh=True, tmh_tmsoc__test_score__lte="-7.45", tmh_deltag__test_score__lte="-1.01").distinct('pk').count()
+
+
+anchors_residues = (
+    Residue.objects.filter(
+        tmh_residue__tmh_id__meta_tmh=True,
+        tmh_residue__tmh_id__tmh_deltag__test_score__lte="-1.01",
+        tmh_residue__tmh_id__tmh_tmsoc__test_score__lte="-7.45",
+    )
+    .distinct("pk")
+    .count()
+)
+
+anchors_disease_query = (
+    Variant.objects.filter(
+        residue__tmh_residue__tmh_id__tmh_tmsoc__test_score__lte="-7.45",
+        residue__tmh_residue__tmh_id__tmh_deltag__test_score__lte="-1.01",
+        residue__tmh_residue__feature_location="TMH",
+        residue__protein__total_tmh_number__gt=1,
+        residue__tmh_residue__tmh_id__meta_tmh=True,
+        disease_status="d",
+        variant_source="ClinVar",
+    )
+    .distinct("pk")
+    .values_list(
+        "aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id"
+    )
+)
+anchors_disease_variants = heatmap_array(
+    remove_duplicate_variants(list(anchors_disease_query)), aa_list_baezo_order
+)
+
+anchors_benign_query = (
+    Variant.objects.filter(
+        residue__tmh_residue__tmh_id__tmh_tmsoc__test_score__lte="-7.45",
+        residue__tmh_residue__tmh_id__tmh_deltag__test_score__lte="-1.01",
+        residue__tmh_residue__feature_location="TMH",
+        residue__protein__total_tmh_number__gt=1,
+        residue__tmh_residue__tmh_id__meta_tmh=True,
+        variant_source="gnomAD3",
+    )
+    .exclude(aa_mut=F("aa_wt"))
+    .distinct("pk")
+    .values_list(
+        "aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id"
+    )
+)
+anchors_benign_variants = heatmap_array(
+    remove_duplicate_variants(list(anchors_benign_query)), aa_list_baezo_order
+)
+
+oddsratio, prop_pvalue = stats.fisher_exact(
+    [
+        [len(anchors_disease_query), len(multi_tmh_disease_query)],
+        [len(anchors_benign_query), len(multi_tmh_benign_query)],
+    ]
+)
+oddsratio, enr_pvalue = stats.fisher_exact(
+    [
+        [len(anchors_disease_query), len(multi_tmh_disease_query)],
+        [anchors_residues, multipass_residues],
+    ]
+)
+stats_heatmap(
+    title="anchors helices versus multi-pass",
+    diseaseset1=multi_tmh_disease_variants,
+    diseaseset2=anchors_disease_variants,
+    benignset1=multi_tmh_benign_variants,
+    benignset2=anchors_benign_variants,
+)
+
+print(
+    f"anchors TMHs, {total_anchors}, {len(anchors_disease_query)}, {len(anchors_benign_query)}, {anchors_residues}, {prop_pvalue}, {enr_pvalue}"
+)
+
+heatmap_normalised_by_heatmap(
+    "ClinVar disease normalised by gnomAD meta-tmh anchors TMHs",
+    anchors_disease_variants,
+    anchors_benign_variants,
+)
 
 
 def run():
