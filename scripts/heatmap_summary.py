@@ -38,7 +38,7 @@ def heatmap_normalised_by_heatmap(title, heatmap_one, heatmap_two):
         np.array(new_heatmap),
         title,
         aa_list_baezo_order,
-        "PuRd",
+        "brg",
         None,
         annotation_format="",
         bars=False,
@@ -239,15 +239,16 @@ stats_heatmap(
 )
 
 
-# Inside flanks
+# Multipass Inside flanks
 
 total_insideflank = Tmh.objects.filter(
-    meta_tmh=True, tmh_residue__residue__flank_residue__feature_location="Inside flank").distinct("pk").count()
+    meta_tmh=True, tmh_residue__residue__flank_residue__feature_location="Inside flank", tmh_residue__residue__protein__total_tmh_number__gt=1).distinct("pk").count()
 
 inside_flank_residues = (
     Residue.objects.filter(
         flank_residue__feature_location="Inside flank",
         flank_residue__flank__tmh__meta_tmh=True,
+        protein__total_tmh_number__gt=1
     )
     .distinct("pk")
     .count()
@@ -258,6 +259,7 @@ inside_disease_query = (
         residue__flank_residue__flank__tmh__meta_tmh=True,
         disease_status="d",
         variant_source="ClinVar",
+        residue__protein__total_tmh_number__gt=1
     )
     .distinct("pk")
     .values_list(
@@ -272,6 +274,7 @@ inside_benign_query = (
     Variant.objects.filter(
         residue__flank_residue__feature_location="Inside flank",
         residue__flank_residue__flank__tmh__meta_tmh=True,
+        residue__protein__total_tmh_number__gt=1,
         variant_source="gnomAD3",
     )
     .exclude(aa_mut=F("aa_wt"))
@@ -298,7 +301,7 @@ oddsratio, enr_pvalue = stats.fisher_exact(
     ]
 )
 stats_heatmap(
-    title="inside flank versus multi-pass",
+    title="inside flank multipass versus multi-pass",
     diseaseset1=multi_tmh_disease_variants,
     diseaseset2=inside_flank_disease_variants,
     benignset1=multi_tmh_benign_variants,
@@ -306,7 +309,7 @@ stats_heatmap(
 )
 
 print(
-    f"Inside flanks, {total_insideflank}, {len(inside_disease_query)}, {len(inside_benign_query)}, {inside_flank_residues},  {prop_pvalue}, {enr_pvalue}"
+    f"Multipass inside flanks, {total_insideflank}, {len(inside_disease_query)}, {len(inside_benign_query)}, {inside_flank_residues},  {prop_pvalue}, {enr_pvalue}"
 )
 heatmap_normalised_by_heatmap(
     "ClinVar disease normalised by benign meta-tmh inside flank",
@@ -315,15 +318,95 @@ heatmap_normalised_by_heatmap(
 )
 
 
-# Outside flanks
+# Single pass Inside flanks
+
+total_spinsideflank = Tmh.objects.filter(
+    meta_tmh=True, tmh_residue__residue__flank_residue__feature_location="Inside flank", tmh_residue__residue__protein__total_tmh_number=1).distinct("pk").count()
+
+spinside_flank_residues = (
+    Residue.objects.filter(
+        flank_residue__feature_location="Inside flank",
+        flank_residue__flank__tmh__meta_tmh=True,
+        protein__total_tmh_number=1
+    )
+    .distinct("pk")
+    .count()
+)
+spinside_disease_query = (
+    Variant.objects.filter(
+        residue__flank_residue__feature_location="Inside flank",
+        residue__flank_residue__flank__tmh__meta_tmh=True,
+        disease_status="d",
+        variant_source="ClinVar",
+        residue__protein__total_tmh_number=1
+    )
+    .distinct("pk")
+    .values_list(
+        "aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id"
+    )
+)
+spinside_flank_disease_variants = heatmap_array(
+    remove_duplicate_variants(list(spinside_disease_query)), aa_list_baezo_order
+)
+
+spinside_benign_query = (
+    Variant.objects.filter(
+        residue__flank_residue__feature_location="Inside flank",
+        residue__flank_residue__flank__tmh__meta_tmh=True,
+        residue__protein__total_tmh_number=1,
+        variant_source="gnomAD3",
+    )
+    .exclude(aa_mut=F("aa_wt"))
+    .distinct("pk")
+    .values_list(
+        "aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id"
+    )
+)
+spinside_flank_benign_variants = heatmap_array(
+    remove_duplicate_variants(list(spinside_benign_query)), aa_list_baezo_order
+)
+
+
+oddsratio, prop_pvalue = stats.fisher_exact(
+    [
+        [len(spinside_disease_query), len(multi_tmh_disease_query)],
+        [len(spinside_benign_query), len(multi_tmh_benign_query)],
+    ]
+)
+oddsratio, enr_pvalue = stats.fisher_exact(
+    [
+        [len(spinside_disease_query), len(multi_tmh_disease_query)],
+        [spinside_flank_residues, multipass_residues],
+    ]
+)
+stats_heatmap(
+    title="inside flank multipass versus multi-pass",
+    diseaseset1=multi_tmh_disease_variants,
+    diseaseset2=spinside_flank_disease_variants,
+    benignset1=multi_tmh_benign_variants,
+    benignset2=spinside_flank_benign_variants,
+)
+
+print(
+    f"Singlepass inside flanks, {total_spinsideflank}, {len(spinside_disease_query)}, {len(spinside_benign_query)}, {spinside_flank_residues},  {prop_pvalue}, {enr_pvalue}"
+)
+heatmap_normalised_by_heatmap(
+    "ClinVar disease normalised by benign meta-tmh inside flank",
+    spinside_flank_disease_variants,
+    spinside_flank_benign_variants,
+)
+
+
+# Multipass Outside flanks
 
 total_outsideflank = Tmh.objects.filter(
-    meta_tmh=True, tmh_residue__residue__flank_residue__feature_location="Outside flank").distinct("pk").count()
+    meta_tmh=True, tmh_residue__residue__flank_residue__feature_location="Outside flank", tmh_residue__residue__protein__total_tmh_number__gt=1).distinct("pk").count()
 
 outside_flank_residues = (
     Residue.objects.filter(
         flank_residue__feature_location="Outside flank",
         flank_residue__flank__tmh__meta_tmh=True,
+        protein__total_tmh_number__gt=1
     )
     .distinct("pk")
     .count()
@@ -334,6 +417,7 @@ outside_disease_query = (
         residue__flank_residue__flank__tmh__meta_tmh=True,
         disease_status="d",
         variant_source="ClinVar",
+        residue__protein__total_tmh_number__gt=1
     )
     .distinct("pk")
     .values_list(
@@ -349,6 +433,7 @@ outside_benign_query = (
         residue__flank_residue__feature_location="Outside flank",
         residue__flank_residue__flank__tmh__meta_tmh=True,
         variant_source="gnomAD3",
+        residue__protein__total_tmh_number__gt=1
     )
     .exclude(aa_mut=F("aa_wt"))
     .distinct("pk")
@@ -374,7 +459,7 @@ oddsratio, enr_pvalue = stats.fisher_exact(
     ]
 )
 stats_heatmap(
-    title="outside flank versus multi-pass",
+    title="multipass outside flank versus multi-pass",
     diseaseset1=multi_tmh_disease_variants,
     diseaseset2=outside_flank_disease_variants,
     benignset1=multi_tmh_benign_variants,
@@ -390,6 +475,85 @@ heatmap_normalised_by_heatmap(
     outside_flank_disease_variants,
     outside_flank_benign_variants,
 )
+
+# Single pass Outside flanks
+
+total_spoutsideflank = Tmh.objects.filter(
+    meta_tmh=True, tmh_residue__residue__flank_residue__feature_location="Outside flank", tmh_residue__residue__protein__total_tmh_number=1).distinct("pk").count()
+
+spoutside_flank_residues = (
+    Residue.objects.filter(
+        flank_residue__feature_location="Outside flank",
+        flank_residue__flank__tmh__meta_tmh=True,
+        protein__total_tmh_number=1
+    )
+    .distinct("pk")
+    .count()
+)
+spoutside_disease_query = (
+    Variant.objects.filter(
+        residue__flank_residue__feature_location="Outside flank",
+        residue__flank_residue__flank__tmh__meta_tmh=True,
+        disease_status="d",
+        variant_source="ClinVar",
+        residue__protein__total_tmh_number=1
+    )
+    .distinct("pk")
+    .values_list(
+        "aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id"
+    )
+)
+spoutside_flank_disease_variants = heatmap_array(
+    remove_duplicate_variants(list(spoutside_disease_query)), aa_list_baezo_order
+)
+
+spoutside_benign_query = (
+    Variant.objects.filter(
+        residue__flank_residue__feature_location="Outside flank",
+        residue__flank_residue__flank__tmh__meta_tmh=True,
+        residue__protein__total_tmh_number=1,
+        variant_source="gnomAD3",
+    )
+    .exclude(aa_mut=F("aa_wt"))
+    .distinct("pk")
+    .values_list(
+        "aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id"
+    )
+)
+spoutside_flank_benign_variants = heatmap_array(
+    remove_duplicate_variants(list(spoutside_benign_query)), aa_list_baezo_order
+)
+
+
+oddsratio, prop_pvalue = stats.fisher_exact(
+    [
+        [len(spoutside_disease_query), len(multi_tmh_disease_query)],
+        [len(spoutside_benign_query), len(multi_tmh_benign_query)],
+    ]
+)
+oddsratio, enr_pvalue = stats.fisher_exact(
+    [
+        [len(spoutside_disease_query), len(multi_tmh_disease_query)],
+        [spoutside_flank_residues, multipass_residues],
+    ]
+)
+stats_heatmap(
+    title="outside flank multipass versus multi-pass",
+    diseaseset1=multi_tmh_disease_variants,
+    diseaseset2=spoutside_flank_disease_variants,
+    benignset1=multi_tmh_benign_variants,
+    benignset2=spoutside_flank_benign_variants,
+)
+
+print(
+    f"Singlepass outside flanks, {total_spoutsideflank}, {len(spoutside_disease_query)}, {len(spoutside_benign_query)}, {spoutside_flank_residues},  {prop_pvalue}, {enr_pvalue}"
+)
+heatmap_normalised_by_heatmap(
+    "ClinVar disease normalised by benign meta-tmh outside flank",
+    spoutside_flank_disease_variants,
+    spoutside_flank_benign_variants,
+)
+
 
 
 # Helix
@@ -1199,9 +1363,9 @@ total_unusual = Tmh.objects.filter(meta_tmh=True, tmh_tmsoc__test_score__gte="1"
 
 unusual_residues = (
     Residue.objects.filter(
-        tmh_residue__tmh_id__meta_tmh=True,
-        tmh_residue__tmh_id__tmh_tmsoc__test_score__gte="1.75",
-        tmh_residue__tmh_id__tmh_deltag__test_score__gte="3.763"
+        funfamresidue__residue__tmh_residue__tmh_id__meta_tmh=True,
+        funfamresidue__residue__tmh_residue__tmh_id__tmh_tmsoc__test_score__gte="1.75",
+        funfamresidue__residue__tmh_residue__tmh_id__tmh_deltag__test_score__gte="3.763"
     )
     .distinct("pk")
     .count()
@@ -1209,11 +1373,11 @@ unusual_residues = (
 
 unusual_disease_query = (
     Variant.objects.filter(
-        residue__tmh_residue__tmh_id__tmh_tmsoc__test_score__gte="1.75",
-        residue__tmh_residue__tmh_id__tmh_deltag__test_score__gte="3.763",
-        residue__tmh_residue__feature_location="TMH",
-        residue__protein__total_tmh_number__gt=1,
-        residue__tmh_residue__tmh_id__meta_tmh=True,
+        residue__funfamresidue__residue__tmh_residue__tmh_id__tmh_tmsoc__test_score__gte="1.75",
+        residue__funfamresidue__residue__tmh_residue__tmh_id__tmh_deltag__test_score__gte="3.763",
+        residue__funfamresidue__residue__tmh_residue__feature_location="TMH",
+        residue__funfamresidue__residue__protein__total_tmh_number__gt=1,
+        residue__funfamresidue__residue__tmh_residue__tmh_id__meta_tmh=True,
         disease_status="d",
         variant_source="ClinVar",
     )
@@ -1228,11 +1392,11 @@ unusual_disease_variants = heatmap_array(
 
 unusual_benign_query = (
     Variant.objects.filter(
-        residue__tmh_residue__tmh_id__tmh_tmsoc__test_score__gte="1.75",
-        residue__tmh_residue__tmh_id__tmh_deltag__test_score__gte="3.763",
-        residue__tmh_residue__feature_location="TMH",
-        residue__protein__total_tmh_number__gt=1,
-        residue__tmh_residue__tmh_id__meta_tmh=True,
+        residue__funfamresidue__residue__tmh_residue__tmh_id__tmh_tmsoc__test_score__gte="1.75",
+        residue__funfamresidue__residue__tmh_residue__tmh_id__tmh_deltag__test_score__gte="3.763",
+        residue__funfamresidue__residue__tmh_residue__feature_location="TMH",
+        residue__funfamresidue__residue__protein__total_tmh_number__gt=1,
+        residue__funfamresidue__residue__tmh_residue__tmh_id__meta_tmh=True,
         variant_source="gnomAD3",
     )
     .exclude(aa_mut=F("aa_wt"))
