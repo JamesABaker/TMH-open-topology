@@ -45,22 +45,48 @@ inside_flank_residues = (
     Residue.objects.filter(
         flank_residue__feature_location="Inside flank",
         flank_residue__flank__tmh__meta_tmh=True,
+        protein__total_tmh_number=1,
     )
     .distinct("pk")
     .values_list("amino_acid_type", flat=True)
 )
-barchart(barchart_dictionary(inside_flank_residues), "Inside flank residues")
+barchart(barchart_dictionary(inside_flank_residues), "Singlepass inside flank residues")
 
 # Outside flanks
 outside_flank_residues = (
     Residue.objects.filter(
         flank_residue__feature_location="Outside flank",
         flank_residue__flank__tmh__meta_tmh=True,
+        protein__total_tmh_number=1,
     )
     .distinct("pk")
     .values_list("amino_acid_type", flat=True)
 )
-barchart(barchart_dictionary(outside_flank_residues), "Outside flank residues")
+barchart(barchart_dictionary(outside_flank_residues), "Singlepass outside flank residues")
+
+# Inside flanks
+inside_flank_residues = (
+    Residue.objects.filter(
+        flank_residue__feature_location="Inside flank",
+        flank_residue__flank__tmh__meta_tmh=True,
+        protein__total_tmh_number__gt=1,
+    )
+    .distinct("pk")
+    .values_list("amino_acid_type", flat=True)
+)
+barchart(barchart_dictionary(inside_flank_residues), "Multipass inside flank residues")
+
+# Outside flanks
+outside_flank_residues = (
+    Residue.objects.filter(
+        flank_residue__feature_location="Outside flank",
+        flank_residue__flank__tmh__meta_tmh=True,
+        protein__total_tmh_number__gt=1,
+    )
+    .distinct("pk")
+    .values_list("amino_acid_type", flat=True)
+)
+barchart(barchart_dictionary(outside_flank_residues), "Multipass outside flank residues")
 
 
 # Single pass

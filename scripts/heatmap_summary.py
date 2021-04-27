@@ -380,7 +380,7 @@ oddsratio, enr_pvalue = stats.fisher_exact(
     ]
 )
 stats_heatmap(
-    title="inside flank multipass versus multi-pass",
+    title="inside flank singlepass versus multi-pass",
     diseaseset1=multi_tmh_disease_variants,
     diseaseset2=spinside_flank_disease_variants,
     benignset1=multi_tmh_benign_variants,
@@ -391,7 +391,7 @@ print(
     f"Singlepass inside flanks, {total_spinsideflank}, {len(spinside_disease_query)}, {len(spinside_benign_query)}, {spinside_flank_residues},  {prop_pvalue}, {enr_pvalue}"
 )
 heatmap_normalised_by_heatmap(
-    "ClinVar disease normalised by benign meta-tmh inside flank",
+    "ClinVar disease normalised by benign singlepass meta-tmh inside flank",
     spinside_flank_disease_variants,
     spinside_flank_benign_variants,
 )
@@ -538,7 +538,7 @@ oddsratio, enr_pvalue = stats.fisher_exact(
     ]
 )
 stats_heatmap(
-    title="outside flank multipass versus multi-pass",
+    title="outside flank singlepass versus multi-pass",
     diseaseset1=multi_tmh_disease_variants,
     diseaseset2=spoutside_flank_disease_variants,
     benignset1=multi_tmh_benign_variants,
@@ -549,7 +549,7 @@ print(
     f"Singlepass outside flanks, {total_spoutsideflank}, {len(spoutside_disease_query)}, {len(spoutside_benign_query)}, {spoutside_flank_residues},  {prop_pvalue}, {enr_pvalue}"
 )
 heatmap_normalised_by_heatmap(
-    "ClinVar disease normalised by benign meta-tmh outside flank",
+    "ClinVar disease normalised by benign singlepass meta-tmh outside flank",
     spoutside_flank_disease_variants,
     spoutside_flank_benign_variants,
 )
@@ -620,7 +620,7 @@ stats_heatmap(
 )
 
 print(
-    f"Non memprotmdtail helices, {total_nontmhhelix}, {len(helix_disease_query)}, {len(helix_benign_query)}, {helix_residues}, {prop_pvalue}, {enr_pvalue}"
+    f"Non TMH helices, {total_nontmhhelix}, {len(helix_disease_query)}, {len(helix_benign_query)}, {helix_residues}, {prop_pvalue}, {enr_pvalue}"
 )
 
 heatmap_normalised_by_heatmap(
