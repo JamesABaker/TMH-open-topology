@@ -953,6 +953,86 @@ heatmap_normalised_by_heatmap(
     memprotmdtail_disease_variants,
     memprotmdtail_benign_variants,)
 
+# memprotmd_head
+
+total_memprotmdhead_proteins = Protein.objects.filter(
+    residue__structural_residue__memprotmd_head=True).distinct('pk').count()
+
+memprotmdhead_residues = (
+    Residue.objects.filter(
+        tmh_residue__feature_location="TMH",
+        structural_residue__memprotmd_head=True,
+        tmh_residue__tmh_id__meta_tmh=True,
+    )
+    .distinct("pk")
+    .count()
+)
+
+memprotmdhead_disease_query = (
+    Variant.objects.filter(
+        residue__tmh_residue__feature_location="TMH",
+        residue__structural_residue__memprotmd_head=True,
+        residue__tmh_residue__tmh_id__meta_tmh=True,
+        disease_status="d",
+    )
+    .distinct("pk")
+    .values_list(
+        "aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id"
+    )
+)
+memprotmdhead_disease_variants = heatmap_array(
+    remove_duplicate_variants(
+        list(memprotmdhead_disease_query)), aa_list_baezo_order
+)
+
+memprotmdhead_benign_query = (
+    Variant.objects.filter(
+        residue__tmh_residue__feature_location="TMH",
+        residue__structural_residue__memprotmd_head=True,
+        residue__tmh_residue__tmh_id__meta_tmh=True,
+        variant_source="gnomAD3",
+    )
+    .exclude(aa_mut=F("aa_wt"))
+    .distinct("pk")
+    .values_list(
+        "aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id"
+    )
+)
+memprotmdhead_benign_variants = heatmap_array(
+    remove_duplicate_variants(
+        list(memprotmdhead_benign_query)), aa_list_baezo_order
+)
+
+
+oddsratio, prop_pvalue = stats.fisher_exact(
+    [
+        [len(memprotmdhead_disease_query), len(multi_tmh_disease_query)],
+        [len(memprotmdhead_benign_query), len(multi_tmh_benign_query)],
+    ]
+)
+oddsratio, enr_pvalue = stats.fisher_exact(
+    [
+        [len(memprotmdhead_disease_query), len(multi_tmh_disease_query)],
+        [memprotmdhead_residues, multipass_residues],
+    ]
+)
+stats_heatmap(
+    title="memprotmdhead lining residues versus multi-pass",
+    diseaseset1=multi_tmh_disease_variants,
+    diseaseset2=memprotmdhead_disease_variants,
+    benignset1=multi_tmh_benign_variants,
+    benignset2=memprotmdhead_benign_variants,
+)
+
+
+print(
+    f"memprotmdhead variants, {total_memprotmdhead_proteins}, {len(memprotmdhead_disease_query)}, {len(memprotmdhead_benign_query)}, {memprotmdhead_residues},  {prop_pvalue}, {enr_pvalue}"
+)
+
+heatmap_normalised_by_heatmap(
+    "ClinVar disease normalised by benign opm memprotmdhead residues",
+    memprotmdhead_disease_variants,
+    memprotmdhead_benign_variants,)
 
 # non spont
 
