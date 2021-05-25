@@ -180,7 +180,10 @@ def heatmap(
     color,
     is_it_log,
     annotation_format="{x:n}",
-    bars=True,
+    bars=False,
+    scale_min=False,
+    scale_max=False
+
 ):
     """
     var_freqs_list
@@ -214,21 +217,31 @@ def heatmap(
     ax_scale = plt.axes(rect_scale)
 
     # print(var_freqs_list)
-    im = ax_heatmap.imshow(
-        var_freqs_list, cmap=color, interpolation="nearest", norm=is_it_log
-    )
-    texts = annotate_heatmap(im, valfmt=annotation_format, fontsize=20)
+
+    if scale_min is False and scale_max is False:
+        im = ax_heatmap.imshow(
+            var_freqs_list, cmap=color, interpolation="nearest", norm=is_it_log
+        )
+
+    else:
+        im = ax_heatmap.imshow(
+            var_freqs_list, cmap=color, interpolation="nearest", norm=is_it_log,vmin=scale_min, vmax=scale_max
+        )
+    ax_scale = plt.colorbar(im)
+
+
+    texts = annotate_heatmap(im, valfmt=annotation_format, fontsize=20, rasterized=True)
 
     # We want to show all ticks...
     ax_heatmap.set_xticks(np.arange(len(aa_order)))
     ax_heatmap.set_yticks(np.arange(len(aa_order)))
     # ... and label them with the respective list entries
-    ax_heatmap.set_xticklabels(aa_order, fontsize=20)
-    ax_heatmap.set_yticklabels(aa_order, fontsize=20)
+    ax_heatmap.set_xticklabels(aa_order, fontsize=20, rasterized=True)
+    ax_heatmap.set_yticklabels(aa_order, fontsize=20, rasterized=True)
     # Add boxes
     ax_heatmap.grid(which="minor", color="b", linestyle="-", linewidth=2)
-    ax_heatmap.set_xlabel("Wildtype (from)", fontsize=20)
-    ax_heatmap.set_ylabel("Variant (to)", fontsize=20)
+    ax_heatmap.set_xlabel("Wildtype (from)", fontsize=20, rasterized=True)
+    ax_heatmap.set_ylabel("Variant (to)", fontsize=20, rasterized=True)
     # ax.set_ylim(len(aa_order)-0.5, -0.5) # temp bug workaround: https://github.com/matplotlib/matplotlib/issues/14751
     # ax.set_xlim(len(aa_order)-0, -0.5) # temp bug workaround: https://github.com/matplotlib/matplotlib/issues/14751
     # ax_heatmap.set_title(title)
@@ -288,7 +301,7 @@ def heatmap(
     # ax_histy.set_ylim(ax_heatmap.get_ylim())
     # And now the colorbar
     # --------------------------------------------------------
-    ax_scale = plt.colorbar(im)
+
 
     # plt.tight_layout()
     filename = f"images/{title}_{date}.png"
@@ -297,6 +310,21 @@ def heatmap(
         for y_coordinate, y_amino_acid in enumerate(aa_order):
             plt.Circle((x_coordinate, y_coordinate),
                        0.5, color="black", fill=False)
+    # Loop over data dimensions and create text annotations.
+
+    for x_coordinate, x_amino_acid in enumerate(aa_order):
+        for y_coordinate, y_amino_acid in enumerate(aa_order):
+            if var_freqs_list[y_coordinate, x_coordinate] > 0 and var_freqs_list[y_coordinate, x_coordinate] < 0.01:
+                stat='%.2E' % var_freqs_list[y_coordinate, x_coordinate]
+                evalue=str(stat).split("E", 1)
+                value="E"+evalue[1]
+                plt.text(x_coordinate, y_coordinate, value,
+                               ha="center", va="center", color="w", fontsize="xx-small", weight="bold", wrap=True, fontstretch="condensed", rasterized=True)
+
+            elif var_freqs_list[y_coordinate, x_coordinate] > 0:
+                    value='%s' % float('%.1g' % var_freqs_list[y_coordinate, x_coordinate])
+                    plt.text(x_coordinate, y_coordinate, value,
+                                   ha="center", va="center", color="w", fontsize="x-small", weight="bold", fontstretch="condensed", rasterized=True)
 
     # plt.tight_layout()
     plt.savefig(filename)

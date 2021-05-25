@@ -2,7 +2,9 @@ from scripts.populate_general_functions import *
 from scripts.graphs import *
 from django.db.models import F
 import scipy.stats as stats
-
+import matplotlib
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 
 # Shell Plus Model Imports
 with open("bug_exclusion_list.txt") as f:
@@ -10,7 +12,6 @@ with open("bug_exclusion_list.txt") as f:
 
 aa_list_baezo_order = aa_baezo_order()
 impossible_subs_dict = impossible_subs()
-
 
 def heatmap_normalised_by_heatmap(title, heatmap_one, heatmap_two):
     new_heatmap = []
@@ -36,12 +37,14 @@ def heatmap_normalised_by_heatmap(title, heatmap_one, heatmap_two):
             new_heatmap[row_number][column_number] = value
     heatmap(
         np.array(new_heatmap),
-        title,
+        str(title+str(0.6)),
         aa_list_baezo_order,
-        "brg",
+        "PuRd",
         None,
         annotation_format="",
         bars=False,
+        scale_min=0,
+        scale_max=0.6
     )
 
 
@@ -71,15 +74,17 @@ def stats_heatmap(
             )
             value = pvalue
             new_heatmap[row_number][column_number] = value
-    #print(title, "\n", np.array(new_heatmap))
+    print(title, "\n", np.array(new_heatmap))
     heatmap(
         np.array(new_heatmap),
         title,
         aa_list_baezo_order,
-        "autumn_r",
+        "magma",
         None,
         annotation_format="",
         bars=False,
+        scale_min=0,
+        scale_max=0.05
     )
 
 
@@ -1437,9 +1442,9 @@ oddsratio, enr_pvalue = stats.fisher_exact(
 )
 stats_heatmap(
     title="interface lining residues versus multi-pass",
-    diseaseset1=multi_tmh_disease_variants,
+    diseaseset1=membrane_disease_variants,
     diseaseset2=interface_disease_variants,
-    benignset1=multi_tmh_benign_variants,
+    benignset1=membrane_benign_variants,
     benignset2=interface_benign_variants,
 )
 
@@ -1520,9 +1525,9 @@ oddsratio, enr_pvalue = stats.fisher_exact(
 )
 stats_heatmap(
     title="memprotmdtail lining residues versus multi-pass",
-    diseaseset1=multi_tmh_disease_variants,
+    diseaseset1=membrane_disease_variants,
     diseaseset2=memprotmdtail_disease_variants,
-    benignset1=multi_tmh_benign_variants,
+    benignset1=membrane_benign_variants,
     benignset2=memprotmdtail_benign_variants,
 )
 
@@ -1601,9 +1606,9 @@ oddsratio, enr_pvalue = stats.fisher_exact(
 )
 stats_heatmap(
     title="memprotmdhead lining residues versus multi-pass",
-    diseaseset1=multi_tmh_disease_variants,
+    diseaseset1=membrane_disease_variants,
     diseaseset2=memprotmdhead_disease_variants,
-    benignset1=multi_tmh_benign_variants,
+    benignset1=membrane_benign_variants,
     benignset2=memprotmdhead_benign_variants,
 )
 

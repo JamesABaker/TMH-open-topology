@@ -35,6 +35,7 @@ def statistics(list_one=[], list_two=[], threshold=0):
 
     table = [[len(list_one_above), len(list_one_below)], [len(list_two_above), len(list_two_below)]]
 
+    print(table)
     print(stats.fisher_exact(table))
     print(stats.ks_2samp(list_one, list_two))
     print(stats.kruskal(list_one, list_two))
