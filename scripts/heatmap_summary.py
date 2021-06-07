@@ -1,6 +1,7 @@
 from scripts.populate_general_functions import *
 from scripts.graphs import *
 from django.db.models import F
+from django.db.models import Q
 import scipy.stats as stats
 import matplotlib
 import matplotlib.pyplot as plt
@@ -1621,6 +1622,87 @@ heatmap_normalised_by_heatmap(
     "ClinVar disease normalised by benign opm memprotmdhead residues",
     memprotmdhead_disease_variants,
     memprotmdhead_benign_variants,)
+
+
+
+
+# memprotmd_all
+
+total_memprotmd_proteins = Protein.objects.filter(
+    Q(residue__structural_residue__memprotmd_head=True) | Q(residue__structural_residue__memprotmd_tail=True)).distinct('pk').count()
+
+memprotmd_residues = (
+    Residue.objects.filter(
+        tmh_residue__feature_location="TMH",
+        tmh_residue__tmh_id__meta_tmh=True,
+    ).filter(Q(structural_residue__memprotmd_head=True) | Q(structural_residue__memprotmd_tail=True))
+    .distinct("pk")
+    .count()
+)
+
+memprotmd_disease_query = (
+    Variant.objects.filter(
+        residue__tmh_residue__feature_location="TMH",
+        residue__tmh_residue__tmh_id__meta_tmh=True,
+        disease_status="d",
+    ).filter(Q(residue__structural_residue__memprotmd_head=True) | Q(residue__structural_residue__memprotmd_tail=True))
+    .distinct("pk")
+    .values_list(
+        "aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id"
+    )
+)
+memprotmd_disease_variants = heatmap_array(
+    remove_duplicate_variants(
+        list(memprotmd_disease_query)), aa_list_baezo_order
+)
+
+memprotmd_benign_query = (
+    Variant.objects.filter(
+        residue__tmh_residue__feature_location="TMH",
+        residue__tmh_residue__tmh_id__meta_tmh=True,
+        variant_source="gnomAD3",
+    ).filter(Q(residue__structural_residue__memprotmd_head=True) | Q(residue__structural_residue__memprotmd_tail=True))
+    .exclude(aa_mut=F("aa_wt"))
+    .distinct("pk")
+    .values_list(
+        "aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id"
+    )
+)
+memprotmd_benign_variants = heatmap_array(
+    remove_duplicate_variants(
+        list(memprotmd_benign_query)), aa_list_baezo_order
+)
+
+
+oddsratio, prop_pvalue = stats.fisher_exact(
+    [
+        [len(memprotmd_disease_query), len(membrane_disease_query)],
+        [len(memprotmd_benign_query), len(membrane_benign_query)],
+    ]
+)
+oddsratio, enr_pvalue = stats.fisher_exact(
+    [
+        [len(memprotmd_disease_query), len(membrane_disease_query)],
+        [memprotmd_residues, membrane_residues],
+    ]
+)
+stats_heatmap(
+    title="memprotmdhead lining residues versus multi-pass",
+    diseaseset1=membrane_disease_variants,
+    diseaseset2=memprotmd_disease_variants,
+    benignset1=membrane_benign_variants,
+    benignset2=memprotmd_benign_variants,
+)
+
+
+print(
+    f"memprotmdhead variants, {total_memprotmd_proteins}, {len(memprotmd_disease_query)}, {len(memprotmd_benign_query)}, {memprotmd_residues},  {prop_pvalue}, {enr_pvalue}"
+)
+
+heatmap_normalised_by_heatmap(
+    "ClinVar disease normalised by benign opm memprotmd residues",
+    memprotmd_disease_variants,
+    memprotmd_benign_variants,)
 
 
 

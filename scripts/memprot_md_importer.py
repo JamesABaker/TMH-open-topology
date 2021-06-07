@@ -154,7 +154,9 @@ def parse(pdb_id="", pdb_filename=""):
                     if len(bfactors) > 0:
                         Structural_residue.objects.filter(
                             structure__pdb_id=clean_id, pdb_chain=chain_id, pdb_position=residue_number).update(memprotmd_tail=True)
-
+                    else:
+                        Structural_residue.objects.filter(
+                            structure__pdb_id=clean_id, pdb_chain=chain_id, pdb_position=residue_number).update(memprotmd_tail=False)
         for model in head_structure:   # X-Ray generally only have 1 model, while more in NMR
             for chain in model:
                 chain_id = chain.get_id()
@@ -168,7 +170,9 @@ def parse(pdb_id="", pdb_filename=""):
                     if len(bfactors) > 0:
                         Structural_residue.objects.filter(
                             structure__pdb_id=clean_id, pdb_chain=chain_id, pdb_position=residue_number).update(memprotmd_head=True)
-
+                    else:
+                        Structural_residue.objects.filter(
+                            structure__pdb_id=clean_id, pdb_chain=chain_id, pdb_position=residue_number).update(memprotmd_head=False)
     return()
 
 
