@@ -30,6 +30,7 @@ from tmh_db.models import (
     Uniref,
     Variant,
 )
+from requests.exceptions import ConnectionError
 
 list_of_vartmh_proteins = Structure.objects.all().values_list('pdb_id',
                                                               flat=True).distinct()
@@ -182,8 +183,11 @@ def run():
         if filename.endswith(".pdb"):
             # print("Opening...")
             # print(os.path.join(directory, filename))
-            parse(pdb_filename=os.path.join(
-                directory, filename), pdb_id=filename)
-
+            try:
+                parse(pdb_filename=os.path.join(
+                    directory, filename), pdb_id=filename)
+            except ConnectionError as e:
+                parse(pdb_filename=os.path.join(
+                    directory, filename), pdb_id=filename)
         else:
             continue
