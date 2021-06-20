@@ -63,9 +63,9 @@ def porewalker_to_database(this_pdb_id, residues):
         # pdb = pdb_residue_parse(residue)
         pdb = txt_residue_parse(residue) # Each residue is a line
         if pdb is not False:
-            #if pdb["pdb_position"] not in completed_residues:
-                #Structural_residue.objects.filter(structure__pdb_id=this_pdb_id, pdb_position=pdb["pdb_position"], pdb_chain=pdb["chain"]).update(porewalker_score=float(pdb['b_factor']))
-            Structural_residue.objects.filter(structure__pdb_id=this_pdb_id, pdb_position=pdb["pdb_position"], pdb_chain=pdb["chain"]).update(pore_residue=True)
+            #if pdb["author_position"] not in completed_residues:
+                #Structural_residue.objects.filter(structure__pdb_id=this_pdb_id, author_position=pdb["author_position"], pdb_chain=pdb["chain"]).update(porewalker_score=float(pdb['b_factor']))
+            Structural_residue.objects.filter(structure__pdb_id=this_pdb_id, author_position=pdb["pdb_position"], pdb_chain=pdb["chain"]).update(pore_residue=True, porewalker_score=float(pdb['b_factor'])
             print(this_pdb_id, "residues containing pore information added to the database.")
             #else:
             #    pass

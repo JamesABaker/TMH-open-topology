@@ -22,6 +22,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.utils import timezone
 
+import xml.etree.ElementTree as ET
+
 from scripts.populate_general_functions import *
 
 # env LDFLAGS="-I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib" pip install psycopg2
@@ -53,10 +55,20 @@ def sifts_mapping(a_query):
                 pdb_codes.append(pdb_code)
             print(a_query, "maps to", pdb_codes)
             for pdb_code in pdb_codes:
+                #mapping_pdb_url = (
+                #    f"ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/xml/{pdb_code}.xml.gz"
+                #)
+                #mapping_pdb_file = f"./scripts/external_datasets/pdb/{pdb_code}.xml.gz"
+                #download(mapping_pdb_url, mapping_pdb_file)
+                #mapping_str = gzip.open(urllib.request.urlopen(mapping_pdb_file)).read()
+
+
+
 
                 print("Processing and mapping into database", pdb_code)
                 pdb_download_location = f"ftp://ftp.ebi.ac.uk/pub/databases/pdb/data/structures/divided/pdb/{pdb_code[1:3]}/pdb{pdb_code}.ent.gz"
                 pdb_file_location = f"./scripts/external_datasets/pdb/{pdb_code}.pdb"
+
 
                 try:
                     pdb_str = gzip.open(
@@ -135,6 +147,7 @@ def sifts_mapping(a_query):
                         pdb_code,
                         "has no pdb file. Potentially there is an mmcif.",
                     )
+
     except ObjectDoesNotExist:
         pass
 

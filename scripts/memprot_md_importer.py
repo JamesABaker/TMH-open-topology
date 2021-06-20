@@ -2,6 +2,7 @@ import os
 import Bio
 from Bio.PDB import PDBParser
 from Bio.PDB import PDBIO
+import csv
 from csv import DictReader
 from scripts.populate_general_functions import clean_query, download
 from tmh_db.models import (
@@ -32,8 +33,7 @@ from tmh_db.models import (
 )
 from requests.exceptions import ConnectionError
 
-list_of_vartmh_proteins = Structure.objects.all().values_list('pdb_id',
-                                                              flat=True).distinct()
+list_of_vartmh_proteins = Structure.objects.all().values_list('pdb_id', flat=True).distinct()
 
 
 def thickness(pdb_content=""):
@@ -110,16 +110,38 @@ def prot_database_check(pdb_id_to_check=""):
 
 def local_memprot_tail(pdb_id=""):
     memprotmd_url = f'http://memprotmd.bioch.ox.ac.uk/data/memprotmd/simulations/{pdb_id}_default_dppc/files/structures/group_tail.contacts.pdb'
-    memprot_file = f'scripts/external_datasets/memprotmd/{pdb_id}_tail.pdb'
-    download(memprotmd_url, memprot_file, pause=5)
-    return(str(memprot_file))
+    memprotmd_file = f'scripts/external_datasets/memprotmd/{pdb_id}_tail.pdb'
+    download(memprotmd_url, memprotmd_file, pause=5)
+    return(str(memprotmd_file))
 
+def local_mapping(pdb_id=""):
+    memprotmd_url=f"http://memprotmd.bioch.ox.ac.uk/data/memprotmd/simulations/{pdb_id}_default_dppc/files/contacts/by_resid_postprocess.csv"
+    memprotmd_file=f'scripts/external_datasets/memprotmd/{pdb_id}_mapping.csv'
+    download(memprotmd_url, memprotmd_file, pause=5)
+    return(str(memprotmd_file))
 
 def local_memprot_head(pdb_id=""):
     memprotmd_url = f'http://memprotmd.bioch.ox.ac.uk/data/memprotmd/simulations/{pdb_id}_default_dppc/files/structures/group_head.contacts.pdb'
-    memprot_file = f'scripts/external_datasets/memprotmd/{pdb_id}_head.pdb'
-    download(memprotmd_url, memprot_file, pause=5)
-    return(str(memprot_file))
+    memprotmd_file = f'scripts/external_datasets/memprotmd/{pdb_id}_head.pdb'
+    download(memprotmd_url, memprotmd_file, pause=5)
+    return(str(memprotmd_file))
+
+def residue_mapping(memprot_md_number=None, pdb_code=None, chain_number=None):
+    clean_id = os.path.splitext(pdb_code)[0]
+    mapping_csv=local_mapping(clean_id)
+
+    with open(mapping_csv) as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        line_count = 0
+        for row in csv_reader:
+            if row[0] == str(memprot_md_number):
+                #print(row[0], str(memprot_md_number), , str(chain_number), "result:", row[7])
+                chain_number=row[3]
+                residue_number_corrected=row[7]
+                print("match found", memprot_md_number, "->", residue_number_corrected, chain_number)
+                #print(row)
+
+                return(residue_number_corrected, chain_number)
 
 
 def parse(pdb_id="", pdb_filename=""):
@@ -131,7 +153,7 @@ def parse(pdb_id="", pdb_filename=""):
 
     # Start at one so the first residue atom is not immediately
     # considered as a residue.
-
+    print(pdb_id)
     clean_id = os.path.splitext(pdb_id)[0]
     if clean_id in list_of_vartmh_proteins:
 
@@ -148,32 +170,36 @@ def parse(pdb_id="", pdb_filename=""):
                 print(chain_id)
                 for residue in chain:
                     residue_number = residue.get_id()[1]
+                    real_residue_number, chain_id = residue_mapping(memprot_md_number=residue_number, pdb_code=pdb_id, chain_number=chain_id)
+                    print(f"Residue {real_residue_number}, and memprotmd residue number {residue_number}")
                     bfactors = []
                     for atom in residue:
                         if atom.bfactor > 0:
                             bfactors.append(atom.bfactor)
                     if len(bfactors) > 0:
                         Structural_residue.objects.filter(
-                            structure__pdb_id=clean_id, pdb_chain=chain_id, pdb_position=residue_number).update(memprotmd_tail=True)
+                            structure__pdb_id=clean_id, pdb_chain=chain_id, pdb_position=real_residue_number).update(memprotmd_tail=True)
                     else:
                         Structural_residue.objects.filter(
-                            structure__pdb_id=clean_id, pdb_chain=chain_id, pdb_position=residue_number).update(memprotmd_tail=False)
+                            structure__pdb_id=clean_id, pdb_chain=chain_id, pdb_position=real_residue_number).update(memprotmd_tail=False)
+
         for model in head_structure:   # X-Ray generally only have 1 model, while more in NMR
             for chain in model:
                 chain_id = chain.get_id()
-                print(chain_id)
                 for residue in chain:
                     residue_number = residue.get_id()[1]
+                    real_residue_number, chain_id = residue_mapping(memprot_md_number=residue_number, pdb_code=pdb_id, chain_number=chain_id)
+                    print(f"Residue {real_residue_number}, and memprotmd residue number {residue_number}")
                     bfactors = []
                     for atom in residue:
                         if atom.bfactor > 0:
                             bfactors.append(atom.bfactor)
                     if len(bfactors) > 0:
                         Structural_residue.objects.filter(
-                            structure__pdb_id=clean_id, pdb_chain=chain_id, pdb_position=residue_number).update(memprotmd_head=True)
+                            structure__pdb_id=clean_id, pdb_chain=chain_id, pdb_position=real_residue_number).update(memprotmd_head=True)
                     else:
                         Structural_residue.objects.filter(
-                            structure__pdb_id=clean_id, pdb_chain=chain_id, pdb_position=residue_number).update(memprotmd_head=False)
+                            structure__pdb_id=clean_id, pdb_chain=chain_id, pdb_position=real_residue_number).update(memprotmd_head=False)
     return()
 
 

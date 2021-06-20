@@ -785,7 +785,7 @@ oddsratio, enr_pvalue = stats.fisher_exact(
     ]
 )
 stats_heatmap(
-    title="non-TMH helices versus multi-pass",
+    title="spontaneous helices versus multi-pass",
     diseaseset1=multi_tmh_disease_variants,
     diseaseset2=spont_disease_variants,
     benignset1=multi_tmh_benign_variants,
@@ -799,6 +799,14 @@ heatmap_normalised_by_heatmap(
     "ClinVar disease normalised by gnomAD meta-tmh spontaneous TMHs",
     spont_disease_variants,
     spont_benign_variants,
+)
+
+stats_heatmap(
+    title="non-spontaneous helices versus spontaneous",
+    diseaseset1=spont_disease_variants,
+    diseaseset2=nonspont_disease_variants,
+    benignset1=spont_benign_variants,
+    benignset2=nonspont_benign_variants,
 )
 
 
@@ -1380,7 +1388,7 @@ heatmap_normalised_by_heatmap(
 # Funfam extended Pore residues
 
 total_pore_extended_proteins = Protein.objects.filter(
-    residue__funfamresidue__residue__structural_residue__pore_residue=True).distinct('pk').count()
+    residue__structural_residue__pore_residue=True).distinct('pk').count()
 
 pore_extended_residues = (
     Residue.objects.filter(
@@ -1766,16 +1774,27 @@ oddsratio, enr_pvalue = stats.fisher_exact(
     ]
 )
 stats_heatmap(
-    title="memprotmdhead lining residues versus multi-pass",
+    title="memprotmd lining residues versus multi-pass",
     diseaseset1=membrane_disease_variants,
     diseaseset2=memprotmd_disease_variants,
     benignset1=membrane_benign_variants,
     benignset2=memprotmd_benign_variants,
 )
 
+#Stats for lipids versus pore_residues
+stats_heatmap(
+    title="Pore lining residues versus lipid residues",
+    diseaseset1=memprotmd_disease_variants,
+    diseaseset2=pore_extended_disease_variants,
+    benignset1=memprotmd_benign_variants,
+    benignset2=pore_extended_benign_variants,
+)
+
+
+
 
 print(
-    f"memprotmdhead variants, {total_memprotmd_proteins}, {len(memprotmd_disease_query)}, {len(memprotmd_benign_query)}, {memprotmd_residues},  {prop_pvalue}, {enr_pvalue}"
+    f"memprotmd variants, {total_memprotmd_proteins}, {len(memprotmd_disease_query)}, {len(memprotmd_benign_query)}, {memprotmd_residues},  {prop_pvalue}, {enr_pvalue}"
 )
 
 heatmap_normalised_by_heatmap(

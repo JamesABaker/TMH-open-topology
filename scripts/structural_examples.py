@@ -20,12 +20,12 @@ from django.db.models import Exists, OuterRef, Subquery
 disvars=Variant.objects.filter(disease_status="d", aa_wt="I", aa_mut="N")
 benvars=Variant.objects.filter(variant_source="gnomAD3", aa_wt="I", aa_mut="N")
 
-struc_res=Structural_residue.objects.filter(pore_residue=True, residue__variant__in=disvars).distinct('pk')
+struc_res=Structural_residue.objects.filter(pore_residue=True, residue__tmh_residue__tmh_id__meta_tmh=True, residue__variant__in=disvars).distinct('pk')
 print("I->N Pore disease")
 for i in struc_res:
 
     structure=Structure.objects.get(structural_residue__pk=i.pk)
-    print(structure.pdb_id, i.pdb_position, i.pdb_chain)
+    print(structure.pdb_id, i.author_position, i.pdb_chain)
 
 
 struc_res=Structural_residue.objects.filter(memprotmd_tail=True, residue__variant__in=benvars).distinct('pk')
@@ -33,7 +33,7 @@ print("I->N Lipid contact benign")
 for i in struc_res:
 
     structure=Structure.objects.get(structural_residue__pk=i.pk)
-    print(structure.pdb_id, i.pdb_position, i.pdb_chain)
+    print(structure.pdb_id, i.author_position, i.pdb_chain)
 
 
 
@@ -41,18 +41,18 @@ for i in struc_res:
 disvars=Variant.objects.filter(disease_status="d", aa_wt="S", aa_mut="L")
 benvars=Variant.objects.filter(variant_source="gnomAD3", aa_wt="S", aa_mut="L")
 
-struc_res=Structural_residue.objects.filter(pore_residue=True, residue__variant__in=disvars).distinct('pk')
+struc_res=Structural_residue.objects.filter(pore_residue=True, residue__tmh_residue__tmh_id__meta_tmh=True, residue__variant__in=disvars).distinct('pk')
 print("S->L Pore disease")
 for i in struc_res:
     structure=Structure.objects.get(structural_residue__pk=i.pk)
-    print(structure.pdb_id, i.pdb_position, i.pdb_chain)
+    print(structure.pdb_id, i.author_position, i.pdb_chain)
 
 
 struc_res=Structural_residue.objects.filter(memprotmd_head=True, residue__variant__in=benvars).distinct('pk')
 print("S->L Lipid contact benign")
 for i in struc_res:
     structure=Structure.objects.get(structural_residue__pk=i.pk)
-    print(structure.pdb_id, i.pdb_position, i.pdb_chain)
+    print(structure.pdb_id, i.author_position, i.pdb_chain)
 
 
 
@@ -67,11 +67,11 @@ print("G->R Pore benign")
 for i in struc_res:
 
     structure=Structure.objects.get(structural_residue__pk=i.pk)
-    print(structure.pdb_id, i.pdb_position, i.pdb_chain)
+    print(structure.pdb_id, i.author_position, i.pdb_chain)
 
 
 struc_res=Structural_residue.objects.filter(memprotmd_tail=True, residue__variant__in=disvars).distinct('pk')
 print("G->R Lipid contact disease")
 for i in struc_res:
     structure=Structure.objects.get(structural_residue__pk=i.pk)
-    print(structure.pdb_id, i.pdb_position, i.pdb_chain)
+    print(structure.pdb_id, i.author_position, i.pdb_chain)
