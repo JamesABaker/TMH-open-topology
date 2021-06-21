@@ -138,22 +138,26 @@ def residue_mapping(pdb_code=None):
     with open(mapping_csv) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=",")
         line_count = 0
-        for row in csv_reader:
-            memprot_md_number=row[0]
-            # print(row[0], str(memprot_md_number), , str(chain_number), "result:", row[7])
-            chain_number = row[3]
-            residue_number_corrected = row[7]
-            #print(
-            #    "match found",
-            #    memprot_md_number,
-            #    "->",
-            #    residue_number_corrected,
-            #    chain_number,
-            #)
-            map[memprot_md_number] = (residue_number_corrected, chain_number)
-            # print(row)
+        try:
+            for row in csv_reader:
+                memprot_md_number=row[0]
+                # print(row[0], str(memprot_md_number), , str(chain_number), "result:", row[7])
+                chain_number = row[3]
+                residue_number_corrected = row[7]
+                #print(
+                #    "match found",
+                #    memprot_md_number,
+                #    "->",
+                #    residue_number_corrected,
+                #    chain_number,
+                #)
+                map[memprot_md_number] = (residue_number_corrected, chain_number)
+                # print(row)
 
-                # return(residue_number_corrected, chain_number)
+                    # return(residue_number_corrected, chain_number)
+        except(IndexError):
+            #URL not found return False
+            return(False)
 
     return(map)
 
@@ -170,78 +174,80 @@ def parse(pdb_id="", pdb_filename=""):
     print(pdb_id)
     clean_id = os.path.splitext(pdb_id)[0]
     if clean_id in list_of_vartmh_proteins:
-
-        tail_file = local_memprot_tail(pdb_id=clean_id)
-        head_file = local_memprot_head(pdb_id=clean_id)
-
-        parser = PDBParser()  # recruts the parsing class
-        tail_structure = parser.get_structure(tail_file, tail_file)
-        head_structure = parser.get_structure(head_file, head_file)
-
         memprotmd_to_pdb = residue_mapping(pdb_code=pdb_id)
-        structural_residues=Structural_residue.objects.filter(structure__pdb_id=clean_id)
-        for (
-            model
-        ) in tail_structure:  # X-Ray generally only have 1 model, while more in NMR
-            for chain in model:
-                chain_id = chain.get_id()
-                print(chain_id)
-                for residue in chain:
-                    residue_number = residue.get_id()[1]
+        if memprotmd_to_pdb is False:
+            print(f"Could not make sense of MemProtMD mapping file for {pdb_id}")
+            return(False)
+        else:
+            tail_file = local_memprot_tail(pdb_id=clean_id)
+            head_file = local_memprot_head(pdb_id=clean_id)
 
-                    bfactors = []
-                    for atom in residue:
-                        if atom.bfactor > 0:
-                            bfactors.append(atom.bfactor)
-                    real_residue_number, chain_id = memprotmd_to_pdb[str(residue_number)]
-                    if len(bfactors) > 0:
-                        # This should not be here, it should be below the definition for residue_number and the parser should return a dictionary, but I am lazy and in a rush
+            parser = PDBParser()  # recruts the parsing class
+            tail_structure = parser.get_structure(tail_file, tail_file)
+            head_structure = parser.get_structure(head_file, head_file)
+            structural_residues=Structural_residue.objects.filter(structure__pdb_id=clean_id)
+            for (
+                model
+            ) in tail_structure:  # X-Ray generally only have 1 model, while more in NMR
+                for chain in model:
+                    chain_id = chain.get_id()
+                    print(chain_id)
+                    for residue in chain:
+                        residue_number = residue.get_id()[1]
 
-                        structural_residues.filter(
-                            structure__pdb_id=clean_id,
-                            pdb_chain=chain_id,
-                            pdb_position=real_residue_number,
-                        ).update(memprotmd_tail=True)
+                        bfactors = []
+                        for atom in residue:
+                            if atom.bfactor > 0:
+                                bfactors.append(atom.bfactor)
+                        real_residue_number, chain_id = memprotmd_to_pdb[str(residue_number)]
+                        if len(bfactors) > 0:
+                            # This should not be here, it should be below the definition for residue_number and the parser should return a dictionary, but I am lazy and in a rush
+
+                            structural_residues.filter(
+                                structure__pdb_id=clean_id,
+                                pdb_chain=chain_id,
+                                pdb_position=real_residue_number,
+                            ).update(memprotmd_tail=True)
+                            print(
+                                f"Residue {real_residue_number}, and memprotmd residue number {residue_number}"
+                            )
+                        else:
+                            structural_residues.filter(
+                                structure__pdb_id=clean_id,
+                                pdb_chain=chain_id,
+                                pdb_position=real_residue_number,
+                            ).update(memprotmd_tail=False)
+
+            for (
+                model
+            ) in head_structure:  # X-Ray generally only have 1 model, while more in NMR
+                for chain in model:
+                    chain_id = chain.get_id()
+                    for residue in chain:
+                        residue_number = residue.get_id()[1]
+
                         print(
                             f"Residue {real_residue_number}, and memprotmd residue number {residue_number}"
                         )
-                    else:
-                        structural_residues.filter(
-                            structure__pdb_id=clean_id,
-                            pdb_chain=chain_id,
-                            pdb_position=real_residue_number,
-                        ).update(memprotmd_tail=False)
+                        bfactors = []
+                        for atom in residue:
+                            if atom.bfactor > 0:
+                                bfactors.append(atom.bfactor)
+                        real_residue_number, chain_id = memprotmd_to_pdb[str(residue_number)]
+                        if len(bfactors) > 0:
 
-        for (
-            model
-        ) in head_structure:  # X-Ray generally only have 1 model, while more in NMR
-            for chain in model:
-                chain_id = chain.get_id()
-                for residue in chain:
-                    residue_number = residue.get_id()[1]
-
-                    print(
-                        f"Residue {real_residue_number}, and memprotmd residue number {residue_number}"
-                    )
-                    bfactors = []
-                    for atom in residue:
-                        if atom.bfactor > 0:
-                            bfactors.append(atom.bfactor)
-                    real_residue_number, chain_id = memprotmd_to_pdb[str(residue_number)]
-                    if len(bfactors) > 0:
-
-                        structural_residues.filter(
-                            structure__pdb_id=clean_id,
-                            pdb_chain=chain_id,
-                            pdb_position=real_residue_number,
-                        ).update(memprotmd_head=True)
-                    else:
-                        structural_residues.filter(
-                            structure__pdb_id=clean_id,
-                            pdb_chain=chain_id,
-                            pdb_position=real_residue_number,
-                        ).update(memprotmd_head=False)
-    return ()
+                            structural_residues.filter(
+                                structure__pdb_id=clean_id,
+                                pdb_chain=chain_id,
+                                pdb_position=real_residue_number,
+                            ).update(memprotmd_head=True)
+                        else:
+                            structural_residues.filter(
+                                structure__pdb_id=clean_id,
+                                pdb_chain=chain_id,
+                                pdb_position=real_residue_number,
+                            ).update(memprotmd_head=False)
+    return(True)
 
 
 def run():
