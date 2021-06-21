@@ -151,7 +151,7 @@ def residue_mapping(pdb_code=None):
                 #    residue_number_corrected,
                 #    chain_number,
                 #)
-                map[memprot_md_number] = (residue_number_corrected, chain_number)
+                map[memprot_md_number] = (float(residue_number_corrected), chain_number)
                 # print(row)
 
                     # return(residue_number_corrected, chain_number)

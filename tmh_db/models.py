@@ -241,7 +241,7 @@ class Structure(models.Model):
 class Structural_residue(models.Model):
     structure = models.ForeignKey(Structure, on_delete=models.CASCADE)
     residue = models.ManyToManyField(Residue)
-    pdb_position = models.IntegerField()
+    pdb_position = models.FloatField()
     pdb_chain = models.CharField(max_length=10, default='')
     author_position = models.IntegerField(null=True)
     structure_aa = models.CharField(max_length=1, default='X', null=True)
