@@ -33,58 +33,60 @@ from tmh_db.models import (
 )
 from requests.exceptions import ConnectionError
 
-list_of_vartmh_proteins = Structure.objects.all().values_list('pdb_id', flat=True).distinct()
+list_of_vartmh_proteins = (
+    Structure.objects.all().values_list("pdb_id", flat=True).distinct()
+)
 
 
 def thickness(pdb_content=""):
-    '''
+    """
     Returns the bilayer thickness as a float.
-    '''
+    """
     bilayer_thickness = []
     for line in pdb_content:
         if "REMARK" in line and "bilayer thickness" in line:
             bilayer_thickness.append(line.split()[-1])
     if len(bilayer_thickness) >= 1:
-        return(float(bilayer_thickness[0]))
+        return float(bilayer_thickness[0])
 
     else:
         print("Bilayer weirdness:", bilayer_thickness)
-        return(False)
+        return False
 
 
 def membrane_check(z_positions=[], membrane_cutoff=None, error=0):
-    '''
+    """
     Checks if all the atoms, some of the atoms,
     or none of the atoms fall within the membrane cutoffs
-    '''
+    """
     membrane = []
     non_membrane = []
     interface = []
     for a_z in z_positions:
-        if abs(a_z) <= membrane_cutoff-error:
+        if abs(a_z) <= membrane_cutoff - error:
             membrane.append(a_z)
         # This catches non membrane,
         # but within the error of the membrane boundary.
-        elif abs(a_z) <= membrane_cutoff+error:
+        elif abs(a_z) <= membrane_cutoff + error:
             interface.append(a_z)
         else:
             non_membrane.append(a_z)
     if len(membrane) > 0 and len(non_membrane) == 0:
-        return("membrane")
+        return "membrane"
     elif len(membrane) == 0 and len(non_membrane) > 0:
-        return("globular")
+        return "globular"
     elif len(membrane) > 0 and len(non_membrane) > 0:
-        return("interface")
+        return "interface"
     elif len(interface) > 0:
-        return("interface")
+        return "interface"
 
 
-def find_error(pdb_id_clean=None):    # open file in read mode
-    '''
+def find_error(pdb_id_clean=None):  # open file in read mode
+    """
     Scans a lookup CSV for error values of membrane thickness in OPM.
-    '''
+    """
     opm_csv_filename = "scripts/external_datasets/opm/proteins-2021-04-06.csv"
-    with open(opm_csv_filename, 'r') as read_obj:
+    with open(opm_csv_filename, "r") as read_obj:
         # pass the file object to DictReader() to get the DictReader object
         csv_dict_reader = DictReader(read_obj)
         # iterate over each line as a ordered dictionary
@@ -92,62 +94,74 @@ def find_error(pdb_id_clean=None):    # open file in read mode
             if clean_query(str(row["pdbid"])) == clean_query(pdb_id_clean):
                 error = float(row["thicknesserror"])
                 print(error)
-                return(error)
+                return error
     print("Failed to find error, falling back on REMARK")
-    return(0)
+    return 0
 
 
 def prot_database_check(pdb_id_to_check=""):
-    '''
+    """
     Checks that the protein is in the database.
-    '''
+    """
     matching_pdbs = Structure.objects.filter(pdb_id=pdb_id_to_check)
     if len(matching_pdbs) > 0:
-        return(True)
+        return True
     else:
-        return(False)
+        return False
 
 
 def local_memprot_tail(pdb_id=""):
-    memprotmd_url = f'http://memprotmd.bioch.ox.ac.uk/data/memprotmd/simulations/{pdb_id}_default_dppc/files/structures/group_tail.contacts.pdb'
-    memprotmd_file = f'scripts/external_datasets/memprotmd/{pdb_id}_tail.pdb'
+    memprotmd_url = f"http://memprotmd.bioch.ox.ac.uk/data/memprotmd/simulations/{pdb_id}_default_dppc/files/structures/group_tail.contacts.pdb"
+    memprotmd_file = f"scripts/external_datasets/memprotmd/{pdb_id}_tail.pdb"
     download(memprotmd_url, memprotmd_file, pause=5)
-    return(str(memprotmd_file))
+    return str(memprotmd_file)
+
 
 def local_mapping(pdb_id=""):
-    memprotmd_url=f"http://memprotmd.bioch.ox.ac.uk/data/memprotmd/simulations/{pdb_id}_default_dppc/files/contacts/by_resid_postprocess.csv"
-    memprotmd_file=f'scripts/external_datasets/memprotmd/{pdb_id}_mapping.csv'
+    memprotmd_url = f"http://memprotmd.bioch.ox.ac.uk/data/memprotmd/simulations/{pdb_id}_default_dppc/files/contacts/by_resid_postprocess.csv"
+    memprotmd_file = f"scripts/external_datasets/memprotmd/{pdb_id}_mapping.csv"
     download(memprotmd_url, memprotmd_file, pause=5)
-    return(str(memprotmd_file))
+    return str(memprotmd_file)
+
 
 def local_memprot_head(pdb_id=""):
-    memprotmd_url = f'http://memprotmd.bioch.ox.ac.uk/data/memprotmd/simulations/{pdb_id}_default_dppc/files/structures/group_head.contacts.pdb'
-    memprotmd_file = f'scripts/external_datasets/memprotmd/{pdb_id}_head.pdb'
+    memprotmd_url = f"http://memprotmd.bioch.ox.ac.uk/data/memprotmd/simulations/{pdb_id}_default_dppc/files/structures/group_head.contacts.pdb"
+    memprotmd_file = f"scripts/external_datasets/memprotmd/{pdb_id}_head.pdb"
     download(memprotmd_url, memprotmd_file, pause=5)
-    return(str(memprotmd_file))
+    return str(memprotmd_file)
 
-def residue_mapping(memprot_md_number=None, pdb_code=None, chain_number=None):
+
+def residue_mapping(pdb_code=None):
     clean_id = os.path.splitext(pdb_code)[0]
-    mapping_csv=local_mapping(clean_id)
-
+    mapping_csv = local_mapping(clean_id)
+    map = {}
     with open(mapping_csv) as csv_file:
-        csv_reader = csv.reader(csv_file, delimiter=',')
+        csv_reader = csv.reader(csv_file, delimiter=",")
         line_count = 0
         for row in csv_reader:
-            if row[0] == str(memprot_md_number):
-                #print(row[0], str(memprot_md_number), , str(chain_number), "result:", row[7])
-                chain_number=row[3]
-                residue_number_corrected=row[7]
-                print("match found", memprot_md_number, "->", residue_number_corrected, chain_number)
-                #print(row)
+            memprot_md_number=row[0]
+            # print(row[0], str(memprot_md_number), , str(chain_number), "result:", row[7])
+            chain_number = row[3]
+            residue_number_corrected = row[7]
+            #print(
+            #    "match found",
+            #    memprot_md_number,
+            #    "->",
+            #    residue_number_corrected,
+            #    chain_number,
+            #)
+            map[memprot_md_number] = (residue_number_corrected, chain_number)
+            # print(row)
 
-                return(residue_number_corrected, chain_number)
+                # return(residue_number_corrected, chain_number)
+
+    return(map)
 
 
 def parse(pdb_id="", pdb_filename=""):
-    '''
+    """
     parses the opm pdb files into a list of membrane residues.
-    '''
+    """
     with open(pdb_filename) as f:
         content = f.readlines()
 
@@ -164,56 +178,81 @@ def parse(pdb_id="", pdb_filename=""):
         tail_structure = parser.get_structure(tail_file, tail_file)
         head_structure = parser.get_structure(head_file, head_file)
 
-        for model in tail_structure:   # X-Ray generally only have 1 model, while more in NMR
+        memprotmd_to_pdb = residue_mapping(pdb_code=pdb_id)
+        structural_residues=Structural_residue.objects.filter(structure__pdb_id=clean_id)
+        for (
+            model
+        ) in tail_structure:  # X-Ray generally only have 1 model, while more in NMR
             for chain in model:
                 chain_id = chain.get_id()
                 print(chain_id)
                 for residue in chain:
                     residue_number = residue.get_id()[1]
-                    real_residue_number, chain_id = residue_mapping(memprot_md_number=residue_number, pdb_code=pdb_id, chain_number=chain_id)
-                    print(f"Residue {real_residue_number}, and memprotmd residue number {residue_number}")
+
                     bfactors = []
                     for atom in residue:
                         if atom.bfactor > 0:
                             bfactors.append(atom.bfactor)
+                    real_residue_number, chain_id = memprotmd_to_pdb[str(residue_number)]
                     if len(bfactors) > 0:
-                        Structural_residue.objects.filter(
-                            structure__pdb_id=clean_id, pdb_chain=chain_id, pdb_position=real_residue_number).update(memprotmd_tail=True)
-                    else:
-                        Structural_residue.objects.filter(
-                            structure__pdb_id=clean_id, pdb_chain=chain_id, pdb_position=real_residue_number).update(memprotmd_tail=False)
+                        # This should not be here, it should be below the definition for residue_number and the parser should return a dictionary, but I am lazy and in a rush
 
-        for model in head_structure:   # X-Ray generally only have 1 model, while more in NMR
+                        structural_residues.filter(
+                            structure__pdb_id=clean_id,
+                            pdb_chain=chain_id,
+                            pdb_position=real_residue_number,
+                        ).update(memprotmd_tail=True)
+                        print(
+                            f"Residue {real_residue_number}, and memprotmd residue number {residue_number}"
+                        )
+                    else:
+                        structural_residues.filter(
+                            structure__pdb_id=clean_id,
+                            pdb_chain=chain_id,
+                            pdb_position=real_residue_number,
+                        ).update(memprotmd_tail=False)
+
+        for (
+            model
+        ) in head_structure:  # X-Ray generally only have 1 model, while more in NMR
             for chain in model:
                 chain_id = chain.get_id()
                 for residue in chain:
                     residue_number = residue.get_id()[1]
-                    real_residue_number, chain_id = residue_mapping(memprot_md_number=residue_number, pdb_code=pdb_id, chain_number=chain_id)
-                    print(f"Residue {real_residue_number}, and memprotmd residue number {residue_number}")
+
+                    print(
+                        f"Residue {real_residue_number}, and memprotmd residue number {residue_number}"
+                    )
                     bfactors = []
                     for atom in residue:
                         if atom.bfactor > 0:
                             bfactors.append(atom.bfactor)
+                    real_residue_number, chain_id = memprotmd_to_pdb[str(residue_number)]
                     if len(bfactors) > 0:
-                        Structural_residue.objects.filter(
-                            structure__pdb_id=clean_id, pdb_chain=chain_id, pdb_position=real_residue_number).update(memprotmd_head=True)
+
+                        structural_residues.filter(
+                            structure__pdb_id=clean_id,
+                            pdb_chain=chain_id,
+                            pdb_position=real_residue_number,
+                        ).update(memprotmd_head=True)
                     else:
-                        Structural_residue.objects.filter(
-                            structure__pdb_id=clean_id, pdb_chain=chain_id, pdb_position=real_residue_number).update(memprotmd_head=False)
-    return()
+                        structural_residues.filter(
+                            structure__pdb_id=clean_id,
+                            pdb_chain=chain_id,
+                            pdb_position=real_residue_number,
+                        ).update(memprotmd_head=False)
+    return ()
 
 
 def run():
-    directory = r'scripts/external_datasets/opm/'
+    directory = r"scripts/external_datasets/opm/"
     for filename in os.listdir(directory):
         if filename.endswith(".pdb"):
             # print("Opening...")
             # print(os.path.join(directory, filename))
             try:
-                parse(pdb_filename=os.path.join(
-                    directory, filename), pdb_id=filename)
+                parse(pdb_filename=os.path.join(directory, filename), pdb_id=filename)
             except ConnectionError as e:
-                parse(pdb_filename=os.path.join(
-                    directory, filename), pdb_id=filename)
+                parse(pdb_filename=os.path.join(directory, filename), pdb_id=filename)
         else:
             continue
