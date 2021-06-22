@@ -120,6 +120,7 @@ def residue_mapping(pdb_code=None):
     clean_id = os.path.splitext(pdb_code)[0]
     mapping_csv = local_mapping(clean_id)
     map = {}
+    print(clean_id)
     with open(mapping_csv) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=",")
         line_count = 0
