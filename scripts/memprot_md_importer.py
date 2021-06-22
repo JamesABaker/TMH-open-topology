@@ -127,6 +127,7 @@ def residue_mapping(pdb_code=None):
         try:
             for n, row in enumerate(csv_reader):
                 #Skip header line
+
                 if n > 0:
                     try:
                         memprot_md_number=row[0]
@@ -135,7 +136,7 @@ def residue_mapping(pdb_code=None):
                         map[str(memprot_md_number)] = (float(residue_number_corrected), chain_number)
                     except(ValueError):
                         pass
-                elif str(row) == str("No file is located at that path."):
+                elif str("No file is located at that path.") in str(row):
                     return(False)
 
                         # return(residue_number_corrected, chain_number)
@@ -155,7 +156,7 @@ def parse(pdb_id="", pdb_filename=""):
 
     # Start at one so the first residue atom is not immediately
     # considered as a residue.
-    print(pdb_id)
+    #print(pdb_id)
     clean_id = os.path.splitext(pdb_id)[0]
 
     memprotmd_to_pdb = residue_mapping(pdb_code=pdb_id)
@@ -184,24 +185,27 @@ def parse(pdb_id="", pdb_filename=""):
                     for atom in residue:
                         if atom.bfactor > 0:
                             bfactors.append(atom.bfactor)
-                    real_residue_number, chain_id = memprotmd_to_pdb[str(residue_number)]
-                    if len(bfactors) > 0:
-                        # This should not be here, it should be below the definition for residue_number and the parser should return a dictionary, but I am lazy and in a rush
+                    try:
+                        real_residue_number, chain_id = memprotmd_to_pdb[str(residue_number)]
+                        if len(bfactors) > 0:
+                            # This should not be here, it should be below the definition for residue_number and the parser should return a dictionary, but I am lazy and in a rush
 
-                        structural_residues.filter(
-                            structure__pdb_id=clean_id,
-                            pdb_chain=chain_id,
-                            pdb_position=real_residue_number,
-                        ).update(memprotmd_tail=True)
-                        print(
-                            f"Residue {real_residue_number}, and memprotmd residue number {residue_number}"
-                        )
-                    else:
-                        structural_residues.filter(
-                            structure__pdb_id=clean_id,
-                            pdb_chain=chain_id,
-                            pdb_position=real_residue_number,
-                        ).update(memprotmd_tail=False)
+                            structural_residues.filter(
+                                structure__pdb_id=clean_id,
+                                pdb_chain=chain_id,
+                                pdb_position=real_residue_number,
+                            ).update(memprotmd_tail=True)
+                            print(
+                                f"Residue {real_residue_number}, and memprotmd residue number {residue_number}"
+                            )
+                        else:
+                            structural_residues.filter(
+                                structure__pdb_id=clean_id,
+                                pdb_chain=chain_id,
+                                pdb_position=real_residue_number,
+                            ).update(memprotmd_tail=False)
+                    except(KeyError):
+                        pass
 
         for (
             model
