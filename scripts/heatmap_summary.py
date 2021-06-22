@@ -724,13 +724,13 @@ heatmap_normalised_by_heatmap(
 # spont
 
 total_nonspont = Tmh.objects.filter(
-    meta_tmh=True, tmh_deltag__test_score__lte="-1.01").distinct('pk').count()
+    meta_tmh=True, tmh_deltag__test_score__lte="-1.101").distinct('pk').count()
 
 
 spont_residues = (
     Residue.objects.filter(
         tmh_residue__tmh_id__meta_tmh=True,
-        tmh_residue__tmh_id__tmh_deltag__test_score__lte="-1.01",
+        tmh_residue__tmh_id__tmh_deltag__test_score__lte="-1.101",
     )
     .distinct("pk")
     .count()
@@ -756,7 +756,7 @@ spont_disease_variants = heatmap_array(
 
 spont_benign_query = (
     Variant.objects.filter(
-        residue__tmh_residue__tmh_id__tmh_deltag__test_score__lte="-1.01",
+        residue__tmh_residue__tmh_id__tmh_deltag__test_score__lte="-1.101",
         residue__tmh_residue__feature_location="TMH",
         residue__protein__total_tmh_number__gt=1,
         residue__tmh_residue__tmh_id__meta_tmh=True,
