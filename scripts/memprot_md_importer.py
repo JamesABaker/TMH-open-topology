@@ -131,7 +131,7 @@ def residue_mapping(pdb_code=None):
                         memprot_md_number=row[0]
                         chain_number = row[3]
                         residue_number_corrected = row[7]
-                        map[memprot_md_number] = (float(residue_number_corrected), chain_number)
+                        map[str(memprot_md_number)] = (float(residue_number_corrected), chain_number)
                     except(ValueError):
                         pass
 
@@ -156,7 +156,7 @@ def parse(pdb_id="", pdb_filename=""):
     clean_id = os.path.splitext(pdb_id)[0]
 
     memprotmd_to_pdb = residue_mapping(pdb_code=pdb_id)
-    
+
     if memprotmd_to_pdb is False:
         print(f"Could not make sense of MemProtMD mapping file for {pdb_id}")
         return(False)
