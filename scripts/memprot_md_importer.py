@@ -222,20 +222,23 @@ def parse(pdb_id="", pdb_filename=""):
                     for atom in residue:
                         if atom.bfactor > 0:
                             bfactors.append(atom.bfactor)
-                    real_residue_number, chain_id = memprotmd_to_pdb[str(residue_number)]
-                    if len(bfactors) > 0:
+                    try:
+                        real_residue_number, chain_id = memprotmd_to_pdb[str(residue_number)]
+                        if len(bfactors) > 0:
 
-                        structural_residues.filter(
-                            structure__pdb_id=clean_id,
-                            pdb_chain=chain_id,
-                            pdb_position=real_residue_number,
-                        ).update(memprotmd_head=True)
-                    else:
-                        structural_residues.filter(
-                            structure__pdb_id=clean_id,
-                            pdb_chain=chain_id,
-                            pdb_position=real_residue_number,
-                        ).update(memprotmd_head=False)
+                            structural_residues.filter(
+                                structure__pdb_id=clean_id,
+                                pdb_chain=chain_id,
+                                pdb_position=real_residue_number,
+                            ).update(memprotmd_head=True)
+                        else:
+                            structural_residues.filter(
+                                structure__pdb_id=clean_id,
+                                pdb_chain=chain_id,
+                                pdb_position=real_residue_number,
+                            ).update(memprotmd_head=False)
+                    except(KeyError):
+                        pass
     return(True)
 
 
