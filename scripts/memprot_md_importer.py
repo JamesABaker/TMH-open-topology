@@ -142,19 +142,22 @@ def residue_mapping(pdb_code=None):
             for n, row in enumerate(csv_reader):
                 #Skip header line
                 if n > 0:
-                    memprot_md_number=row[0]
-                    # print(row[0], str(memprot_md_number), , str(chain_number), "result:", row[7])
-                    chain_number = row[3]
-                    residue_number_corrected = row[7]
-                    #print(
-                    #    "match found",
-                    #    memprot_md_number,
-                    #    "->",
-                    #    residue_number_corrected,
-                    #    chain_number,
-                    #)
-                    map[memprot_md_number] = (float(residue_number_corrected), chain_number)
-                    # print(row)
+                    try:
+                        memprot_md_number=row[0]
+                        # print(row[0], str(memprot_md_number), , str(chain_number), "result:", row[7])
+                        chain_number = row[3]
+                        residue_number_corrected = row[7]
+                        #print(
+                        #    "match found",
+                        #    memprot_md_number,
+                        #    "->",
+                        #    residue_number_corrected,
+                        #    chain_number,
+                        #)
+                        map[memprot_md_number] = (float(residue_number_corrected), chain_number)
+                        # print(row)
+                    except(ValueError):
+                        pass
 
                         # return(residue_number_corrected, chain_number)
         except(IndexError):
