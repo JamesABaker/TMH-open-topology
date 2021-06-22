@@ -134,6 +134,8 @@ def residue_mapping(pdb_code=None):
                         map[str(memprot_md_number)] = (float(residue_number_corrected), chain_number)
                     except(ValueError):
                         pass
+                elif str(row) == str("No file is located at that path."):
+                    return(False)
 
                         # return(residue_number_corrected, chain_number)
         except(IndexError):
