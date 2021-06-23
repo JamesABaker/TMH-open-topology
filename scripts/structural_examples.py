@@ -19,7 +19,7 @@ from django.db.models import Exists, OuterRef, Subquery
 
 disvars=Variant.objects.filter(disease_status="d", aa_wt="I", aa_mut="N")
 benvars=Variant.objects.filter(variant_source="gnomAD3", aa_wt="I", aa_mut="N")
-
+'''
 struc_res=Structural_residue.objects.filter(pore_residue=True, residue__tmh_residue__tmh_id__meta_tmh=True, residue__variant__in=disvars).distinct('pk')
 print("I->N Pore disease")
 for i in struc_res:
@@ -56,7 +56,7 @@ for i in struc_res:
 
 
 
-
+'''
 
 
 disvars=Variant.objects.filter(disease_status="d", aa_wt="G", aa_mut="R")
