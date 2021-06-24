@@ -36,17 +36,19 @@ def heatmap_normalised_by_heatmap(title, heatmap_one, heatmap_two):
                     heatmap_two[row_number][column_number]
                 )
             new_heatmap[row_number][column_number] = value
-    heatmap(
-        np.array(new_heatmap),
-        str(title+str(0.6)),
-        aa_list_baezo_order,
-        "PuRd",
-        None,
-        annotation_format="",
-        bars=False,
-        scale_min=0,
-        scale_max=0.6
-    )
+
+    for scale in [0.05,0.1,0.2,0.6, 0.8,1]:
+        heatmap(
+            np.array(new_heatmap),
+            str(title+str(scale)),
+            aa_list_baezo_order,
+            "PuRd",
+            None,
+            annotation_format="",
+            bars=False,
+            scale_min=0,
+            scale_max=scale
+        )
 
 
 def stats_heatmap(
@@ -75,7 +77,7 @@ def stats_heatmap(
             )
             value = pvalue
             new_heatmap[row_number][column_number] = value
-    print(title, "\n", np.array(new_heatmap))
+    #print(title, "\n", np.array(new_heatmap))
     heatmap(
         np.array(new_heatmap),
         title,
@@ -1385,85 +1387,6 @@ heatmap_normalised_by_heatmap(
     pore_benign_variants,
 )
 
-# Funfam extended Pore residues
-
-total_pore_extended_proteins = Protein.objects.filter(
-    residue__structural_residue__pore_residue=True).distinct('pk').count()
-
-pore_extended_residues = (
-    Residue.objects.filter(
-        tmh_residue__feature_location="TMH",
-        funfamresidue__residue__structural_residue__pore_residue=True,
-        tmh_residue__tmh_id__meta_tmh=True,
-    )
-    .distinct("pk")
-    .count()
-)
-
-pore_extended_disease_query = (
-    Variant.objects.filter(
-        residue__tmh_residue__feature_location="TMH",
-        residue__funfamresidue__residue__structural_residue__pore_residue=True,
-        residue__tmh_residue__tmh_id__meta_tmh=True,
-        disease_status="d",
-    )
-    .distinct("pk")
-    .values_list(
-        "aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id"
-    )
-)
-pore_extended_disease_variants = heatmap_array(
-    remove_duplicate_variants(list(pore_extended_disease_query)), aa_list_baezo_order
-)
-
-pore_extended_benign_query = (
-    Variant.objects.filter(
-        residue__tmh_residue__feature_location="TMH",
-        residue__funfamresidue__residue__structural_residue__pore_residue=True,
-        residue__tmh_residue__tmh_id__meta_tmh=True,
-        variant_source="gnomAD3",
-    )
-    .exclude(aa_mut=F("aa_wt"))
-    .distinct("pk")
-    .values_list(
-        "aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id"
-    )
-)
-pore_extended_benign_variants = heatmap_array(
-    remove_duplicate_variants(list(pore_extended_benign_query)), aa_list_baezo_order
-)
-
-
-oddsratio, prop_pvalue = stats.fisher_exact(
-    [
-        [len(pore_extended_disease_query), len(membrane_disease_query)],
-        [len(pore_extended_benign_query), len(membrane_benign_query)],
-    ]
-)
-oddsratio, enr_pvalue = stats.fisher_exact(
-    [
-        [len(pore_extended_disease_query), len(membrane_disease_query)],
-        [pore_extended_residues, membrane_residues],
-    ]
-)
-stats_heatmap(
-    title="Pore lining residues versus multi-pass",
-    diseaseset1=membrane_disease_variants,
-    diseaseset2=pore_extended_disease_variants,
-    benignset1=membrane_benign_variants,
-    benignset2=pore_extended_benign_variants,
-)
-
-
-print(
-    f"Pore variants, {total_pore_extended_proteins}, {len(pore_extended_disease_query)}, {len(pore_extended_benign_query)}, {pore_extended_residues},  {prop_pvalue}, {enr_pvalue}"
-)
-
-heatmap_normalised_by_heatmap(
-    "ClinVar disease normalised by benign meta-tmh pore funfam extended residues",
-    pore_disease_variants,
-    pore_benign_variants,
-)
 
 # Interface
 
@@ -1557,6 +1480,7 @@ memprotmdtail_residues = (
     Residue.objects.filter(
         tmh_residue__feature_location="TMH",
         structural_residue__memprotmd_tail=True,
+        structural_residue__memprotmd_head=False,
         tmh_residue__tmh_id__meta_tmh=True,
     )
     .distinct("pk")
@@ -1567,6 +1491,7 @@ memprotmdtail_disease_query = (
     Variant.objects.filter(
         residue__tmh_residue__feature_location="TMH",
         residue__structural_residue__memprotmd_tail=True,
+        residue__structural_residue__memprotmd_head=False,
         residue__tmh_residue__tmh_id__meta_tmh=True,
         disease_status="d",
     )
@@ -1584,6 +1509,7 @@ memprotmdtail_benign_query = (
     Variant.objects.filter(
         residue__tmh_residue__feature_location="TMH",
         residue__structural_residue__memprotmd_tail=True,
+        residue__structural_residue__memprotmd_head=False,
         residue__tmh_residue__tmh_id__meta_tmh=True,
         variant_source="gnomAD3",
     )
@@ -1638,6 +1564,7 @@ memprotmdhead_residues = (
     Residue.objects.filter(
         tmh_residue__feature_location="TMH",
         structural_residue__memprotmd_head=True,
+        structural_residue__memprotmd_tail=False,
         tmh_residue__tmh_id__meta_tmh=True,
     )
     .distinct("pk")
@@ -1648,6 +1575,7 @@ memprotmdhead_disease_query = (
     Variant.objects.filter(
         residue__tmh_residue__feature_location="TMH",
         residue__structural_residue__memprotmd_head=True,
+        residue__structural_residue__memprotmd_tail=False,
         residue__tmh_residue__tmh_id__meta_tmh=True,
         disease_status="d",
     )
@@ -1665,6 +1593,7 @@ memprotmdhead_benign_query = (
     Variant.objects.filter(
         residue__tmh_residue__feature_location="TMH",
         residue__structural_residue__memprotmd_head=True,
+        residue__structural_residue__memprotmd_tail=False,
         residue__tmh_residue__tmh_id__meta_tmh=True,
         variant_source="gnomAD3",
     )
@@ -1785,9 +1714,9 @@ stats_heatmap(
 stats_heatmap(
     title="Pore lining residues versus lipid residues",
     diseaseset1=memprotmd_disease_variants,
-    diseaseset2=pore_extended_disease_variants,
+    diseaseset2=pore_disease_variants,
     benignset1=memprotmd_benign_variants,
-    benignset2=pore_extended_benign_variants,
+    benignset2=pore_benign_variants,
 )
 
 
@@ -2057,3 +1986,84 @@ def run():
 #
 # heatmap_normalised_by_heatmap(
 #     "Disease variants normalised by gnomAD version 2 residues in TMHs", tmh_disease_variants, tmh_gnomad2_variants)
+
+# Funfam extended Pore residues
+'''
+total_pore_extended_proteins = Protein.objects.filter(
+    residue__structural_residue__pore_residue=True).distinct('pk').count()
+
+pore_extended_residues = (
+    Residue.objects.filter(
+        tmh_residue__feature_location="TMH",
+        funfamresidue__residue__structural_residue__pore_residue=True,
+        tmh_residue__tmh_id__meta_tmh=True,
+    )
+    .distinct("pk")
+    .count()
+)
+
+pore_extended_disease_query = (
+    Variant.objects.filter(
+        residue__tmh_residue__feature_location="TMH",
+        residue__funfamresidue__residue__structural_residue__pore_residue=True,
+        residue__tmh_residue__tmh_id__meta_tmh=True,
+        disease_status="d",
+    )
+    .distinct("pk")
+    .values_list(
+        "aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id"
+    )
+)
+pore_extended_disease_variants = heatmap_array(
+    remove_duplicate_variants(list(pore_extended_disease_query)), aa_list_baezo_order
+)
+
+pore_extended_benign_query = (
+    Variant.objects.filter(
+        residue__tmh_residue__feature_location="TMH",
+        residue__funfamresidue__residue__structural_residue__pore_residue=True,
+        residue__tmh_residue__tmh_id__meta_tmh=True,
+        variant_source="gnomAD3",
+    )
+    .exclude(aa_mut=F("aa_wt"))
+    .distinct("pk")
+    .values_list(
+        "aa_wt", "aa_mut", "residue__sequence_position", "residue__protein__uniprot_id"
+    )
+)
+pore_extended_benign_variants = heatmap_array(
+    remove_duplicate_variants(list(pore_extended_benign_query)), aa_list_baezo_order
+)
+
+
+oddsratio, prop_pvalue = stats.fisher_exact(
+    [
+        [len(pore_extended_disease_query), len(membrane_disease_query)],
+        [len(pore_extended_benign_query), len(membrane_benign_query)],
+    ]
+)
+oddsratio, enr_pvalue = stats.fisher_exact(
+    [
+        [len(pore_extended_disease_query), len(membrane_disease_query)],
+        [pore_extended_residues, membrane_residues],
+    ]
+)
+stats_heatmap(
+    title="Pore lining residues versus multi-pass",
+    diseaseset1=membrane_disease_variants,
+    diseaseset2=pore_extended_disease_variants,
+    benignset1=membrane_benign_variants,
+    benignset2=pore_extended_benign_variants,
+)
+
+
+print(
+    f"Pore variants, {total_pore_extended_proteins}, {len(pore_extended_disease_query)}, {len(pore_extended_benign_query)}, {pore_extended_residues},  {prop_pvalue}, {enr_pvalue}"
+)
+
+heatmap_normalised_by_heatmap(
+    "ClinVar disease normalised by benign meta-tmh pore funfam extended residues",
+    pore_disease_variants,
+    pore_benign_variants,
+)
+'''

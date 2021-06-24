@@ -15,63 +15,43 @@ from django.urls import reverse
 from django.db.models import Exists, OuterRef, Subquery
 
 
+
 #Examples
 
-disvars=Variant.objects.filter(disease_status="d", aa_wt="I", aa_mut="N")
-benvars=Variant.objects.filter(variant_source="gnomAD3", aa_wt="I", aa_mut="N")
-'''
-struc_res=Structural_residue.objects.filter(pore_residue=True, residue__tmh_residue__tmh_id__meta_tmh=True, residue__variant__in=disvars).distinct('pk')
-print("I->N Pore disease")
-for i in struc_res:
-
-    structure=Structure.objects.get(structural_residue__pk=i.pk)
-    print(structure.pdb_id, i.author_position, i.pdb_chain)
 
 
-struc_res=Structural_residue.objects.filter(memprotmd_tail=True, residue__variant__in=benvars).distinct('pk')
-print("I->N Lipid contact benign")
-for i in struc_res:
+def filter(mut=None, wt=None, variant_query=[], structural_residue_query=[]):
+    vars = variant_query.filter(aa_wt=wt, aa_mut=mut)
+    residue= structural_residue_query.filter(residue__variant__in=vars)
 
-    structure=Structure.objects.get(structural_residue__pk=i.pk)
-    print(structure.pdb_id, i.author_position, i.pdb_chain)
-
-
-
-
-disvars=Variant.objects.filter(disease_status="d", aa_wt="S", aa_mut="L")
-benvars=Variant.objects.filter(variant_source="gnomAD3", aa_wt="S", aa_mut="L")
-
-struc_res=Structural_residue.objects.filter(pore_residue=True, residue__tmh_residue__tmh_id__meta_tmh=True, residue__variant__in=disvars).distinct('pk')
-print("S->L Pore disease")
-for i in struc_res:
-    structure=Structure.objects.get(structural_residue__pk=i.pk)
-    print(structure.pdb_id, i.author_position, i.pdb_chain)
+    print(f"{wt}->{mut}")
+    for i in residue:
+        structure=Structure.objects.get(structural_residue__pk=i.pk)
+        print(structure.pdb_id, i.author_position, i.pdb_chain)
 
 
-struc_res=Structural_residue.objects.filter(memprotmd_head=True, residue__variant__in=benvars).distinct('pk')
-print("S->L Lipid contact benign")
-for i in struc_res:
-    structure=Structure.objects.get(structural_residue__pk=i.pk)
-    print(structure.pdb_id, i.author_position, i.pdb_chain)
+def run():
+    alldisvars=Variant.objects.filter(disease_status="d")
+    allbenvars=Variant.objects.filter(variant_source="gnomAD3")
+    pore = Structural_residue.objects.filter(pore_residue=True, residue__tmh_residue__tmh_id__meta_tmh=True).distinct('pk')
+    lipid = Structural_residue.objects.filter(Q(residue__structural_residue__memprotmd_head=True) | Q(residue__structural_residue__memprotmd_tail=True)).filter(residue__tmh_residue__tmh_id__meta_tmh=True).distinct('pk')
 
+    print("Pore disease")
+    filter(mut="A", wt="P", variant_query=alldisvars, structural_residue_query=pore)
+    print("Lipid Benign")
+    filter(mut="A", wt="P", variant_query=allbenvars, structural_residue_query=lipid)
 
+    print("Pore disease")
+    filter(mut="L", wt="S", variant_query=alldisvars, structural_residue_query=pore)
+    print("Lipid Benign")
+    filter(mut="L", wt="S", variant_query=allbenvars, structural_residue_query=lipid)
 
-'''
+    print("Pore disease")
+    filter(mut="S", wt="L", variant_query=alldisvars, structural_residue_query=pore)
+    print("Lipid Benign")
+    filter(mut="S", wt="L", variant_query=allbenvars, structural_residue_query=lipid)
 
-
-disvars=Variant.objects.filter(disease_status="d", aa_wt="G", aa_mut="R")
-benvars=Variant.objects.filter(variant_source="gnomAD3", aa_wt="G", aa_mut="R")
-
-struc_res=Structural_residue.objects.filter(pore_residue=True, residue__variant__in=benvars).distinct('pk')
-print("G->R Pore benign")
-for i in struc_res:
-
-    structure=Structure.objects.get(structural_residue__pk=i.pk)
-    print(structure.pdb_id, i.author_position, i.pdb_chain)
-
-
-struc_res=Structural_residue.objects.filter(memprotmd_tail=True, residue__variant__in=disvars).distinct('pk')
-print("G->R Lipid contact disease")
-for i in struc_res:
-    structure=Structure.objects.get(structural_residue__pk=i.pk)
-    print(structure.pdb_id, i.author_position, i.pdb_chain)
+    print("Pore benign")
+    filter(mut="R", wt="G", variant_query=allbenvars, structural_residue_query=pore)
+    print("Lipid disease")
+    filter(mut="R", wt="G", variant_query=alldisvars, structural_residue_query=lipid)
