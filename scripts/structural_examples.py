@@ -27,11 +27,12 @@ def filter(mut=None, wt=None, variant_query=[], structural_residue_query=[]):
     print(f"{wt}->{mut}")
     for i in residue:
         structure=Structure.objects.get(structural_residue__pk=i.pk)
+        variant=variant_query.filter(aa_wt=wt, aa_mut=mut, residue__pk=i.pk)
         print(structure.pdb_id, i.author_position, i.pdb_chain)
 
 
 def run():
-    alldisvars=Variant.objects.filter(disease_status="d")
+    alldisvars=Variant.objects.filter(disease_status="d", variant_source="ClinVar")
     allbenvars=Variant.objects.filter(variant_source="gnomAD3")
     pore = Structural_residue.objects.filter(pore_residue=True, residue__tmh_residue__tmh_id__meta_tmh=True).distinct('pk')
     lipid = Structural_residue.objects.filter(Q(residue__structural_residue__memprotmd_head=True) | Q(residue__structural_residue__memprotmd_tail=True)).filter(residue__tmh_residue__tmh_id__meta_tmh=True).distinct('pk')

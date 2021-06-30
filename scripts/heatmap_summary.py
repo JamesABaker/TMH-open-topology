@@ -725,7 +725,7 @@ heatmap_normalised_by_heatmap(
 
 # spont
 
-total_nonspont = Tmh.objects.filter(
+total_spont = Tmh.objects.filter(
     meta_tmh=True, tmh_deltag__test_score__lte="-1.101").distinct('pk').count()
 
 
@@ -795,7 +795,7 @@ stats_heatmap(
 )
 
 print(
-    f"spontaneous TMHs, {total_nonspont}, {len(spont_disease_query)}, {len(spont_benign_query)}, {spont_residues},  {prop_pvalue}, {enr_pvalue}"
+    f"spontaneous TMHs, {total_spont}, {len(spont_disease_query)}, {len(spont_benign_query)}, {spont_residues},  {prop_pvalue}, {enr_pvalue}"
 )
 heatmap_normalised_by_heatmap(
     "ClinVar disease normalised by gnomAD meta-tmh spontaneous TMHs",
@@ -1209,6 +1209,14 @@ stats_heatmap(
     benignset1=multi_tmh_benign_variants,
     benignset2=anchors_benign_variants,
 )
+stats_heatmap(
+    title="anchors helices versus unusual TMHs",
+    diseaseset1=unusual_disease_variants,
+    diseaseset2=anchors_disease_variants,
+    benignset1=unusual_benign_variants,
+    benignset2=anchors_benign_variants,
+)
+
 
 print(
     f"anchors TMHs, {total_anchors}, {len(anchors_disease_query)}, {len(anchors_benign_query)}, {anchors_residues}, {prop_pvalue}, {enr_pvalue}"
@@ -1310,7 +1318,7 @@ heatmap_normalised_by_heatmap(
 # Pore
 
 total_pore_proteins = Protein.objects.filter(
-    residue__structural_residue__pore_residue=True).distinct('pk').count()
+    residue__structural_residue__pore_residue=True, residue__tmh_residue__tmh_id__meta_tmh=True,).distinct('pk').count()
 
 pore_residues = (
     Residue.objects.filter(
@@ -1718,9 +1726,6 @@ stats_heatmap(
     benignset1=memprotmd_benign_variants,
     benignset2=pore_benign_variants,
 )
-
-
-
 
 print(
     f"memprotmd variants, {total_memprotmd_proteins}, {len(memprotmd_disease_query)}, {len(memprotmd_benign_query)}, {memprotmd_residues},  {prop_pvalue}, {enr_pvalue}"

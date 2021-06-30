@@ -59,7 +59,7 @@ for aa in aas:
         residue_running_total.append(residues_at_z)
 
     total_residues=sum(residue_running_total)
-    aa_title=str(aa+", "+str(total_residues)+" residues")
+    aa_title=str(aa)
     fname=str(aa+" loss and gain z axis.png")
     plt.plot(x, gain_y, color="red", alpha=0.1)
     plt.plot(x, loss_y, color="blue", alpha=0.1)
@@ -67,7 +67,7 @@ for aa in aas:
     plt.plot(x, sliding_average(loss_y), color="blue")
     plt.xlabel("Distance", wrap=True)
     plt.xticks(np.arange(-20, len(x)/2+1, 10))
-    plt.ylabel("Disease: benign", wrap=True)
+    plt.ylabel("PD", wrap=True)
     plt.title(aa_title)
     plt.tight_layout()
     plt.savefig(fname, bbox_inches = "tight")
